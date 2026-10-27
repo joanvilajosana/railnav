@@ -94,3 +94,14 @@ export class Ruta {
     return this.eventos.filter((e) => e.pk_acum > d + 0.02 && e.pk_acum - d <= alcance(e));
   }
 }
+
+/**
+ * Adelanto (−) o retraso (+) en minutos: hora real menos hora del horario, ambas en minutos
+ * del día. Se toma la diferencia más corta (el horario puede pasar de medianoche).
+ */
+export function desvio(ahora, prevista) {
+  let x = (ahora - prevista) % 1440;
+  if (x > 720) x -= 1440;
+  if (x < -720) x += 1440;
+  return x + 0;
+}

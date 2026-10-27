@@ -4,6 +4,7 @@
 
 import { ajustar, anchoTexto, dm, esc, hm, hms, miles, partesVia, texto } from "./util.js";
 import { forma, icono, pic, picDe } from "./pictos.js";
+import { desvio } from "./ruta.js";
 
 const $ = (id) => document.getElementById(id);
 
@@ -38,7 +39,7 @@ export const Y = (m) => {
 /** Alto en el SVG de la línea de tiempo (0 m → 3000 m), para pasar píxeles a metros. */
 export const altoLinea = () => Y(0) - Y(3000);
 
-const alcance = (e) => {
+export const alcance = (e) => {
   const p = picDe(e);
   return Math.min(3, p?.aviso ?? e.aviso_km ?? 3);
 };
@@ -82,7 +83,27 @@ export const cuadroViaHtml = (v, conResto = true) => {
 
 const MODO_TXT = { manual: "POSICIÓN MANUAL", simulacion: "SIMULACIÓN", gps: "GPS" };
 
-export function pintarMarcha(ruta, pos) {
+// Adelanto o retraso: con la posición que da el maquinista o el GPS (en la simulación solo a
+// tiempo real ×1, si no no tiene sentido).
+function cuadroDesvio(ruta, pos, eta) {
+  if (eta == null || (pos.modo === "simulacion" && pos.factor !== 1)) return "";
+  const t = new Date(), ahora = t.getHours() * 60 + t.getMinutes() + t.getSeconds() / 60;
+  // Solo el día de la hoja (o el siguiente, trenes de noche) y dentro de ±4 h: fuera de eso no
+  // es la marcha real y la cifra no significaría nada.
+  const f = ruta.tren?.fecha;
+  if (f) {
+    const hoy = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+    const ayer = new Date(t.getTime() - 864e5);
+    if (f !== hoy(t) && f !== hoy(ayer)) return "";
+  }
+  const x = desvio(ahora, eta), n = Math.round(x);
+  if (Math.abs(x) > 240) return "";
+  const [txt, color] =
+    n === 0 ? ["en hora", "var(--up)"] : n > 0 ? [`+${n} min`, n >= 5 ? "var(--lt)" : "var(--dn)"] : [`−${-n} min`, "var(--ac)"];
+  return `<text x="886" y="${H - 15}" font-size="15" font-weight="800" text-anchor="end" fill="${color}">${txt}</text>`;
+}
+
+export function pintarMarcha(ruta, pos, { desvio: conDesvio = false } = {}) {
   const d = pos.d;
   const tramo = ruta.tramo(d);
   const vp = tramo?.v ?? null;
@@ -130,7 +151,11 @@ export function pintarMarcha(ruta, pos) {
   s += fondo + frente;
   s += `<polygon points="644,${H - 72} 634,${H - 52} 654,${H - 52}" fill="var(--yl)"/>`;
   const eta = ruta.eta(d);
-  s += `<rect x="602" y="${H - 33}" width="130" height="24" fill="var(--disc)"/><text x="667" y="${H - 15}" font-size="16" font-weight="700" text-anchor="middle" fill="var(--dt)">${miles(d * 1000)} m</text><text x="814" y="${H - 15}" font-size="16" text-anchor="middle" fill="var(--tx)">${eta == null ? "--:--:--" : hms(eta)}</text>`;
+  const dsv = conDesvio ? cuadroDesvio(ruta, pos, eta) : "";
+  s += `<rect x="602" y="${H - 33}" width="130" height="24" fill="var(--disc)"/><text x="667" y="${H - 15}" font-size="16" font-weight="700" text-anchor="middle" fill="var(--dt)">${miles(d * 1000)} m</text>`;
+  s += dsv
+    ? `<text x="738" y="${H - 15}" font-size="15" fill="var(--tx)">${eta == null ? "--:--" : hms(eta).slice(0, 5)}</text>` + dsv
+    : `<text x="814" y="${H - 15}" font-size="16" text-anchor="middle" fill="var(--tx)">${eta == null ? "--:--:--" : hms(eta)}</text>`;
   $("sa").innerHTML = s;
   $("sc").innerHTML = s;
   pintarHistorial(ruta, d);

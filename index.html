@@ -97,6 +97,19 @@
    <label class="op off"><input type="radio" name="modo" value="gps" disabled> GPS <span class="fase">Fase 8</span></label>
    <div class="note">Fase 8: el GPS colocará el tren sobre la vía; en túneles se avisará «posición no fiable». Solo los iPad Wi-Fi + Cellular llevan GPS.</div>
   </div>
+  <div class="pn">
+   <h2>Durante la marcha</h2>
+   <label class="op"><input type="checkbox" id="op-despierto"> Mantener la pantalla encendida mientras la app está abierta <span id="est-despierto" class="estado"></span></label>
+   <h3>Avisos sonoros</h3>
+   <label class="op"><input type="radio" name="sonar" value="no"> Desactivados</label>
+   <label class="op"><input type="radio" name="sonar" value="urgentes"> Solo los urgentes: LTV, CSV y bajadas de velocidad</label>
+   <label class="op"><input type="radio" name="sonar" value="todos"> Todos los avisos (también estaciones, radio, bloqueo, curvas…)</label>
+   <label class="op"><input type="checkbox" id="op-voz"> Leer los avisos en voz alta («Limitación temporal a 30 en 3 kilómetros, vía 2»)</label>
+   <button id="b-probar-aviso">Probar un aviso</button>
+   <h3>Horario</h3>
+   <label class="op"><input type="checkbox" id="op-desvio"> Mostrar el adelanto o retraso respecto al horario de la hoja</label>
+   <div class="note">El sonido sigue el volumen y el silencio de la barra superior. El aviso suena al llegar a su distancia de aviso (la de cada pictograma) y, en las LTV, CSV y bajadas de velocidad, otra vez al llegar al punto. El adelanto o retraso compara la hora del iPad con la prevista en la posición del tren: en posición manual, la que marques.</div>
+  </div>
   <div class="pn"><h2>Otros</h2><button id="oi">Pictogramas</button><div id="acerca" class="note"></div></div>
  </div>
  <!-- Pictogramas -->

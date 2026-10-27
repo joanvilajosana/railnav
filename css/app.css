@@ -206,6 +206,9 @@ label.op{display:flex;gap:8px;align-items:flex-start;font-size:14px;color:var(--
 label.op input{width:auto;margin-top:3px}
 label.op.off{color:var(--gy)}
 label.carga{font-size:14px;color:var(--tx);font-weight:600;margin-top:12px}
+.pn h3{font-size:13px;margin:16px 0 0;color:var(--gy);text-transform:uppercase;letter-spacing:.05em}
+.estado{font-size:12px;font-weight:700;color:var(--gy);margin-left:4px}
+.estado.ok{color:var(--up)}
 button.pri{background:var(--ac);border-color:var(--ac);color:#fff;font-weight:700;margin-top:12px}
 :root[data-theme="dark"] button.pri{color:#04142a}
 @media (prefers-color-scheme:dark){:root:not([data-theme="light"]) button.pri{color:#04142a}}

@@ -5,12 +5,14 @@ import { esc, fecha } from "./util.js";
 import { Ruta, validar } from "./ruta.js";
 import { MODOS, Posicion, metrosPorPixel } from "./posicion.js";
 import { dltvs, persistir, prefs, rutas, tramos } from "./almacen.js";
-import { cargarPictos, deSerie } from "./pictos.js";
-import { ajustarDibujo, altoDibujo, altoLinea, pintarMarcha, reiniciarHistorial } from "./marcha.js";
+import { cargarPictos, deSerie, picDe } from "./pictos.js";
+import { ajustarDibujo, alcance, altoDibujo, altoLinea, pintarMarcha, reiniciarHistorial } from "./marcha.js";
 import { irAqui, mostrarPestana, pintarDatos } from "./datos.js";
 import { iniciarEditor, pintarEditor } from "./editor.js";
 import { LOGO, linea } from "./iconos.js";
-import { ponerSilencio, ponerVolumen, probar, silenciado, volumen } from "./sonido.js";
+import { desbloquear, hablar, ponerSilencio, ponerVolumen, probar, silenciado, tono, volumen } from "./sonido.js";
+import { Avisador, textoVoz } from "./avisos.js";
+import * as despierto from "./despierto.js";
 
 const $ = (id) => document.getElementById(id);
 let ruta = null, pos = null, vista = "marcha", sucio = true;
@@ -303,6 +305,13 @@ async function pintarAjustes() {
     const r = document.querySelector(`input[name=modo][value=${m}]`);
     if (r) r.checked = pos?.modo === m;
   }
+  $("op-despierto").checked = despierto.activado();
+  const ed = { wakelock: ["activa", "ok"], video: ["activa (modo de reserva)", "ok"], apagado: ["", ""], "no disponible": ["este navegador no lo permite", ""] }[despierto.estado()];
+  $("est-despierto").textContent = despierto.activado() ? ed[0] : "";
+  $("est-despierto").className = "estado " + ed[1];
+  for (const r of document.querySelectorAll("input[name=sonar]")) r.checked = r.value === prefs.leer("sonar", "urgentes");
+  $("op-voz").checked = prefs.leer("voz", true);
+  $("op-desvio").checked = prefs.leer("desvio", true);
   $("acerca").innerHTML = `RailNav v${VERSION_APP} · Desarrollado por Joan Vilajosana Quesada · Servicio no oficial ni homologado por la AESF`;
 }
 
@@ -346,8 +355,40 @@ function iniciarAjustes() {
       pintarSim();
     }),
   );
+  $("op-despierto").onchange = (e) => {
+    despierto.activar(e.target.checked);
+    pintarAjustes();
+  };
+  document.querySelectorAll("input[name=sonar]").forEach((r) => r.addEventListener("change", () => prefs.escribir("sonar", r.value)));
+  $("op-voz").onchange = (e) => prefs.escribir("voz", e.target.checked);
+  $("op-desvio").onchange = (e) => {
+    prefs.escribir("desvio", e.target.checked);
+    sucio = true;
+  };
+  $("b-probar-aviso").onclick = probarAviso;
   $("oi").onclick = () => mostrar("pictos");
   $("bk").onclick = () => mostrar("ajustes");
+}
+
+// ---------- avisos sonoros ----------
+const avisador = new Avisador(alcance);
+const urgente = (x) => x.fase === "accion" || picDe(x.e)?.prioridad === "urgente";
+
+function sonarAvisos() {
+  const modo = prefs.leer("sonar", "urgentes");
+  const salida = avisador.revisar(ruta, pos.d);
+  if (modo === "no") return;
+  for (const x of salida) {
+    if (modo === "urgentes" && !urgente(x)) continue;
+    const dur = tono(x.fase === "accion" ? "accion" : urgente(x) ? "urgente" : "info");
+    if (prefs.leer("voz", true)) hablar(textoVoz(x), dur + 0.1);
+  }
+}
+
+function probarAviso() {
+  const x = { fase: "anuncio", e: { tipo: "ltv_inicio", datos: { v: 30, via: "vía II" }, estado: "ok" }, metros: 3000 };
+  const dur = tono("urgente");
+  if (prefs.leer("voz", true)) hablar(textoVoz(x), dur + 0.1);
 }
 
 // ---------- simulación: controles en la pantalla de marcha ----------
@@ -459,7 +500,7 @@ function iniciarTamano() {
 }
 
 // ---------- bucle ----------
-let antes = 0;
+let antes = 0, ultimoSegundo = 0;
 function bucle(t) {
   const dt = Math.min(0.1, (t - antes) / 1000);
   antes = t;
@@ -468,10 +509,16 @@ function bucle(t) {
   if (pos && ruta && pos.paso(dt, ruta.vEn(pos.d) ?? ruta.siguiente(pos.d)?.v ?? 30)) sucio = true;
   if (pos && enMarcha !== pos.enMarcha) pintarSim(); // la simulación ha llegado al final
   if (pasoInercia(dt)) sucio = true;
+  if (pos && ruta) sonarAvisos();
+  // el adelanto o retraso depende del reloj: se repinta cada segundo
+  if (t - ultimoSegundo > 1000) {
+    ultimoSegundo = t;
+    if (prefs.leer("desvio", true)) sucio = true;
+  }
   if (sucio && ruta) {
     sucio = false;
     estado();
-    if (vista === "marcha") pintarMarcha(ruta, pos);
+    if (vista === "marcha") pintarMarcha(ruta, pos, { desvio: prefs.leer("desvio", true) });
   }
   requestAnimationFrame(bucle);
 }
@@ -481,6 +528,8 @@ async function iniciar() {
   const tema = prefs.leer("tema", null);
   if (tema) document.documentElement.dataset.theme = tema;
   barra();
+  desbloquear();
+  despierto.iniciar(() => vista === "ajustes" && pintarAjustes());
   await cargarPictos();
   iniciarAjustes();
   iniciarEditor();
