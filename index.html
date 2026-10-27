@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>RailNav</title>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<meta name="description" content="Hoja de ruta y LTV para el maquinista. Servicio no oficial ni homologado por la AESF.">
+<meta name="theme-color" content="#16365f">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="RailNav">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="img/apple-touch-icon.png">
+<link rel="icon" type="image/png" sizes="192x192" href="img/icon-192.png">
+<link rel="stylesheet" href="css/app.css">
+<script>
+  // Tema antes de pintar, para que no parpadee.
+  try { const t = JSON.parse(localStorage.getItem("railnav.tema")); if (t) document.documentElement.dataset.theme = t; } catch (e) {}
+</script>
+</head>
+<body>
+<div class="w"><div class="row">
+<div class="menu">
+  <div class="brand" id="brand"></div>
+  <div class="mb"><button id="m-marcha" aria-label="Pantalla de marcha"></button><button id="m-datos" aria-label="Datos del tren"></button><button id="m-tema" aria-label="Tema día o noche"></button><button id="m-ajustes" aria-label="Ajustes"></button></div>
+  <div class="st r"><div id="tb-bq"></div><div id="tb-rd"></div></div>
+</div>
+<div class="vw">
+ <!-- Pantalla de marcha -->
+ <div id="v-marcha">
+  <div class="scr">
+   <svg id="sa" viewBox="3.25 3.25 301.5 433.5" aria-label="Velocidad y avisos"></svg>
+   <div class="hist" id="hist" aria-label="Historial"></div>
+   <svg id="sc" viewBox="595.25 3.25 301.5 433.5" aria-label="Línea de tiempo: arrastra para mover el tren"></svg>
+  </div>
+  <div class="pie">Desarrollado por Joan Vilajosana Quesada · Servicio no oficial ni homologado por la AESF</div>
+ </div>
+ <!-- Datos -->
+ <div id="v-datos" hidden>
+  <div class="pn"><div id="kv" class="ficha"></div></div>
+  <div class="pn">
+   <div class="hj-top"><div class="tabs" id="tabs"><button data-t="hoja" class="on">Hoja de ruta</button><button data-t="dltv">DLTV</button></div><button id="hj-aqui">Ir a la posición actual</button></div>
+   <div id="t-hoja">
+    <div class="hj-ley"><span><i style="background:#28A0FF"></i>Marcado en azul en la hoja (CSV)</span><span><i class="i-aqui"></i>Posición actual</span><span>Gris claro: mismo valor que la fila anterior (celda combinada)</span></div>
+    <div class="hj-w" id="hj-w"><table id="tb" class="hj"></table></div>
+   </div>
+   <div id="t-dltv" hidden>
+    <div class="hj-ley" id="dl-cab"></div>
+    <div class="hj-w" id="dl-w"><table id="dl" class="hj dlc"></table></div>
+   </div>
+  </div>
+ </div>
+ <!-- Ajustes -->
+ <div id="v-ajustes" hidden>
+  <div class="pn">
+   <h2>Generar ruta desde los PDF</h2>
+   <label class="carga">Hoja de ruta (PDF)<input id="f-hoja" type="file" accept="application/pdf,.pdf"></label>
+   <label class="carga">DLTV de la semana (PDF)<input id="f-dltv" type="file" accept="application/pdf,.pdf"></label>
+   <label>DLTV con el que cruzar<select id="sel-dltv"></select></label>
+   <button id="b-generar" class="pri" disabled>Generar ruta</button>
+   <div id="gen-msg" class="gen-msg" aria-live="polite"></div>
+   <div id="gen-tramos" class="tr-rev" hidden></div>
+   <div class="note">Los PDF se leen en este iPad y no se envían a ningún sitio. El DLTV se lee una vez y queda guardado para las hojas de esa semana.</div>
+  </div>
+  <div class="pn">
+   <h2>Rutas</h2>
+   <div id="rutas"></div>
+   <label class="carga">Cargar paquete de ruta (.railnav.json)<input id="f-ruta" type="file" accept=".json,application/json" multiple></label>
+   <div id="msg-rutas" class="note"></div>
+   <div class="note">Un paquete también se puede generar en el ordenador con <code>python -m cruce.paquete</code>. Las rutas se guardan solo en este dispositivo.</div>
+   <button id="b-demo">Ver la ruta de demostración</button>
+  </div>
+  <div class="pn">
+   <h2>Posición del tren</h2>
+   <label class="op"><input type="radio" name="modo" value="manual"> Manual: arrastra la línea de tiempo (derecha) hacia abajo para avanzar y hacia arriba para retroceder</label>
+   <label class="op"><input type="radio" name="modo" value="simulacion"> Simulación a la velocidad máxima permitida (pruebas)</label>
+   <div id="sim" hidden><button id="sim-pl">▶ Marcha</button><button id="sim-ini">Al inicio</button><select id="sim-f" aria-label="Velocidad de la simulación"><option value="1">Tiempo real</option><option value="10">×10</option><option value="40">×40</option><option value="100">×100</option></select></div>
+   <label class="op off"><input type="radio" name="modo" value="gps" disabled> GPS <span class="fase">Fase 8</span></label>
+   <div class="note">Fase 8: el GPS colocará el tren sobre la vía; en túneles se avisará «posición no fiable». Solo los iPad Wi-Fi + Cellular llevan GPS.</div>
+  </div>
+  <div class="pn"><h2>Otros</h2><button id="oi">Pictogramas</button><div id="acerca" class="note"></div></div>
+ </div>
+ <!-- Pictogramas -->
+ <div id="v-pictos" hidden>
+  <button id="bk" style="margin:0 0 8px">← Ajustes</button>
+  <div class="g">
+   <div class="pn"><h2>De la hoja de ruta</h2><div class="sec-ley">Avisos de la pantalla de marcha: salen de la hoja de ruta y, los marcados DLTV, del documento de LTV. Se pueden editar.</div><div id="grid"></div><button id="nw">Nuevo</button><button id="du">Duplicar</button><button id="de">Eliminar</button></div>
+   <div class="pn" id="ed"></div>
+  </div>
+  <div class="pn"><h2>De la app</h2><div class="sec-ley">Iconos de la propia aplicación (barra superior y ficha del tren).</div><div id="grid2" class="grid2"></div></div>
+  <div class="pn"><b>JSON de pictogramas</b><br><button id="ex">Exportar</button><button id="im">Aplicar JSON</button><button id="rr">Restaurar los de serie</button><textarea id="js" spellcheck="false" style="margin-top:8px"></textarea></div>
+ </div>
+</div>
+</div></div>
+<script type="module" src="js/main.js"></script>
+</body>
+</html>

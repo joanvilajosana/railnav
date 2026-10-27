@@ -1,0 +1,17 @@
+{
+  "name": "RailNav",
+  "short_name": "RailNav",
+  "description": "Hoja de ruta y LTV para el maquinista. Servicio no oficial ni homologado por la AESF.",
+  "lang": "es",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "landscape",
+  "background_color": "#16365f",
+  "theme_color": "#16365f",
+  "icons": [
+    { "src": "img/icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "img/icon-512.png", "sizes": "512x512", "type": "image/png" },
+    { "src": "img/apple-touch-icon.png", "sizes": "180x180", "type": "image/png" }
+  ]
+}

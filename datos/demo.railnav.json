@@ -1,0 +1,469 @@
+{
+  "formato": "railnav-ruta",
+  "version": 1,
+  "id": "99999-2025-12-10",
+  "tren": {
+    "numero": "99999",
+    "tipo": null,
+    "clase": "mercancias",
+    "masa_t": null,
+    "locomotora": null,
+    "origen": "ALFA",
+    "destino": "EPSILON",
+    "fecha": "2025-12-10"
+  },
+  "fuentes": {
+    "hoja": "hoja.pdf",
+    "ltv": "ltv.pdf",
+    "ltv_numero": null,
+    "ltv_desde": "2025-12-08",
+    "ltv_hasta": "2025-12-14"
+  },
+  "fin": 40.0,
+  "horario": [
+    [
+      0.0,
+      "08:00"
+    ],
+    [
+      20.0,
+      "08:10"
+    ],
+    [
+      40.0,
+      "08:30"
+    ]
+  ],
+  "radios": [
+    [
+      0.0,
+      "64"
+    ],
+    [
+      20.0,
+      "66"
+    ]
+  ],
+  "bloqueos": [
+    [
+      0.0,
+      "BAB CTC"
+    ]
+  ],
+  "vmax": [
+    {
+      "pk_acum_ini": 0.0,
+      "pk_acum_fin": 2.0,
+      "v": null,
+      "fuente": "hoja",
+      "ltv": null,
+      "revisar": false
+    },
+    {
+      "pk_acum_ini": 2.0,
+      "pk_acum_fin": 4.0,
+      "v": 30,
+      "fuente": "ltv",
+      "ltv": "ltv-0001",
+      "revisar": false
+    },
+    {
+      "pk_acum_ini": 4.0,
+      "pk_acum_fin": 10.0,
+      "v": null,
+      "fuente": "hoja",
+      "ltv": null,
+      "revisar": false
+    },
+    {
+      "pk_acum_ini": 10.0,
+      "pk_acum_fin": 25.0,
+      "v": 100,
+      "fuente": "hoja",
+      "ltv": null,
+      "revisar": false
+    },
+    {
+      "pk_acum_ini": 25.0,
+      "pk_acum_fin": 27.0,
+      "v": 60,
+      "fuente": "ltv",
+      "ltv": "ltv-0002",
+      "revisar": false
+    },
+    {
+      "pk_acum_ini": 27.0,
+      "pk_acum_fin": 30.0,
+      "v": 100,
+      "fuente": "hoja",
+      "ltv": null,
+      "revisar": false
+    },
+    {
+      "pk_acum_ini": 30.0,
+      "pk_acum_fin": 40.0,
+      "v": 80,
+      "fuente": "hoja",
+      "ltv": null,
+      "revisar": false
+    }
+  ],
+  "eventos": [
+    {
+      "id": "ev-0001",
+      "tipo": "ltv_inicio",
+      "pk_acum": 2.0,
+      "datos": {
+        "v": 30,
+        "motivo": "SINTÉTICA: ESTADO DE VÍA",
+        "nombre": "ALFA – GAMMA",
+        "ltv": "ltv-0001",
+        "csv": false
+      },
+      "pictograma": "ltv",
+      "aviso_km": 3.0,
+      "estado": "ok",
+      "fase": "accion",
+      "origen": {
+        "archivo": "ltv.pdf",
+        "pagina": 1,
+        "fila": null,
+        "bbox": null,
+        "texto": null
+      }
+    },
+    {
+      "id": "ev-0002",
+      "tipo": "ltv_fin",
+      "pk_acum": 4.0,
+      "datos": {
+        "motivo": "SINTÉTICA: ESTADO DE VÍA",
+        "nombre": "ALFA – GAMMA",
+        "v": 30,
+        "ltv": "ltv-0001",
+        "solo_cabeza": false
+      },
+      "pictograma": "fin_ltv",
+      "aviso_km": 1.0,
+      "estado": "ok",
+      "fase": "restablecer",
+      "origen": {
+        "archivo": "ltv.pdf",
+        "pagina": 1,
+        "fila": null,
+        "bbox": null,
+        "texto": null
+      }
+    },
+    {
+      "id": "ev-0003",
+      "tipo": "cambio_linea",
+      "pk_acum": 20.0,
+      "datos": {
+        "nombre": "GAMMA",
+        "pk": "0",
+        "linea": "200"
+      },
+      "pictograma": "cambio_linea",
+      "aviso_km": 3.0,
+      "estado": "ok",
+      "fase": null,
+      "origen": {
+        "archivo": "hoja.pdf",
+        "pagina": 1,
+        "fila": 21,
+        "bbox": null,
+        "texto": null
+      }
+    },
+    {
+      "id": "ev-0004",
+      "tipo": "cambio_radio",
+      "pk_acum": 20.0,
+      "datos": {
+        "canal": "66",
+        "nombre": "GAMMA"
+      },
+      "pictograma": "radio",
+      "aviso_km": 3.0,
+      "estado": "ok",
+      "fase": null,
+      "origen": {
+        "archivo": "hoja.pdf",
+        "pagina": 1,
+        "fila": 21,
+        "bbox": null,
+        "texto": null
+      }
+    },
+    {
+      "id": "ev-0005",
+      "tipo": "estacion",
+      "pk_acum": 20.0,
+      "datos": {
+        "nombre": "GAMMA",
+        "hora": "08:10"
+      },
+      "pictograma": "estacion",
+      "aviso_km": 3.0,
+      "estado": "ok",
+      "fase": null,
+      "origen": {
+        "archivo": "hoja.pdf",
+        "pagina": 1,
+        "fila": 21,
+        "bbox": null,
+        "texto": null
+      }
+    },
+    {
+      "id": "ev-0006",
+      "tipo": "ltv_inicio",
+      "pk_acum": 25.0,
+      "datos": {
+        "v": 60,
+        "de": 100,
+        "motivo": "SINTÉTICA: OBRAS",
+        "nombre": "GAMMA – EPSILON",
+        "ltv": "ltv-0002",
+        "csv": false,
+        "via": "vía I",
+        "via_leyenda": "I (Banalizada)"
+      },
+      "pictograma": "ltv",
+      "aviso_km": 3.0,
+      "estado": "ok",
+      "fase": "accion",
+      "origen": {
+        "archivo": "ltv.pdf",
+        "pagina": 1,
+        "fila": null,
+        "bbox": null,
+        "texto": null
+      }
+    },
+    {
+      "id": "ev-0007",
+      "tipo": "ltv_fin",
+      "pk_acum": 27.0,
+      "datos": {
+        "motivo": "SINTÉTICA: OBRAS",
+        "nombre": "GAMMA – EPSILON",
+        "v": 60,
+        "ltv": "ltv-0002",
+        "solo_cabeza": false,
+        "via": "vía I"
+      },
+      "pictograma": "fin_ltv",
+      "aviso_km": 1.0,
+      "estado": "ok",
+      "fase": "restablecer",
+      "origen": {
+        "archivo": "ltv.pdf",
+        "pagina": 1,
+        "fila": null,
+        "bbox": null,
+        "texto": null
+      }
+    },
+    {
+      "id": "ev-0008",
+      "tipo": "apeadero",
+      "pk_acum": 30.0,
+      "datos": {
+        "nombre": "DELTA (APD)"
+      },
+      "pictograma": "apeadero",
+      "aviso_km": 3.0,
+      "estado": "ok",
+      "fase": null,
+      "origen": {
+        "archivo": "hoja.pdf",
+        "pagina": 1,
+        "fila": 31,
+        "bbox": null,
+        "texto": null
+      }
+    },
+    {
+      "id": "ev-0009",
+      "tipo": "parada_tecnica",
+      "pk_acum": 30.0,
+      "datos": {
+        "min": "5",
+        "nombre": "DELTA (APD)"
+      },
+      "pictograma": "parada_tecnica",
+      "aviso_km": 3.0,
+      "estado": "ok",
+      "fase": null,
+      "origen": {
+        "archivo": "hoja.pdf",
+        "pagina": 1,
+        "fila": 31,
+        "bbox": null,
+        "texto": null
+      }
+    },
+    {
+      "id": "ev-0010",
+      "tipo": "csv",
+      "pk_acum": 30.0,
+      "datos": {
+        "de": 100,
+        "a": 80,
+        "sin_cambio": false,
+        "nombre": "DELTA (APD)"
+      },
+      "pictograma": "csv",
+      "aviso_km": 3.0,
+      "estado": "ok",
+      "fase": null,
+      "origen": {
+        "archivo": "hoja.pdf",
+        "pagina": 1,
+        "fila": null,
+        "bbox": null,
+        "texto": null
+      }
+    },
+    {
+      "id": "ev-0011",
+      "tipo": "estacion",
+      "pk_acum": 40.0,
+      "datos": {
+        "nombre": "EPSILON",
+        "hora": "08:30"
+      },
+      "pictograma": "estacion",
+      "aviso_km": 3.0,
+      "estado": "ok",
+      "fase": null,
+      "origen": {
+        "archivo": "hoja.pdf",
+        "pagina": 1,
+        "fila": 41,
+        "bbox": null,
+        "texto": null
+      }
+    }
+  ],
+  "hoja": [
+    {
+      "pk": 10.0,
+      "nom": "ALFA",
+      "tipo": "estacion",
+      "hora": "08:00",
+      "radio": "64",
+      "bq": "BAB CTC",
+      "pag": 1
+    },
+    {
+      "pk": 20.0,
+      "pka": 10.0,
+      "tipo": "otro",
+      "v": 100,
+      "radio": "64",
+      "bq": "BAB CTC",
+      "pag": 1
+    },
+    {
+      "pka": 20.0,
+      "pkl": 30.0,
+      "nom": "GAMMA",
+      "tipo": "cambio_linea",
+      "hora": "08:10",
+      "v": 100,
+      "radio": "66",
+      "bq": "BAB CTC",
+      "pag": 1
+    },
+    {
+      "pk": 10.0,
+      "pka": 30.0,
+      "nom": "DELTA (APD)",
+      "tipo": "apeadero",
+      "v": 80,
+      "tec": 5,
+      "radio": "66",
+      "bq": "BAB CTC",
+      "cv": true,
+      "pag": 1
+    },
+    {
+      "pk": 20.0,
+      "pka": 40.0,
+      "nom": "EPSILON",
+      "tipo": "estacion",
+      "hora": "08:30",
+      "v": 80,
+      "radio": "66",
+      "bq": "BAB CTC",
+      "pag": 1
+    }
+  ],
+  "dltv": {
+    "numero": null,
+    "desde": "2025-12-08",
+    "hasta": "2025-12-14",
+    "ltv": [
+      {
+        "cod": "0001",
+        "res": "APLICA",
+        "lin": "100",
+        "via": "A",
+        "via_txt": "AMBAS",
+        "pki": 12.0,
+        "pkf": 14.0,
+        "pkai": 2.0,
+        "pkaf": 4.0,
+        "vel": "30",
+        "v": 30,
+        "mot": "SINTÉTICA: ESTADO DE VÍA",
+        "tray": [
+          "ALFA",
+          "GAMMA"
+        ],
+        "desde": "2025-12-08",
+        "hasta": "2025-12-14",
+        "vig": "semana_documento",
+        "ev": [
+          "línea 100 = tramo ALFA–GAMMA",
+          "PK 12–14 dentro del tramo",
+          "trayecto ALFA – GAMMA: ALFA, GAMMA en la hoja",
+          "vía A (AMBAS)",
+          "velocidad 30"
+        ]
+      },
+      {
+        "cod": "0002",
+        "res": "APLICA",
+        "lin": "200",
+        "via": "l",
+        "via_txt": "I (Banalizada)",
+        "pki": 5.0,
+        "pkf": 7.0,
+        "pkai": 25.0,
+        "pkaf": 27.0,
+        "vel": "60",
+        "v": 60,
+        "mot": "SINTÉTICA: OBRAS",
+        "tray": [
+          "GAMMA",
+          "EPSILON"
+        ],
+        "desde": "2025-12-08",
+        "hasta": "2025-12-14",
+        "vig": "semana_documento",
+        "ev": [
+          "línea 200 = tramo GAMMA–EPSILON",
+          "PK 5–7 dentro del tramo",
+          "trayecto GAMMA – EPSILON: GAMMA, EPSILON en la hoja",
+          "vía l (I (Banalizada)): vía banalizada; se aplica aunque no se sepa por qué vía circula el tren, avisando de la vía afectada",
+          "velocidad 60"
+        ],
+        "va": "vía I"
+      }
+    ]
+  }
+}

@@ -1,0 +1,179 @@
+{
+  "version": 1,
+  "tablas": [
+    {
+      "ruta": "FUENCARRAL F.G.–ALCAZAR SAN JUAN",
+      "tramos": [
+        {
+          "desde": "FUENCARRAL F.G",
+          "hasta": "HORTALEZA",
+          "linea": "902",
+          "verificado": true,
+          "nota": "línea 902 Pitis-Hortaleza por Fuencarral (confirmado por Joan)"
+        },
+        {
+          "desde": "HORTALEZA",
+          "hasta": "O,DONNELL",
+          "linea": "200",
+          "verificado": true,
+          "nota": "línea 200 (confirmado por Joan, 26-10-2026)"
+        },
+        {
+          "desde": "O,DONNELL",
+          "hasta": "VICALVARO",
+          "linea": "940",
+          "verificado": true,
+          "nota": "línea 940 (confirmado por Joan, 26-10-2026)"
+        },
+        {
+          "desde": "VICALVARO",
+          "hasta": "VALLECAS-IND",
+          "linea": "930",
+          "verificado": true,
+          "nota": "línea 930 (confirmado por Joan, 26-10-2026)"
+        },
+        {
+          "desde": "VALLECAS-IND",
+          "hasta": "ARANJUEZ",
+          "linea": "300",
+          "verificado": true,
+          "nota": "línea 300 (confirmado por Joan, 26-10-2026)"
+        },
+        {
+          "desde": "ARANJUEZ",
+          "hasta": "ALCAZAR SAN JUAN",
+          "linea": "300",
+          "verificado": true,
+          "nota": "línea 300 (confirmado por Joan, 26-10-2026)"
+        }
+      ]
+    },
+    {
+      "ruta": "ALCAZAR SAN JUAN–FUENCARRAL F.G.",
+      "tramos": [
+        {
+          "desde": "ALCAZAR SAN JUAN",
+          "hasta": "ARANJUEZ",
+          "linea": "300",
+          "verificado": true,
+          "nota": "línea 300 (confirmado por Joan, 26-10-2026)"
+        },
+        {
+          "desde": "ARANJUEZ",
+          "hasta": "S.CRISTOBAL INDT",
+          "linea": "300",
+          "verificado": true,
+          "nota": "línea 300 (confirmado por Joan, 26-10-2026)"
+        },
+        {
+          "desde": "S.CRISTOBAL INDT",
+          "hasta": "VILLAVERDE BAJO",
+          "linea": "300",
+          "verificado": true,
+          "nota": "línea 300 (confirmado por Joan, 26-10-2026)"
+        },
+        {
+          "desde": "VILLAVERDE BAJO",
+          "hasta": "VALLECAS-IND",
+          "linea": "942",
+          "verificado": true,
+          "nota": "línea 942 (confirmado por Joan, 26-10-2026)"
+        },
+        {
+          "desde": "VALLECAS-IND",
+          "hasta": "VICALVARO",
+          "linea": "930",
+          "verificado": true,
+          "nota": "línea 930 (confirmado por Joan, 26-10-2026)"
+        },
+        {
+          "desde": "VICALVARO",
+          "hasta": "O,DONNELL",
+          "linea": "940",
+          "verificado": true,
+          "nota": "línea 940 (confirmado por Joan, 26-10-2026)"
+        },
+        {
+          "desde": "O,DONNELL",
+          "hasta": "HORTALEZA",
+          "linea": "200",
+          "verificado": true,
+          "nota": "línea 200 (confirmado por Joan, 26-10-2026)"
+        },
+        {
+          "desde": "HORTALEZA",
+          "hasta": "FUENCARRAL F.G",
+          "linea": "902",
+          "verificado": true,
+          "nota": "línea 902 Pitis-Hortaleza por Fuencarral (confirmado por Joan)"
+        }
+      ]
+    },
+    {
+      "ruta": "FUENCARRAL F.G.–SEGOVIA",
+      "tramos": [
+        {
+          "desde": "FUENCARRAL F.G",
+          "hasta": "PITIS",
+          "linea": "902",
+          "verificado": true,
+          "nota": "línea 902 Pitis-Hortaleza por Fuencarral (confirmado por Joan)"
+        },
+        {
+          "desde": "PITIS",
+          "hasta": "PINAR DE L ROZAS",
+          "linea": "100",
+          "verificado": true,
+          "nota": "línea 100 (confirmado por Joan, 26-10-2026)"
+        },
+        {
+          "desde": "PINAR DE L ROZAS",
+          "hasta": "VILLALBA GUADARR",
+          "linea": "100",
+          "verificado": true,
+          "nota": "línea 100 (confirmado por Joan, 26-10-2026)"
+        },
+        {
+          "desde": "VILLALBA GUADARR",
+          "hasta": "SEGOVIA",
+          "linea": "110",
+          "verificado": true,
+          "nota": "línea 110 (confirmado por Joan, 26-10-2026)"
+        }
+      ]
+    },
+    {
+      "ruta": "SEGOVIA–FUENCARRAL F.G.",
+      "tramos": [
+        {
+          "desde": "SEGOVIA",
+          "hasta": "VILLALBA GUADARR",
+          "linea": "110",
+          "verificado": true,
+          "nota": "línea 110 (confirmado por Joan, 26-10-2026)"
+        },
+        {
+          "desde": "VILLALBA GUADARR",
+          "hasta": "PINAR DE L ROZAS",
+          "linea": "100",
+          "verificado": true,
+          "nota": "línea 100 (confirmado por Joan, 26-10-2026)"
+        },
+        {
+          "desde": "PINAR DE L ROZAS",
+          "hasta": "PITIS",
+          "linea": "100",
+          "verificado": true,
+          "nota": "línea 100 (confirmado por Joan, 26-10-2026)"
+        },
+        {
+          "desde": "PITIS",
+          "hasta": "FUENCARRAL F.G",
+          "linea": "902",
+          "verificado": true,
+          "nota": "línea 902 Pitis-Hortaleza por Fuencarral (confirmado por Joan)"
+        }
+      ]
+    }
+  ]
+}

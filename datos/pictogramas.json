@@ -1,0 +1,329 @@
+{
+  "version": 2,
+  "pictogramas": [
+    {
+      "id": "estacion",
+      "nombre": "Estación",
+      "forma": "cuadrado",
+      "fondo": "#10223c",
+      "borde": "#c5d1e0",
+      "color": "#ffffff",
+      "glifo": "E",
+      "svg": "",
+      "aviso": 3.0,
+      "accion": "Estación {nombre} · {hora}",
+      "marca": "",
+      "prioridad": "informativo",
+      "tipos": [
+        "estacion"
+      ],
+      "de_serie": true
+    },
+    {
+      "id": "apeadero",
+      "nombre": "Apeadero (APD)",
+      "forma": "cuadrado",
+      "fondo": "#111111",
+      "borde": "#c5d1e0",
+      "color": "#ffffff",
+      "glifo": "",
+      "svg": "<circle cx=\"12\" cy=\"12\" r=\"8\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\"/><text x=\"12\" y=\"16.3\" font-size=\"11\" font-weight=\"700\" text-anchor=\"middle\" fill=\"currentColor\">A</text>",
+      "aviso": 3.0,
+      "accion": "Apeadero {nombre}",
+      "marca": "",
+      "prioridad": "informativo",
+      "tipos": [
+        "apeadero"
+      ],
+      "de_serie": true
+    },
+    {
+      "id": "parada_tecnica",
+      "nombre": "Parada técnica",
+      "forma": "cuadrado",
+      "fondo": "#10223c",
+      "borde": "#f5c451",
+      "color": "#f5c451",
+      "glifo": "T{min}",
+      "svg": "",
+      "aviso": 3.0,
+      "accion": "Parada técnica {min} min · {nombre}",
+      "marca": "",
+      "prioridad": "informativo",
+      "tipos": [
+        "parada_tecnica"
+      ],
+      "de_serie": true
+    },
+    {
+      "id": "parada_comercial",
+      "nombre": "Parada comercial",
+      "forma": "cuadrado",
+      "fondo": "#10223c",
+      "borde": "#f5c451",
+      "color": "#f5c451",
+      "glifo": "C",
+      "svg": "",
+      "aviso": 3.0,
+      "accion": "Parada comercial {min} min",
+      "marca": "",
+      "prioridad": "informativo",
+      "tipos": [
+        "parada_comercial"
+      ],
+      "de_serie": true
+    },
+    {
+      "id": "radio",
+      "nombre": "Cambio de radio",
+      "forma": "circulo",
+      "fondo": "#10223c",
+      "borde": "#35c2b5",
+      "color": "#35c2b5",
+      "glifo": "R{canal}",
+      "svg": "",
+      "aviso": 3.0,
+      "accion": "Cambio de radio · canal {canal}",
+      "marca": "",
+      "prioridad": "informativo",
+      "tipos": [
+        "cambio_radio"
+      ],
+      "de_serie": true
+    },
+    {
+      "id": "vel_baja",
+      "nombre": "Baja velocidad máxima",
+      "forma": "rombo",
+      "fondo": "#ffffff",
+      "borde": "#111111",
+      "color": "#111111",
+      "glifo": "{a}",
+      "svg": "",
+      "aviso": 3.0,
+      "accion": "{de} → {a} km/h",
+      "marca": "",
+      "prioridad": "urgente",
+      "tipos": [
+        "cambio_vmax_baja"
+      ],
+      "de_serie": true
+    },
+    {
+      "id": "vel_sube",
+      "nombre": "Sube velocidad máxima",
+      "forma": "rombo",
+      "fondo": "#ffffff",
+      "borde": "#111111",
+      "color": "#111111",
+      "glifo": "{a}",
+      "svg": "",
+      "aviso": 1.0,
+      "accion": "{de} → {a} km/h",
+      "marca": "",
+      "prioridad": "informativo",
+      "tipos": [
+        "cambio_vmax_sube"
+      ],
+      "de_serie": true
+    },
+    {
+      "id": "csv",
+      "nombre": "Cambio significativo de velocidad (CSV)",
+      "forma": "rombo",
+      "fondo": "#ff8a00",
+      "borde": "#111111",
+      "color": "#111111",
+      "glifo": "{a}",
+      "svg": "",
+      "aviso": 3.0,
+      "accion": "CSV {de} → {a} km/h",
+      "marca": "",
+      "prioridad": "urgente",
+      "tipos": [
+        "csv"
+      ],
+      "de_serie": true
+    },
+    {
+      "id": "ltv",
+      "nombre": "LTV (inicio)",
+      "forma": "rombo",
+      "fondo": "#ffd200",
+      "borde": "#111111",
+      "color": "#111111",
+      "glifo": "{v}",
+      "svg": "",
+      "aviso": 3.0,
+      "accion": "LTV {v} km/h · {nombre} · {motivo}",
+      "marca": "",
+      "prioridad": "urgente",
+      "tipos": [
+        "ltv_inicio"
+      ],
+      "de_serie": true
+    },
+    {
+      "id": "ltv_csv",
+      "nombre": "LTV que es CSV",
+      "forma": "rombo",
+      "fondo": "#ffd200",
+      "borde": "#111111",
+      "color": "#111111",
+      "glifo": "{v}",
+      "svg": "",
+      "aviso": 3.0,
+      "accion": "LTV {v} km/h · CSV · {nombre} · {motivo}",
+      "marca": "#ff8a00",
+      "prioridad": "urgente",
+      "tipos": [
+        "ltv_inicio"
+      ],
+      "de_serie": true
+    },
+    {
+      "id": "fin_ltv",
+      "nombre": "Fin de LTV",
+      "forma": "cuadrado",
+      "fondo": "#ffd200",
+      "borde": "#111111",
+      "color": "#111111",
+      "glifo": "",
+      "svg": "",
+      "aviso": 1.0,
+      "accion": "Fin de LTV · {nombre}",
+      "marca": "",
+      "prioridad": "informativo",
+      "tipos": [
+        "ltv_fin"
+      ],
+      "de_serie": true
+    },
+    {
+      "id": "curva",
+      "nombre": "Curva con nota",
+      "forma": "cuadrado",
+      "fondo": "#10223c",
+      "borde": "#ff9a3c",
+      "color": "#ff9a3c",
+      "glifo": "",
+      "svg": "<path d=\"M5 20Q5 5 20 4\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"3\" stroke-linecap=\"round\"/>",
+      "aviso": 3.0,
+      "accion": "Curva · {nota}",
+      "marca": "",
+      "prioridad": "informativo",
+      "tipos": [
+        "curva_nota"
+      ],
+      "de_serie": true
+    },
+    {
+      "id": "bifurcacion",
+      "nombre": "Pantalla de bifurcación",
+      "forma": "vertical",
+      "fondo": "#ff7a00",
+      "borde": "#111111",
+      "color": "#111111",
+      "glifo": "",
+      "svg": "<path d=\"M6 5l6 4 6-4M6 10l6 4 6-4M6 15l6 4 6-4\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2.4\" stroke-linecap=\"round\" stroke-linejoin=\"round\"/>",
+      "aviso": 3.0,
+      "accion": "Bifurcación {nombre}",
+      "marca": "",
+      "prioridad": "informativo",
+      "tipos": [
+        "bifurcacion"
+      ],
+      "de_serie": true
+    },
+    {
+      "id": "cambio_bloqueo",
+      "nombre": "Pantalla: cambio a bloqueo no automático",
+      "forma": "vertical",
+      "fondo": "#ff7a00",
+      "borde": "#111111",
+      "color": "#111111",
+      "glifo": "",
+      "svg": "<path d=\"M7 8L17 4M7 13L17 9M7 18L17 14\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2.6\" stroke-linecap=\"round\"/>",
+      "aviso": 3.0,
+      "accion": "Bloqueo {de} → {a}",
+      "marca": "",
+      "prioridad": "informativo",
+      "tipos": [
+        "cambio_bloqueo"
+      ],
+      "de_serie": true
+    },
+    {
+      "id": "cambio_linea",
+      "nombre": "Cambio de línea / PK",
+      "forma": "cuadrado",
+      "fondo": "#10223c",
+      "borde": "#c5d1e0",
+      "color": "#ffffff",
+      "glifo": "PK",
+      "svg": "",
+      "aviso": 3.0,
+      "accion": "Cambio de línea · PK {pk}",
+      "marca": "",
+      "prioridad": "informativo",
+      "tipos": [
+        "cambio_linea"
+      ],
+      "de_serie": true
+    },
+    {
+      "id": "silbato",
+      "nombre": "Silbato",
+      "forma": "cuadrado",
+      "fondo": "#111111",
+      "borde": "#c5d1e0",
+      "color": "#ffffff",
+      "glifo": "S",
+      "svg": "",
+      "aviso": 1.0,
+      "accion": "Silbato",
+      "marca": "",
+      "prioridad": "informativo",
+      "tipos": [
+        "silbato"
+      ],
+      "de_serie": true
+    },
+    {
+      "id": "bajar_pantografos",
+      "nombre": "Bajar pantógrafos",
+      "forma": "rombo",
+      "fondo": "#0a55d6",
+      "borde": "#ffffff",
+      "color": "#ffffff",
+      "glifo": "",
+      "svg": "<rect x=\"4\" y=\"10.7\" width=\"16\" height=\"2.6\" fill=\"currentColor\"/>",
+      "aviso": 3.0,
+      "accion": "Bajar pantógrafos",
+      "marca": "",
+      "prioridad": "informativo",
+      "tipos": [
+        "bajar_pantografo"
+      ],
+      "de_serie": true
+    },
+    {
+      "id": "subir_pantografos",
+      "nombre": "Subir pantógrafos",
+      "forma": "rombo",
+      "fondo": "#0a55d6",
+      "borde": "#ffffff",
+      "color": "#ffffff",
+      "glifo": "",
+      "svg": "<rect x=\"10.7\" y=\"4\" width=\"2.6\" height=\"16\" fill=\"currentColor\"/>",
+      "aviso": 3.0,
+      "accion": "Subir pantógrafos",
+      "marca": "",
+      "prioridad": "informativo",
+      "tipos": [
+        "subir_pantografo"
+      ],
+      "de_serie": true
+    }
+  ]
+}
