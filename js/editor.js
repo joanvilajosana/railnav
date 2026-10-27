@@ -1,46 +1,23 @@
-// Ajustes → Pictogramas: los de la hoja de ruta (editables) y los de la app (consulta).
+// Ajustes → Pictogramas: los avisos de la pantalla de marcha (editables).
 
 import { esc, texto } from "./util.js";
 import { MUESTRA, guardar, icono, reemplazar, restaurar, todos } from "./pictos.js";
-import { LOGO, linea } from "./iconos.js";
-import { lineal } from "./datos.js";
 
 const $ = (id) => document.getElementById(id);
 const DLTV = ["ltv", "ltv_csv", "fin_ltv"];
-let sel = 0, selApp = null;
-
-const APP = () => [
-  ["Pantalla de marcha", "Barra superior: vuelve a la pantalla de marcha", linea("marcha", 48)],
-  ["Datos del tren", "Barra superior: ficha, hoja de ruta y DLTV", linea("datos", 48)],
-  ["Modo noche", "Barra superior, en modo día: pasa a noche", linea("luna", 48)],
-  ["Modo día", "Barra superior, en modo noche: pasa a día", linea("sol", 48)],
-  ["Ajustes", "Barra superior: rutas, posición y pictogramas", linea("ajustes", 48)],
-  ["Logotipo", "Barra superior, con la versión al lado", LOGO(30)],
-  ["Tren", "Ficha del tren: número y recorrido", lineal("tren", 48)],
-  ["Fecha", "Ficha del tren", lineal("fecha", 48)],
-  ["Locomotora", "Ficha del tren", lineal("loco", 48)],
-  ["Peso", "Ficha del tren", lineal("peso", 48)],
-  ["Tipo de tren", "Ficha del tren", lineal("tipo", 48)],
-  ["LTV a revisar", "Ficha del tren y pestaña DLTV", '<span class="tl rv" style="width:48px;height:48px;margin:0 auto;font-size:26px">?</span>'],
-];
+let sel = 0;
 
 export function pintarEditor() {
   const D = todos();
   sel = Math.min(sel, D.length - 1);
   $("grid").innerHTML = D.map(
     (p, i) =>
-      `<div class="c${selApp == null && i === sel ? " on" : ""}" data-i="${i}">${icono(p, 48, MUESTRA)}${esc(p.nombre)}${DLTV.includes(p.id) ? '<span class="tag">DLTV</span>' : ""}</div>`,
+      `<div class="c${i === sel ? " on" : ""}" data-i="${i}">${icono(p, 48, MUESTRA)}${esc(p.nombre)}${DLTV.includes(p.id) ? '<span class="tag">DLTV</span>' : ""}</div>`,
   ).join("");
-  $("grid2").innerHTML = APP().map((a, i) => `<div class="c${selApp === i ? " on" : ""}" data-a="${i}">${a[2]}${esc(a[0])}</div>`).join("");
   pintarFicha();
 }
 
 function pintarFicha() {
-  if (selApp != null) {
-    const a = APP()[selApp];
-    $("ed").innerHTML = `<div class="pv"><span style="color:var(--tx)">${a[2].replace(/width="48" height="48"/, 'width="72" height="72"')}</span><div><b>${esc(a[0])}</b><br><span style="color:var(--gy)">${esc(a[1])}</span></div></div><div class="note">Icono de la app: no se edita aquí.</div>`;
-    return;
-  }
   const p = todos()[sel];
   const f = (k, l, t) => `<label>${l}<input data-k="${k}" type="${t || "text"}" value="${esc(p[k] ?? "")}"></label>`;
   $("ed").innerHTML =
@@ -67,20 +44,12 @@ export function iniciarEditor() {
     const c = e.target.closest(".c");
     if (c) {
       sel = +c.dataset.i;
-      selApp = null;
-      pintarEditor();
-    }
-  };
-  $("grid2").onclick = (e) => {
-    const c = e.target.closest(".c");
-    if (c) {
-      selApp = +c.dataset.a;
       pintarEditor();
     }
   };
   $("ed").oninput = (e) => {
     const k = e.target.dataset.k;
-    if (!k || selApp != null) return;
+    if (!k) return;
     todos()[sel][k] = k === "aviso" ? +e.target.value : e.target.value;
     guardar();
     vista();
@@ -89,12 +58,10 @@ export function iniciarEditor() {
   $("nw").onclick = () => {
     todos().push({ id: "nuevo_" + (todos().length + 1), nombre: "Nuevo pictograma", forma: "cuadrado", fondo: "#10223c", borde: "#c5d1e0", color: "#ffffff", glifo: "?", svg: "", aviso: 3, accion: "", marca: "", tipos: [] });
     sel = todos().length - 1;
-    selApp = null;
     guardar();
     pintarEditor();
   };
   $("du").onclick = () => {
-    if (selApp != null) return;
     const c = JSON.parse(JSON.stringify(todos()[sel]));
     c.id += "_copia";
     c.nombre += " (copia)";
@@ -104,7 +71,7 @@ export function iniciarEditor() {
     pintarEditor();
   };
   $("de").onclick = () => {
-    if (selApp != null || todos().length <= 1) return;
+    if (todos().length <= 1) return;
     todos().splice(sel, 1);
     sel = Math.max(0, sel - 1);
     guardar();

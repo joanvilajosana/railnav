@@ -92,8 +92,13 @@ const iconoTema = () => {
 
 function estado() {
   const bq = ruta?.bloqueoEn(pos.d), rd = ruta?.radioEn(pos.d);
-  $("tb-bq").innerHTML = bq ? `<span title="Bloqueo"><small>Bloqueo</small><b>${esc(bq)}</b></span>` : "";
-  $("tb-rd").innerHTML = rd != null ? `<span title="Radiotelefonía"><small>Radiotelefonía</small><b>Canal ${esc(rd)}</b></span>` : "";
+  const poner = (id, v) => {
+    $(id).textContent = v ?? "—";
+    $(id).classList.toggle("vacio", v == null);
+  };
+  poner("in-tren", ruta?.tren?.numero ?? null);
+  poner("in-bq", bq || null);
+  poner("in-rd", rd != null ? `Canal ${rd}` : null);
 }
 
 // ---------- vistas ----------

@@ -17,6 +17,8 @@
 <script>
   // Tema antes de pintar, para que no parpadee.
   try { const t = JSON.parse(localStorage.getItem("railnav.tema")); if (t) document.documentElement.dataset.theme = t; } catch (e) {}
+  // App instalada en la pantalla de inicio: la barra de estado del iPad va encima.
+  if (navigator.standalone || matchMedia("(display-mode: standalone)").matches) document.documentElement.classList.add("instalada");
 </script>
 </head>
 <body>
@@ -24,7 +26,11 @@
 <div class="menu">
   <div class="brand" id="brand"></div>
   <div class="mb"><button id="m-marcha" aria-label="Pantalla de marcha"></button><button id="m-datos" aria-label="Datos del tren"></button><button id="m-tema" aria-label="Tema día o noche"></button><button id="m-ajustes" aria-label="Ajustes"></button><span class="sep" aria-hidden="true"></span><button id="m-vol" aria-label="Volumen" aria-haspopup="true" aria-expanded="false"></button><button id="m-mute" aria-label="Silenciar" aria-pressed="false"></button></div>
-  <div class="st r"><div id="tb-bq"></div><div id="tb-rd"></div></div>
+</div>
+<div class="info" aria-live="polite">
+  <div class="ic"><small>Tren</small><b id="in-tren">—</b></div>
+  <div class="ic"><small>Bloqueo</small><b id="in-bq">—</b></div>
+  <div class="ic"><small>Radiotelefonía</small><b id="in-rd">—</b></div>
 </div>
 <div id="pop-vol" class="pop" role="dialog" aria-label="Volumen" hidden>
   <div class="pop-t">Volumen <b id="vol-n"></b></div>
@@ -97,10 +103,9 @@
  <div id="v-pictos" hidden>
   <button id="bk" style="margin:0 0 8px">← Ajustes</button>
   <div class="g">
-   <div class="pn"><h2>De la hoja de ruta</h2><div class="sec-ley">Avisos de la pantalla de marcha: salen de la hoja de ruta y, los marcados DLTV, del documento de LTV. Se pueden editar.</div><div id="grid"></div><button id="nw">Nuevo</button><button id="du">Duplicar</button><button id="de">Eliminar</button></div>
+   <div class="pn"><h2>Pictogramas de los avisos</h2><div class="sec-ley">Avisos de la pantalla de marcha: salen de la hoja de ruta y, los marcados DLTV, del documento de LTV. Se pueden editar.</div><div id="grid"></div><button id="nw">Nuevo</button><button id="du">Duplicar</button><button id="de">Eliminar</button></div>
    <div class="pn" id="ed"></div>
   </div>
-  <div class="pn"><h2>De la app</h2><div class="sec-ley">Iconos de la propia aplicación (barra superior y ficha del tren).</div><div id="grid2" class="grid2"></div></div>
   <div class="pn"><b>JSON de pictogramas</b><br><button id="ex">Exportar</button><button id="im">Aplicar JSON</button><button id="rr">Restaurar los de serie</button><textarea id="js" spellcheck="false" style="margin-top:8px"></textarea></div>
  </div>
 </div>
