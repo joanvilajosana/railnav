@@ -2,6 +2,8 @@
 //   rutas  → IndexedDB (paquetes de ruta cargados o generados; sin límite práctico de tamaño)
 //   dltv   → IndexedDB (DLTV leídos de su PDF: se leen una vez por semana)
 //   tramos → IndexedDB (tablas de tramos confirmadas por el maquinista en este iPad)
+//   geo    → IndexedDB (trazados de la vía ya preparados, por ruta: se reutilizan cada día)
+//   recorridos → IndexedDB (grabaciones de la posición del iPad)
 //   prefs  → localStorage (ruta activa, posición por ruta, tema, modo de posición, pictogramas)
 // Si el navegador no deja guardar (modo privado…), todo sigue funcionando en memoria.
 
@@ -36,14 +38,14 @@ export const prefs = {
 };
 
 let db = null;
-const ALMACENES = { rutas: "id", dltv: "id", tramos: "ruta" };
-const mem = { rutas: new Map(), dltv: new Map(), tramos: new Map() };
+const ALMACENES = { rutas: "id", dltv: "id", tramos: "ruta", geo: "firma", recorridos: "id" };
+const mem = Object.fromEntries(Object.keys(ALMACENES).map((k) => [k, new Map()]));
 
 function abrir() {
   if (db) return Promise.resolve(db);
   return new Promise((ok) => {
     try {
-      const r = indexedDB.open("railnav", 2);
+      const r = indexedDB.open("railnav", 3);
       r.onupgradeneeded = () => {
         for (const [nombre, clave] of Object.entries(ALMACENES))
           if (!r.result.objectStoreNames.contains(nombre)) r.result.createObjectStore(nombre, { keyPath: clave });
@@ -86,7 +88,7 @@ const almacen = (nombre) => ({
     await tx(nombre, "readwrite", (s) => s && s.delete(id)).catch(() => null);
   },
 });
-const A = { rutas: almacen("rutas"), dltv: almacen("dltv"), tramos: almacen("tramos") };
+const A = Object.fromEntries(Object.keys(ALMACENES).map((k) => [k, almacen(k)]));
 
 const resumen = (p, guardado) => ({
   id: p.id,
@@ -148,6 +150,25 @@ export const tramos = {
   guardar: (tabla) => A.tramos.poner(tabla),
   listar: () => A.tramos.todas(),
   borrar: (ruta) => A.tramos.quitar(ruta),
+};
+
+// Trazados de la vía ya preparados. La firma identifica la ruta (mismas dependencias y PK).
+export { firma as firmaRuta } from "./geo/firma.js";
+export const geos = {
+  guardar: (firma, geo) => A.geo.poner({ firma, geo }),
+  cargar: async (firma) => (await A.geo.una(firma))?.geo ?? null,
+};
+
+// Recorridos grabados (los 10 últimos).
+export const recorridos = {
+  async guardar(r) {
+    await A.recorridos.poner(r);
+    const todas = (await A.recorridos.todas()).sort((a, b) => (a.id < b.id ? 1 : -1));
+    for (const f of todas.slice(10)) await A.recorridos.quitar(f.id);
+  },
+  listar: async () => (await A.recorridos.todas()).sort((a, b) => (a.id < b.id ? 1 : -1)),
+  cargar: (id) => A.recorridos.una(id),
+  borrar: (id) => A.recorridos.quitar(id),
 };
 
 /** Pide al navegador que no borre los datos guardados (iPad: app en la pantalla de inicio). */

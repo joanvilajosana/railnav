@@ -2,7 +2,7 @@
 // zonas sin cobertura). Las rutas no pasan por aquí: están en IndexedDB.
 // Al publicar una versión nueva hay que cambiar VERSION (y la de js/version.js).
 
-const VERSION = "0.8.0";
+const VERSION = "0.9.0";
 const CACHE = "railnav-" + VERSION;
 const ARCHIVOS = [
   "./",
@@ -22,6 +22,14 @@ const ARCHIVOS = [
   "js/iconos.js",
   "js/avisos.js",
   "js/despierto.js",
+  "js/compartir.js",
+  "js/geo/osm.js",
+  "js/geo/trazado.js",
+  "js/geo/firma.js",
+  "js/geo/preparar.js",
+  "js/geo/seguimiento.js",
+  "js/geo/ubicacion.js",
+  "js/geo/grabar.js",
   "media/despierto.mp4",
   "js/sonido.js",
   "js/generador.js",
@@ -42,6 +50,8 @@ const ARCHIVOS = [
   "datos/pictogramas.json",
   "datos/demo.railnav.json",
   "datos/tramos.json",
+  "datos/estaciones.json",
+  "datos/trazados.json",
   "img/logo_horizontal_dia.png",
   "img/logo_horizontal_noche.png",
   "img/icon-192.png",

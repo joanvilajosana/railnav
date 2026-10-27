@@ -4,7 +4,7 @@ import { VERSION_APP } from "./version.js";
 import { esc, fecha } from "./util.js";
 import { Ruta, validar } from "./ruta.js";
 import { MODOS, Posicion, metrosPorPixel } from "./posicion.js";
-import { dltvs, persistir, prefs, rutas, tramos } from "./almacen.js";
+import { dltvs, firmaRuta, geos, persistir, prefs, recorridos, rutas, tramos } from "./almacen.js";
 import { cargarPictos, deSerie, picDe } from "./pictos.js";
 import { ajustarDibujo, alcance, altoDibujo, altoLinea, pintarMarcha, reiniciarHistorial } from "./marcha.js";
 import { irAqui, mostrarPestana, pintarDatos } from "./datos.js";
@@ -13,6 +13,11 @@ import { LOGO, linea } from "./iconos.js";
 import { desbloquear, hablar, ponerSilencio, ponerVolumen, probar, silenciado, tono, volumen } from "./sonido.js";
 import { Avisador, textoVoz } from "./avisos.js";
 import * as despierto from "./despierto.js";
+import { Seguidor, Via } from "./geo/seguimiento.js";
+import { disponible as hayUbicacion, escuchar as escucharUbicacion } from "./geo/ubicacion.js";
+import * as grabar from "./geo/grabar.js";
+import { compartirArchivo } from "./compartir.js";
+import { trazadoIncluido } from "./geo/firma.js";
 
 const $ = (id) => document.getElementById(id);
 let ruta = null, pos = null, vista = "marcha", sucio = true;
@@ -121,8 +126,14 @@ function mostrar(v) {
 async function abrir(paquete, guardarla = true) {
   const errores = validar(paquete);
   if (errores.length) throw new Error(errores.join("; "));
+  // Trazado de la vía ya preparado otro día para esta misma ruta
+  if (!paquete.geo) {
+    const geo = (await geos.cargar(firmaRuta(paquete)).catch(() => null)) || (await trazadoIncluido(paquete).catch(() => null));
+    if (geo) paquete.geo = geo;
+  }
   if (guardarla) await rutas.guardar(paquete);
   ruta = new Ruta(paquete);
+  via = paquete.geo?.puntos?.length ? new Via(paquete.geo) : null;
   prefs.escribir("activa", guardarla ? ruta.id : null);
   pos = new Posicion({
     fin: ruta.fin,
@@ -137,6 +148,9 @@ async function abrir(paquete, guardarla = true) {
   reiniciarHistorial();
   $("hist").scrollTop = 0;
   inercia = 0;
+  if (pos.modo === "gps" && !via) pos.cambiarModo("manual");
+  if (pos.modo === "gps") activarGps();
+  else desactivarGps();
   pintarSim();
   sucio = true;
 }
@@ -276,6 +290,7 @@ async function terminar(g, ruta, ltv, tabla) {
   await new Promise((r) => setTimeout(r, 0));
   const { paquete, cruce, avisos } = g.generarPaquete(ruta, ltv, tabla, { version: 1, pictogramas: deSerie() });
   await abrir(paquete);
+  if (!paquete.geo && navigator.onLine) prepararGps(); // en segundo plano; si falla, se avisa abajo
   const n = g.recuento(cruce);
   const t = paquete.tren;
   const ltvTxt = ltv
@@ -289,6 +304,127 @@ async function terminar(g, ruta, ltv, tabla) {
   pintarAjustes();
 }
 
+// ---------- compartir una ruta ----------
+// El paquete va con el trazado de la vía (si lo tiene): quien lo recibe lo carga en Ajustes →
+// «Cargar paquete de ruta» y tiene la ruta y el GPS listos.
+async function compartirRuta(id) {
+  const p = await rutas.cargar(id);
+  if (!p) return;
+  if (!p.geo) p.geo = (await geos.cargar(firmaRuta(p)).catch(() => null)) || (await trazadoIncluido(p).catch(() => null));
+  const nombre = `RailNav ${p.tren.numero}${p.tren.fecha ? " " + p.tren.fecha : ""}.railnav.json`;
+  const r = await compartirArchivo(nombre, JSON.stringify(p), "application/json");
+  $("msg-rutas").textContent = r === "descargado" ? `Guardado como «${nombre}».` : r === "compartido" ? "Ruta enviada." : "";
+}
+
+// ---------- tablas de tramos ----------
+let tablasVistas = [];
+
+async function pintarTablas() {
+  const propias = await tramos.listar();
+  await tablasConocidas();
+  const nombres = new Set(propias.map((t) => t.ruta));
+  tablasVistas = [
+    ...propias.map((t) => ({ t, propia: true })),
+    ...(tablasDeSerie || []).filter((t) => !nombres.has(t.ruta)).map((t) => ({ t, propia: false })),
+  ].sort((a, b) => (a.t.ruta < b.t.ruta ? -1 : 1));
+  $("tablas").innerHTML = tablasVistas.length
+    ? tablasVistas
+        .map(({ t, propia }, i) => {
+          const sin = t.tramos.filter((x) => !x.linea || x.linea === "?").length;
+          return (
+            `<div class="ru"><div><b>${esc(t.ruta)}</b><small>${t.tramos.length} tramos · ${propia ? "guardada en este dispositivo" : "de serie"}` +
+            (sin ? ` · <span class="aviso">${sin} sin línea</span>` : "") +
+            `</small></div><div><button data-ted="${i}">Editar</button><button data-tcomp="${i}">Compartir</button>${propia ? `<button data-tborrar="${i}">Borrar</button>` : ""}</div></div>`
+          );
+        })
+        .join("")
+    : '<div class="note">Todavía no hay tablas de tramos.</div>';
+}
+
+function editarTabla(tabla) {
+  const caja = $("tabla-ed");
+  const t = JSON.parse(JSON.stringify(tabla));
+  caja.innerHTML =
+    `<div class="pop-t">Editar tabla de tramos</div>` +
+    `<label>Nombre de la ruta<input id="te-ruta" value="${esc(t.ruta)}"></label>` +
+    `<table class="tr-t"><thead><tr><th>Tramo</th><th>Línea</th><th>Comprobada</th><th>Nota</th></tr></thead><tbody>` +
+    t.tramos
+      .map(
+        (x, i) =>
+          `<tr><td>${esc(x.desde)} → ${esc(x.hasta)}</td><td><input data-l="${i}" value="${esc(x.linea)}" inputmode="numeric"${!x.linea || x.linea === "?" ? ' class="duda"' : ""}></td>` +
+          `<td><input type="checkbox" data-v="${i}"${x.verificado ? " checked" : ""} aria-label="Línea comprobada"></td><td class="nota">${esc(x.nota ?? "")}</td></tr>`,
+      )
+      .join("") +
+    `</tbody></table><div class="note">Al cambiar una línea se marca como comprobada. Para que una ruta ya generada use la tabla corregida, vuelve a generarla desde sus PDF.</div>` +
+    `<button id="te-ok" class="pri">Guardar en este dispositivo</button><button id="te-no">Cancelar</button>`;
+  caja.hidden = false;
+  caja.scrollIntoView({ block: "nearest", behavior: "smooth" });
+  caja.querySelectorAll("input[data-l]").forEach((inp) =>
+    inp.addEventListener("input", () => {
+      inp.classList.toggle("duda", !inp.value.trim() || inp.value.trim() === "?");
+      caja.querySelector(`input[data-v="${inp.dataset.l}"]`).checked = !!inp.value.trim() && inp.value.trim() !== "?";
+    }),
+  );
+  $("te-no").onclick = () => (caja.hidden = true);
+  $("te-ok").onclick = async () => {
+    const nueva = {
+      ruta: $("te-ruta").value.trim() || t.ruta,
+      tramos: t.tramos.map((x, i) => {
+        const linea = caja.querySelector(`input[data-l="${i}"]`).value.trim() || "?";
+        return { ...x, linea, verificado: linea !== "?" && caja.querySelector(`input[data-v="${i}"]`).checked };
+      }),
+    };
+    if (nueva.ruta !== tabla.ruta && (await tramos.listar()).some((x) => x.ruta === tabla.ruta)) await tramos.borrar(tabla.ruta);
+    await tramos.guardar(nueva);
+    caja.hidden = true;
+    $("msg-tablas").className = "gen-msg ok";
+    $("msg-tablas").textContent = `✓ Tabla «${nueva.ruta}» guardada.`;
+    pintarTablas();
+  };
+}
+
+/** Comprueba una tabla de tramos cargada de un archivo. */
+function validarTabla(t) {
+  if (!t || typeof t.ruta !== "string" || !Array.isArray(t.tramos) || !t.tramos.length) return "no es una tabla de tramos";
+  for (const [i, x] of t.tramos.entries()) {
+    if (typeof x.desde !== "string" || typeof x.hasta !== "string" || typeof x.linea !== "string") return `el tramo ${i + 1} está incompleto`;
+    if (i > 0 && t.tramos[i - 1].hasta !== x.desde) return `los tramos ${i} y ${i + 1} no son contiguos`;
+  }
+  return null;
+}
+
+function iniciarTablas() {
+  $("tablas").onclick = async (e) => {
+    const b = e.target.closest("button");
+    if (!b) return;
+    const v = tablasVistas[+(b.dataset.ted ?? b.dataset.tcomp ?? b.dataset.tborrar)];
+    if (!v) return;
+    if (b.dataset.ted != null) editarTabla(v.t);
+    if (b.dataset.tcomp != null) compartirArchivo(`Tramos ${v.t.ruta.replace(/[^\p{L}\p{N} _-]+/gu, "-").replace(/-+$/, "")}.json`, JSON.stringify(v.t, null, 2));
+    if (b.dataset.tborrar != null && confirm(`¿Borrar la tabla «${v.t.ruta}» de este dispositivo?`)) {
+      await tramos.borrar(v.t.ruta);
+      pintarTablas();
+    }
+  };
+  $("f-tabla").onchange = async (e) => {
+    const f = e.target.files[0];
+    e.target.value = "";
+    if (!f) return;
+    try {
+      const t = JSON.parse(await f.text());
+      const error = validarTabla(t);
+      if (error) throw new Error(error);
+      await tramos.guardar({ ruta: t.ruta, tramos: t.tramos.map((x) => ({ desde: x.desde, hasta: x.hasta, linea: x.linea, verificado: !!x.verificado, nota: x.nota ?? null })) });
+      $("msg-tablas").className = "gen-msg ok";
+      $("msg-tablas").textContent = `✓ Tabla «${t.ruta}» cargada (${t.tramos.length} tramos).`;
+      pintarTablas();
+    } catch (err) {
+      $("msg-tablas").className = "gen-msg mal";
+      $("msg-tablas").textContent = `✗ ${f.name}: ${err.message}`;
+    }
+  };
+}
+
 // ---------- ajustes ----------
 async function pintarAjustes() {
   const lista = await rutas.listar();
@@ -297,14 +433,19 @@ async function pintarAjustes() {
         .map(
           (r) =>
             `<div class="ru${ruta && r.id === ruta.id ? " on" : ""}"><div><b>${esc(r.tren)}</b> · ${esc(r.origen || "?")} → ${esc(r.destino || "?")}<small>${fecha(r.fecha)}${r.ltv ? " · DLTV nº " + esc(r.ltv) : " · sin DLTV"}</small></div>` +
-            `<div>${ruta && r.id === ruta.id ? '<span class="act">En uso</span>' : `<button data-abrir="${esc(r.id)}">Abrir</button>`}<button data-borrar="${esc(r.id)}" title="Borrar del dispositivo">Borrar</button></div></div>`,
+            `<div>${ruta && r.id === ruta.id ? '<span class="act">En uso</span>' : `<button data-abrir="${esc(r.id)}">Abrir</button>`}<button data-comp="${esc(r.id)}" title="Enviar la ruta (AirDrop, Mensajes, Correo…)">Compartir</button><button data-borrar="${esc(r.id)}" title="Borrar del dispositivo">Borrar</button></div></div>`,
         )
         .join("")
     : '<div class="note">Todavía no hay rutas guardadas en este dispositivo.</div>';
+  pintarTablas();
   for (const m of Object.keys(MODOS)) {
     const r = document.querySelector(`input[name=modo][value=${m}]`);
     if (r) r.checked = pos?.modo === m;
   }
+  pintarGeo();
+  pintarEstadoGps();
+  pintarGrabacion();
+  pintarRecorridos();
   $("op-despierto").checked = despierto.activado();
   const ed = { wakelock: ["activa", "ok"], video: ["activa (modo de reserva)", "ok"], apagado: ["", ""], "no disponible": ["este navegador no lo permite", ""] }[despierto.estado()];
   $("est-despierto").textContent = despierto.activado() ? ed[0] : "";
@@ -334,7 +475,8 @@ function iniciarAjustes() {
     pintarAjustes();
   };
   $("rutas").onclick = async (e) => {
-    const a = e.target.closest("[data-abrir]"), b = e.target.closest("[data-borrar]");
+    const a = e.target.closest("[data-abrir]"), b = e.target.closest("[data-borrar]"), c = e.target.closest("[data-comp]");
+    if (c) compartirRuta(c.dataset.comp);
     if (a) {
       await abrir(await rutas.cargar(a.dataset.abrir), true);
       pintarAjustes();
@@ -348,9 +490,17 @@ function iniciarAjustes() {
   document.querySelectorAll("input[name=modo]").forEach((r) =>
     r.addEventListener("change", () => {
       if (!pos) return;
+      if (r.value === "gps" && !via) {
+        $("geo-msg").className = "gen-msg mal";
+        $("geo-msg").textContent = "Primero prepara el GPS de esta ruta (botón de abajo).";
+        pintarAjustes();
+        return;
+      }
       pos.cambiarModo(r.value);
       prefs.escribir("modo", pos.modo);
       inercia = 0;
+      if (pos.modo === "gps") activarGps();
+      else desactivarGps();
       pintarAjustes();
       pintarSim();
     }),
@@ -366,6 +516,8 @@ function iniciarAjustes() {
     sucio = true;
   };
   $("b-probar-aviso").onclick = probarAviso;
+  $("b-geo").onclick = prepararGps;
+  iniciarGrabacion();
   $("oi").onclick = () => mostrar("pictos");
   $("bk").onclick = () => mostrar("ajustes");
 }
@@ -389,6 +541,165 @@ function probarAviso() {
   const x = { fase: "anuncio", e: { tipo: "ltv_inicio", datos: { v: 30, via: "vía II" }, estado: "ok" }, metros: 3000 };
   const dur = tono("urgente");
   if (prefs.leer("voz", true)) hablar(textoVoz(x), dur + 0.1);
+}
+
+// ---------- GPS (Fase 8) ----------
+let via = null, seguidor = null, quitarGps = null, errorGps = null;
+
+function activarGps() {
+  desactivarGps();
+  if (!via) return;
+  seguidor = new Seguidor(via);
+  errorGps = hayUbicacion() ? null : "este navegador no da la posición";
+  pos.fiable = false;
+  quitarGps = escucharUbicacion((p, e) => {
+    if (p) {
+      seguidor.lectura(p);
+      errorGps = null;
+    } else errorGps = e;
+    if (vista === "ajustes") pintarEstadoGps();
+  });
+}
+
+function desactivarGps() {
+  quitarGps?.();
+  quitarGps = null;
+  seguidor = null;
+  if (pos) {
+    pos.etiqueta = "";
+    pos.fiable = true;
+  }
+}
+
+function pasoGps() {
+  if (pos?.modo !== "gps" || !seguidor) return false;
+  const d = seguidor.estimar(Date.now());
+  const fiable = d != null && seguidor.fiable;
+  const ult = seguidor.ultima;
+  const etiqueta =
+    d == null
+      ? errorGps ? `GPS: ${errorGps.toUpperCase()}` : "GPS: BUSCANDO POSICIÓN…"
+      : !fiable ? "POSICIÓN NO FIABLE" : `GPS ±${Math.round(ult?.precision ?? 0)} m`;
+  let cambio = etiqueta !== pos.etiqueta || fiable !== pos.fiable;
+  pos.etiqueta = etiqueta;
+  pos.fiable = fiable;
+  if (d != null && Math.abs(d - pos.d) > 1e-6) {
+    pos.poner(d);
+    cambio = true;
+  }
+  return cambio;
+}
+
+function pintarEstadoGps() {
+  const e = $("est-gps");
+  if (pos?.modo !== "gps") return void (e.textContent = "");
+  const u = seguidor?.ultima;
+  e.textContent = errorGps ? errorGps : !u ? "esperando la primera lectura…" : `última lectura ±${Math.round(u.precision)} m · ${u.motivo}`;
+  e.className = "estado " + (seguidor?.fiable ? "ok" : "mal");
+}
+
+function pintarGeo() {
+  const g = ruta?.p.geo;
+  const opcion = document.querySelector("input[name=modo][value=gps]");
+  opcion.disabled = !g;
+  $("op-gps").classList.toggle("off", !g);
+  if (!g) {
+    $("geo-info").innerHTML = "Esta ruta todavía no tiene el trazado de la vía: pulsa «Preparar el GPS de esta ruta» (con conexión).";
+    $("b-geo").textContent = "Preparar el GPS de esta ruta";
+    return;
+  }
+  const dud = g.dudosos || [], km = dud.reduce((s, [a, b]) => s + (b - a), 0);
+  $("geo-info").innerHTML =
+    `<b>Trazado preparado</b> (${fecha(g.fecha)}): ${g.anclas.length} de ${g.estaciones} dependencias de la hoja situadas en el mapa` +
+    (dud.length ? ` · <b>${km.toFixed(1)} km dudosos</b> (allí la posición sale «no fiable»):<ul>${dud.slice(0, 5).map((d) => `<li>${esc(d[2])}</li>`).join("")}</ul>` : " · sin tramos dudosos.");
+  $("b-geo").textContent = "Volver a preparar el trazado";
+}
+
+async function prepararGps() {
+  if (!ruta) return;
+  const msg = (t, c = "") => {
+    $("geo-msg").className = "gen-msg " + c;
+    $("geo-msg").innerHTML = t;
+  };
+  $("b-geo").disabled = true;
+  try {
+    const { preparar } = await import("./geo/preparar.js");
+    msg("Situando las estaciones de la hoja…");
+    const lista = await fetch("datos/estaciones.json").then((r) => (r.ok ? r.json() : null)).catch(() => null);
+    const geo = await preparar(ruta.p, (t) => msg(esc(t)), { lista });
+    ruta.p.geo = geo;
+    await geos.guardar(firmaRuta(ruta.p), geo);
+    if (prefs.leer("activa", null) === ruta.id) await rutas.guardar(ruta.p);
+    via = new Via(geo);
+    if (pos.modo === "gps") activarGps();
+    msg(`✓ Trazado preparado: ${geo.anclas.length} de ${geo.estaciones} dependencias situadas. Ya puedes elegir «GPS».`, "ok");
+  } catch (e) {
+    msg(`✗ No se ha podido preparar el trazado: ${esc(e.message || String(e))}. Inténtalo más tarde con conexión.`, "mal");
+  } finally {
+    $("b-geo").disabled = false;
+    pintarAjustes();
+  }
+}
+
+// ---------- grabar recorrido ----------
+function pintarGrabacion(r, e) {
+  const g = r || grabar.enCurso();
+  $("op-grabar").checked = !!g;
+  if (!g) return void ($("est-grabar").textContent = "");
+  const u = g.puntos.at(-1);
+  $("est-grabar").textContent = `● grabando · ${g.puntos.length} posiciones` + (u ? ` · última ±${u[3]} m` : "") + (e ? ` · ${e}` : "");
+  $("est-grabar").className = "estado " + (e ? "mal" : "ok");
+}
+
+async function pintarRecorridos() {
+  const lista = await recorridos.listar();
+  $("recorridos").innerHTML = lista
+    .map((r) => {
+      const x = grabar.resumen(r), enCurso = grabar.enCurso()?.id === r.id;
+      return (
+        `<div class="rec"><div><b>${esc(new Date(r.id).toLocaleString("es-ES", { dateStyle: "short", timeStyle: "short" }))}</b> · tren ${esc(r.tren ?? "?")}` +
+        `<small>${x.puntos} posiciones · ${x.minutos.toFixed(0)} min` +
+        (x.mediana != null ? ` · precisión típica ±${x.mediana} m, peor ±${x.peor} m` : "") +
+        (enCurso ? " · en curso" : "") +
+        `</small></div><div><button data-gpx="${esc(r.id)}">GPX</button><button data-json="${esc(r.id)}">JSON</button>${enCurso ? "" : `<button data-borrar-rec="${esc(r.id)}">Borrar</button>`}</div></div>`
+      );
+    })
+    .join("");
+}
+
+function iniciarGrabacion() {
+  $("op-grabar").onchange = async (e) => {
+    if (e.target.checked) {
+      if (!hayUbicacion()) {
+        e.target.checked = false;
+        $("est-grabar").textContent = "este navegador no da la posición";
+        return;
+      }
+      grabar.empezar({ ruta: ruta?.id, tren: ruta?.tren?.numero, posicion: () => pos?.d, modo: () => pos?.modo }, (r, err) => {
+        pintarGrabacion(r, err);
+        if (vista === "ajustes" && r.puntos.length % 10 === 1) pintarRecorridos();
+      });
+      pintarGrabacion();
+    } else {
+      await grabar.terminar();
+      pintarGrabacion();
+    }
+    pintarRecorridos();
+  };
+  $("recorridos").onclick = async (e) => {
+    const b = e.target.closest("button");
+    if (!b) return;
+    const id = b.dataset.gpx || b.dataset.json || b.dataset.borrarRec;
+    const r = await recorridos.cargar(id);
+    if (!r) return;
+    const base = `railnav-${r.tren ?? "recorrido"}-${r.id.slice(0, 16).replace(/[:T]/g, "-")}`;
+    if (b.dataset.gpx) compartirArchivo(base + ".gpx", grabar.gpx(r), "application/gpx+xml");
+    if (b.dataset.json) compartirArchivo(base + ".json", grabar.json(r));
+    if (b.dataset.borrarRec && confirm("¿Borrar esta grabación?")) {
+      await recorridos.borrar(id);
+      pintarRecorridos();
+    }
+  };
 }
 
 // ---------- simulación: controles en la pantalla de marcha ----------
@@ -491,9 +802,12 @@ function iniciarTamano() {
     const r = scr.getBoundingClientRect();
     if (!r.width || !r.height) return;
     const apilado = matchMedia("(max-aspect-ratio: 5/4)").matches;
+    const vertical = matchMedia("(max-aspect-ratio: 4/5)").matches;
     if (ajustarDibujo(r.width, r.height, apilado)) sucio = true;
     // unidad del dibujo en píxeles: el historial usa la misma escala de letra
-    scr.style.setProperty("--u", (apilado ? r.width / 900 : r.height / (altoDibujo() - 6.5)) + "px");
+    // en vertical las dos columnas de dibujo ocupan el ancho; el historial, con letra legible
+    const u = vertical ? Math.max(1, r.width / 603) : apilado ? r.width / 900 : r.height / (altoDibujo() - 6.5);
+    scr.style.setProperty("--u", u + "px");
   };
   new ResizeObserver(medir).observe(scr);
   medir();
@@ -509,6 +823,7 @@ function bucle(t) {
   if (pos && ruta && pos.paso(dt, ruta.vEn(pos.d) ?? ruta.siguiente(pos.d)?.v ?? 30)) sucio = true;
   if (pos && enMarcha !== pos.enMarcha) pintarSim(); // la simulación ha llegado al final
   if (pasoInercia(dt)) sucio = true;
+  if (pasoGps()) sucio = true;
   if (pos && ruta) sonarAvisos();
   // el adelanto o retraso depende del reloj: se repinta cada segundo
   if (t - ultimoSegundo > 1000) {
@@ -535,6 +850,7 @@ async function iniciar() {
   iniciarEditor();
   iniciarArrastre();
   iniciarSimulacion();
+  iniciarTablas();
   iniciarTamano();
   $("tabs").onclick = (e) => {
     const b = e.target.closest("button");

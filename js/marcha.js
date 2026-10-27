@@ -137,7 +137,7 @@ export function pintarMarcha(ruta, pos, { desvio: conDesvio = false } = {}) {
   // Línea de tiempo
   for (const m of [0, 500, 1000, 2000, 3000])
     s += `<line x1="630" x2="890" y1="${Y(m)}" y2="${Y(m)}" stroke="var(--gy)" opacity=".35" stroke-dasharray="3 4"/><text x="625" y="${Y(m) + 4}" font-size="10" text-anchor="end" fill="var(--gy)">${m}</text>`;
-  s += `<text x="890" y="22" font-size="10" font-weight="700" letter-spacing=".06em" text-anchor="end" fill="${pos.fiable ? "var(--gy)" : "var(--lt)"}">${pos.fiable ? MODO_TXT[pos.modo] || "" : "POSICIÓN NO FIABLE"}</text>`;
+  s += `<text x="890" y="22" font-size="10" font-weight="700" letter-spacing=".06em" text-anchor="end" fill="${pos.fiable ? "var(--gy)" : "var(--lt)"}">${esc(pos.etiqueta || (pos.fiable ? MODO_TXT[pos.modo] || "" : "POSICIÓN NO FIABLE"))}</text>`;
   s += `<line x1="644" x2="644" y1="40" y2="${H - 60}" stroke="var(--gy)" stroke-width="3" stroke-linecap="round"/>`;
   let pv = 999, fondo = "", frente = "";
   for (const e of ev) {

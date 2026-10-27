@@ -1,20 +1,22 @@
 // De dónde sale la posición del tren en la ruta (pk_acum, en km).
 //   manual     → el maquinista arrastra la línea de tiempo (Fase 6)
 //   simulacion → avanza sola a la Vmax efectiva (pruebas)
-//   gps        → Fase 8: geometría de la vía + ajuste a la vía; en túneles «posición no fiable»
+//   gps        → posición del iPad proyectada sobre el trazado de la vía (js/geo/); sin lecturas
+//                buenas, «posición no fiable»
 // La pantalla solo lee `d`, `fiable` y `modo`: cambiar de fuente no toca nada más.
 
 export const MODOS = {
   manual: "Manual: se arrastra la línea de tiempo",
   simulacion: "Simulación a la velocidad máxima permitida",
-  gps: "GPS (Fase 8)",
+  gps: "GPS: la posición del iPad sobre el trazado de la vía",
 };
 
 export class Posicion {
   constructor({ fin = 0, d = 0, modo = "manual", factor = 40, alCambiar = () => {} } = {}) {
     this.fin = fin;
     this.d = 0;
-    this.modo = MODOS[modo] && modo !== "gps" ? modo : "manual";
+    this.modo = MODOS[modo] ? modo : "manual";
+    this.etiqueta = ""; // texto de la línea de tiempo en modo GPS («GPS ±25 m»)
     this.factor = factor;
     this.enMarcha = false;
     this.fiable = true;
@@ -37,8 +39,9 @@ export class Posicion {
   }
 
   cambiarModo(modo) {
-    if (modo === "gps") return false; // Fase 8
     this.modo = MODOS[modo] ? modo : "manual";
+    this.fiable = true;
+    this.etiqueta = "";
     if (this.modo !== "simulacion") this.enMarcha = false;
     this.alCambiar(this);
     return true;

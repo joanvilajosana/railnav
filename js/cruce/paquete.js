@@ -125,5 +125,6 @@ export function construir(ruta, ltv, cruce, tramos, pictos) {
     eventos: eventos.eventos,
     hoja: hojaOriginal(ruta),
     dltv: ltv && cruce ? dltvDeLaRuta(ltv, cruce) : null,
+    geo: null, // trazado para el GPS: lo añade la app después (js/geo/preparar.js)
   };
 }
