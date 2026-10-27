@@ -23,8 +23,13 @@
 <div class="w"><div class="row">
 <div class="menu">
   <div class="brand" id="brand"></div>
-  <div class="mb"><button id="m-marcha" aria-label="Pantalla de marcha"></button><button id="m-datos" aria-label="Datos del tren"></button><button id="m-tema" aria-label="Tema día o noche"></button><button id="m-ajustes" aria-label="Ajustes"></button></div>
+  <div class="mb"><button id="m-marcha" aria-label="Pantalla de marcha"></button><button id="m-datos" aria-label="Datos del tren"></button><button id="m-tema" aria-label="Tema día o noche"></button><button id="m-ajustes" aria-label="Ajustes"></button><span class="sep" aria-hidden="true"></span><button id="m-vol" aria-label="Volumen" aria-haspopup="true" aria-expanded="false"></button><button id="m-mute" aria-label="Silenciar" aria-pressed="false"></button></div>
   <div class="st r"><div id="tb-bq"></div><div id="tb-rd"></div></div>
+</div>
+<div id="pop-vol" class="pop" role="dialog" aria-label="Volumen" hidden>
+  <div class="pop-t">Volumen <b id="vol-n"></b></div>
+  <input id="vol" type="range" min="0" max="100" step="5" aria-label="Volumen">
+  <div class="note">Para los avisos sonoros (llegarán más adelante). Al soltar suena una prueba.</div>
 </div>
 <div class="vw">
  <!-- Pantalla de marcha -->
@@ -34,7 +39,15 @@
    <div class="hist" id="hist" aria-label="Historial"></div>
    <svg id="sc" viewBox="595.25 3.25 301.5 433.5" aria-label="Línea de tiempo: arrastra para mover el tren"></svg>
   </div>
-  <div class="pie">Desarrollado por Joan Vilajosana Quesada · Servicio no oficial ni homologado por la AESF</div>
+  <div class="pie">
+   <div id="simbar" class="simbar" hidden>
+    <span class="sb-t">Simulación</span>
+    <button id="sb-ini" aria-label="Volver al inicio de la ruta" title="Al inicio"></button>
+    <button id="sb-pl" class="sb-pl" aria-label="Marcha"></button>
+    <span class="sb-f" role="group" aria-label="Velocidad de la simulación"><button data-f="1">×1</button><button data-f="10">×10</button><button data-f="40">×40</button><button data-f="100">×100</button></span>
+   </div>
+   <span class="pie-t">Desarrollado por Joan Vilajosana Quesada · Servicio no oficial ni homologado por la AESF</span>
+  </div>
  </div>
  <!-- Datos -->
  <div id="v-datos" hidden>
@@ -74,8 +87,7 @@
   <div class="pn">
    <h2>Posición del tren</h2>
    <label class="op"><input type="radio" name="modo" value="manual"> Manual: arrastra la línea de tiempo (derecha) hacia abajo para avanzar y hacia arriba para retroceder</label>
-   <label class="op"><input type="radio" name="modo" value="simulacion"> Simulación a la velocidad máxima permitida (pruebas)</label>
-   <div id="sim" hidden><button id="sim-pl">▶ Marcha</button><button id="sim-ini">Al inicio</button><select id="sim-f" aria-label="Velocidad de la simulación"><option value="1">Tiempo real</option><option value="10">×10</option><option value="40">×40</option><option value="100">×100</option></select></div>
+   <label class="op"><input type="radio" name="modo" value="simulacion"> Simulación a la velocidad máxima permitida (pruebas): marcha, pausa, inicio y velocidad se controlan abajo en la pantalla de marcha</label>
    <label class="op off"><input type="radio" name="modo" value="gps" disabled> GPS <span class="fase">Fase 8</span></label>
    <div class="note">Fase 8: el GPS colocará el tren sobre la vía; en túneles se avisará «posición no fiable». Solo los iPad Wi-Fi + Cellular llevan GPS.</div>
   </div>

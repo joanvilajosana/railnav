@@ -10,13 +10,14 @@ import { ajustarDibujo, altoDibujo, altoLinea, pintarMarcha, reiniciarHistorial 
 import { irAqui, mostrarPestana, pintarDatos } from "./datos.js";
 import { iniciarEditor, pintarEditor } from "./editor.js";
 import { LOGO, linea } from "./iconos.js";
+import { ponerSilencio, ponerVolumen, probar, silenciado, volumen } from "./sonido.js";
 
 const $ = (id) => document.getElementById(id);
 let ruta = null, pos = null, vista = "marcha", sucio = true;
 
 // ---------- barra superior ----------
 function barra() {
-  $("brand").innerHTML = LOGO(40) + `<small class="ver">v${VERSION_APP}</small>`;
+  $("brand").innerHTML = LOGO(52) + `<small class="ver">v${VERSION_APP}</small>`;
   for (const [id, k, t] of [["m-marcha", "marcha", "Pantalla de marcha"], ["m-datos", "datos", "Datos del tren"], ["m-ajustes", "ajustes", "Ajustes"]]) {
     $(id).innerHTML = linea(k);
     $(id).title = t;
@@ -30,6 +31,54 @@ function barra() {
   };
   matchMedia("(prefers-color-scheme: dark)").addEventListener("change", iconoTema);
   iconoTema();
+  iniciarSonido();
+}
+
+// ---------- volumen y silencio ----------
+function pintarSonido() {
+  const v = Math.round(volumen() * 100), mudo = silenciado();
+  $("m-vol").innerHTML = linea(v < 50 ? "volumen_bajo" : "volumen");
+  $("m-vol").title = `Volumen: ${v} %`;
+  $("m-mute").innerHTML = linea("silencio");
+  $("m-mute").title = mudo ? "Sonido desactivado: pulsa para activarlo" : "Silenciar";
+  $("m-mute").setAttribute("aria-pressed", String(mudo));
+  $("m-mute").classList.toggle("mudo", mudo);
+  $("vol").value = String(v);
+  $("vol-n").textContent = mudo ? `${v} % · en silencio` : `${v} %`;
+}
+
+function iniciarSonido() {
+  const pop = $("pop-vol");
+  const cerrar = () => {
+    pop.hidden = true;
+    $("m-vol").setAttribute("aria-expanded", "false");
+    $("m-vol").classList.remove("on");
+  };
+  $("m-vol").onclick = (e) => {
+    e.stopPropagation();
+    if (!pop.hidden) return cerrar();
+    const r = $("m-vol").getBoundingClientRect();
+    pop.hidden = false;
+    pop.style.top = `${r.bottom + 8}px`;
+    pop.style.left = `${Math.max(8, Math.min(innerWidth - pop.offsetWidth - 8, r.left + r.width / 2 - pop.offsetWidth / 2))}px`;
+    $("m-vol").setAttribute("aria-expanded", "true");
+    $("m-vol").classList.add("on");
+  };
+  $("vol").oninput = (e) => {
+    ponerVolumen(+e.target.value / 100);
+    if (silenciado() && +e.target.value > 0) ponerSilencio(false);
+    pintarSonido();
+  };
+  $("vol").onchange = () => probar();
+  $("m-mute").onclick = () => {
+    ponerSilencio(!silenciado());
+    pintarSonido();
+    if (!silenciado()) probar();
+  };
+  document.addEventListener("pointerdown", (e) => {
+    if (!pop.hidden && !pop.contains(e.target) && !$("m-vol").contains(e.target)) cerrar();
+  });
+  pintarSonido();
 }
 const oscuro = () => {
   const t = document.documentElement.dataset.theme;
@@ -50,7 +99,6 @@ function estado() {
 // ---------- vistas ----------
 function mostrar(v) {
   vista = v;
-  if (pos && v !== "marcha" && pos.modo === "simulacion") pos.enMarcha = false;
   for (const k of ["marcha", "datos", "ajustes", "pictos"]) $("v-" + k).hidden = k !== v;
   for (const k of ["marcha", "datos", "ajustes"]) $("m-" + k).classList.toggle("on", k === v || (v === "pictos" && k === "ajustes"));
   if (v === "datos" && ruta) {
@@ -81,6 +129,8 @@ async function abrir(paquete, guardarla = true) {
   });
   reiniciarHistorial();
   $("hist").scrollTop = 0;
+  inercia = 0;
+  pintarSim();
   sucio = true;
 }
 
@@ -248,9 +298,6 @@ async function pintarAjustes() {
     const r = document.querySelector(`input[name=modo][value=${m}]`);
     if (r) r.checked = pos?.modo === m;
   }
-  $("sim").hidden = pos?.modo !== "simulacion";
-  $("sim-pl").textContent = pos?.enMarcha ? "❚❚ Pausa" : "▶ Marcha";
-  $("sim-f").value = String(pos?.factor ?? 40);
   $("acerca").innerHTML = `RailNav v${VERSION_APP} · Desarrollado por Joan Vilajosana Quesada · Servicio no oficial ni homologado por la AESF`;
 }
 
@@ -289,53 +336,106 @@ function iniciarAjustes() {
       if (!pos) return;
       pos.cambiarModo(r.value);
       prefs.escribir("modo", pos.modo);
+      inercia = 0;
       pintarAjustes();
+      pintarSim();
     }),
   );
-  $("sim-pl").onclick = () => {
-    pos.enMarcha = !pos.enMarcha;
-    pintarAjustes();
-  };
-  $("sim-ini").onclick = () => {
-    pos.poner(0);
-    reiniciarHistorial();
-    pintarAjustes();
-  };
-  $("sim-f").onchange = (e) => {
-    pos.factor = +e.target.value;
-    prefs.escribir("factor", pos.factor);
-  };
   $("oi").onclick = () => mostrar("pictos");
   $("bk").onclick = () => mostrar("ajustes");
 }
 
+// ---------- simulación: controles en la pantalla de marcha ----------
+// La simulación sigue corriendo aunque se cambie de vista (datos, ajustes…).
+function pintarSim() {
+  const sim = pos?.modo === "simulacion";
+  $("simbar").hidden = !sim;
+  if (!sim) return;
+  $("sb-pl").innerHTML = linea(pos.enMarcha ? "pausa" : "play", 24) + `<span>${pos.enMarcha ? "Pausa" : "Marcha"}</span>`;
+  $("sb-pl").classList.toggle("on", pos.enMarcha);
+  $("sb-pl").setAttribute("aria-label", pos.enMarcha ? "Pausa" : "Marcha");
+  $("sb-ini").innerHTML = linea("inicio", 22);
+  for (const b of document.querySelectorAll(".sb-f button")) b.classList.toggle("on", +b.dataset.f === pos.factor);
+}
+
+function iniciarSimulacion() {
+  $("sb-pl").onclick = () => {
+    if (pos.d >= pos.fin) pos.poner(0);
+    pos.enMarcha = !pos.enMarcha;
+    pintarSim();
+  };
+  $("sb-ini").onclick = () => {
+    pos.poner(0);
+    reiniciarHistorial();
+    pintarSim();
+  };
+  document.querySelector(".sb-f").onclick = (e) => {
+    const b = e.target.closest("button[data-f]");
+    if (!b) return;
+    pos.factor = +b.dataset.f;
+    prefs.escribir("factor", pos.factor);
+    pintarSim();
+  };
+}
+
 // ---------- mover la ruta arrastrando la línea de tiempo ----------
+// Despacio, el tren sigue al dedo (la línea de tiempo enseña 3 km); deprisa, el arrastre se
+// acelera (hasta ×ACELERACION) y al soltar sigue un poco por inercia, como el scroll del iPad.
+// Tocar la línea de tiempo para la inercia.
+const ACELERACION = 12;
+const FRENADA = 0.4; // s: cuánto dura la inercia (constante de tiempo)
+let inercia = 0; // km/s
+
 function iniciarArrastre() {
   const sc = $("sc");
-  let y0 = null;
+  let y0 = null, t0 = 0, vel = 0;
   const mpp = () => metrosPorPixel((sc.getBoundingClientRect().height * altoLinea()) / (altoDibujo() - 6.5));
   sc.addEventListener("pointerdown", (e) => {
     if (!pos || pos.modo !== "manual") return;
+    inercia = 0;
+    vel = 0;
     y0 = e.clientY;
+    t0 = e.timeStamp;
     sc.setPointerCapture(e.pointerId);
   });
   sc.addEventListener("pointermove", (e) => {
     if (y0 == null) return;
-    pos.mover(((e.clientY - y0) * mpp()) / 1000); // hacia abajo = avanzar
+    const dy = e.clientY - y0, dt = Math.max(1, e.timeStamp - t0);
+    const rapidez = Math.abs(dy) / dt; // px/ms
+    const ganancia = 1 + (ACELERACION - 1) * Math.min(1, Math.max(0, (rapidez - 0.25) / 2)) ** 1.4;
+    const km = ((dy * mpp()) / 1000) * ganancia; // hacia abajo = avanzar
+    pos.mover(km);
+    vel = 0.7 * vel + 0.3 * (km / (dt / 1000));
     y0 = e.clientY;
+    t0 = e.timeStamp;
   });
-  const fin = () => (y0 = null);
+  const fin = (e) => {
+    if (y0 == null) return;
+    // inercia solo si el dedo se movía al soltar
+    if (e.timeStamp - t0 < 80 && Math.abs(vel) > 0.5) inercia = vel;
+    y0 = null;
+  };
   sc.addEventListener("pointerup", fin);
-  sc.addEventListener("pointercancel", fin);
+  sc.addEventListener("pointercancel", () => (y0 = null));
   sc.addEventListener(
     "wheel",
     (e) => {
       if (!pos || pos.modo !== "manual") return;
       e.preventDefault();
-      pos.mover((e.deltaY * mpp()) / 1000);
+      inercia = 0;
+      pos.mover((e.deltaY * mpp() * 3) / 1000);
     },
     { passive: false },
   );
+}
+
+function pasoInercia(dt) {
+  if (!inercia || !pos) return false;
+  const antes = pos.d;
+  pos.mover(inercia * dt);
+  inercia *= Math.exp(-dt / FRENADA);
+  if (Math.abs(inercia) < 0.05 || pos.d === antes) inercia = 0;
+  return pos.d !== antes;
 }
 
 // ---------- tamaño del dibujo según la pantalla (16:9, iPad…) ----------
@@ -359,7 +459,10 @@ function bucle(t) {
   const dt = Math.min(0.1, (t - antes) / 1000);
   antes = t;
   // Donde la hoja no da V Max, la simulación sigue a la siguiente (o a 30 km/h).
+  const enMarcha = pos?.enMarcha;
   if (pos && ruta && pos.paso(dt, ruta.vEn(pos.d) ?? ruta.siguiente(pos.d)?.v ?? 30)) sucio = true;
+  if (pos && enMarcha !== pos.enMarcha) pintarSim(); // la simulación ha llegado al final
+  if (pasoInercia(dt)) sucio = true;
   if (sucio && ruta) {
     sucio = false;
     estado();
@@ -377,6 +480,7 @@ async function iniciar() {
   iniciarAjustes();
   iniciarEditor();
   iniciarArrastre();
+  iniciarSimulacion();
   iniciarTamano();
   $("tabs").onclick = (e) => {
     const b = e.target.closest("button");
@@ -392,6 +496,7 @@ async function iniciar() {
   const guardada = activa ? await rutas.cargar(activa).catch(() => null) : null;
   await abrir(guardada || (await demo()), !!guardada).catch(async () => abrir(await demo(), false));
   mostrar("marcha");
+  pintarSim();
   requestAnimationFrame(bucle);
   persistir();
   if ("serviceWorker" in navigator && (location.protocol === "https:" || location.hostname === "localhost"))
