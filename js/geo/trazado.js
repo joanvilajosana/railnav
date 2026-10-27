@@ -39,10 +39,23 @@ const palabras = (t) => norm(t).split(/[^a-z0-9]+/).filter((p) => p && !VACIAS.h
 export function parecido(hoja, osm) {
   const h = palabras(hoja), o = palabras(osm);
   if (!h.length || !o.length) return 0;
-  const casa = (p) => o.some((q) => q.startsWith(p) || (p.length >= 3 && q.length >= 3 && p.startsWith(q)));
+  const casa = (p) => o.some((q) => q.startsWith(p) || (p.length >= 3 && q.length >= 3 && p.startsWith(q)) || abreviatura(p, q));
   const largas = h.filter((p) => p.length >= 2);
   if (!largas.length || !casa(largas[0])) return 0;
   return largas.filter(casa).length / largas.length;
+}
+
+// «INDT» = «Industrial», «MERC» = «Mercancías»: mismas dos primeras letras y el resto de letras
+// de la abreviatura en orden dentro de la palabra.
+function abreviatura(p, q) {
+  if (p.length < 3 || q.length <= p.length || p[0] !== q[0] || p[1] !== q[1]) return false;
+  let j = 2;
+  for (let i = 2; i < p.length; i++) {
+    j = q.indexOf(p[i], j);
+    if (j < 0) return false;
+    j++;
+  }
+  return true;
 }
 
 const esBif = (n) => /^bif\b/i.test(norm(n).trim());
@@ -62,7 +75,10 @@ export function anclar(filas, osm) {
     const r = [];
     for (const e of osm) {
       const p = Math.max(parecido(f.nom, e.nombre), ...e.otros.map((x) => parecido(f.nom, x)));
-      if (p >= 0.5) r.push({ ...e, p });
+      // A igual parecido, mejor la estación sin palabras de más («Segovia» antes que
+      // «Segovia-Guiomar», que es la de alta velocidad).
+      const extra = Math.max(0, palabras(e.nombre).length - palabras(f.nom).length);
+      if (p >= 0.5) r.push({ ...e, p: p - 0.04 * Math.min(extra, 3) });
     }
     return r.sort((a, b) => b.p - a.p).slice(0, 12);
   });

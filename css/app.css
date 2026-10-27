@@ -265,6 +265,7 @@ button:disabled{opacity:.45;cursor:default}
 #sim{display:flex;gap:6px;align-items:center;margin:6px 0 0 26px}
 #sim button{margin:0}
 #sim select{width:auto}
+#sel-simgps{width:auto;margin-left:6px}
 code{font:12px ui-monospace,Menlo,monospace;background:var(--in);padding:0 4px;border-radius:4px}
 :root[data-theme="dark"] .tabs button{color:#c9d6e6;border-color:#3d6aa3;border-bottom:0;background:#0f2a4d}
 :root[data-theme="dark"] .tabs button.on{background:var(--ac);border-color:var(--ac);color:#04142a;border-bottom:2px solid var(--ac)}

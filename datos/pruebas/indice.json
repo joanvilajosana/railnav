@@ -1,0 +1,56 @@
+{
+ "version": 1,
+ "fuente": "© colaboradores de OpenStreetMap (ODbL)",
+ "rutas": [
+  {
+   "archivo": "reus-tarragona.railnav.json",
+   "nombre": "Reus → Tarragona",
+   "km": 17.7
+  },
+  {
+   "archivo": "tarragona-reus.railnav.json",
+   "nombre": "Tarragona → Reus",
+   "km": 17.7
+  },
+  {
+   "archivo": "tarragona-barcelona-sants.railnav.json",
+   "nombre": "Tarragona → Barcelona - Sants",
+   "km": 84.3
+  },
+  {
+   "archivo": "barcelona-sants-tarragona.railnav.json",
+   "nombre": "Barcelona - Sants → Tarragona",
+   "km": 84.3
+  },
+  {
+   "archivo": "reus-lleida-pirineus.railnav.json",
+   "nombre": "Reus → Lleida-Pirineus",
+   "km": 89.7
+  },
+  {
+   "archivo": "lleida-pirineus-reus.railnav.json",
+   "nombre": "Lleida-Pirineus → Reus",
+   "km": 89.7
+  },
+  {
+   "archivo": "reus-mora-la-nova.railnav.json",
+   "nombre": "Reus → Móra la Nova",
+   "km": 48.1
+  },
+  {
+   "archivo": "mora-la-nova-reus.railnav.json",
+   "nombre": "Móra la Nova → Reus",
+   "km": 48.1
+  },
+  {
+   "archivo": "tarragona-tortosa.railnav.json",
+   "nombre": "Tarragona → Tortosa",
+   "km": 84.1
+  },
+  {
+   "archivo": "tortosa-tarragona.railnav.json",
+   "nombre": "Tortosa → Tarragona",
+   "km": 84.1
+  }
+ ]
+}

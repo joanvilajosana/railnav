@@ -14,7 +14,8 @@ import { desbloquear, hablar, ponerSilencio, ponerVolumen, probar, silenciado, t
 import { Avisador, textoVoz } from "./avisos.js";
 import * as despierto from "./despierto.js";
 import { Seguidor, Via } from "./geo/seguimiento.js";
-import { disponible as hayUbicacion, escuchar as escucharUbicacion } from "./geo/ubicacion.js";
+import { ahora as ahoraGps, disponible as hayUbicacion, escuchar as escucharUbicacion, esSimulado, simular } from "./geo/ubicacion.js";
+import { GpsSimulado } from "./geo/simulado.js";
 import * as grabar from "./geo/grabar.js";
 import { compartirArchivo } from "./compartir.js";
 import { trazadoIncluido } from "./geo/firma.js";
@@ -145,6 +146,7 @@ async function abrir(paquete, guardarla = true) {
       guardarPos();
     },
   });
+  pararGpsSimulado();
   reiniciarHistorial();
   $("hist").scrollTop = 0;
   inercia = 0;
@@ -432,12 +434,13 @@ async function pintarAjustes() {
     ? lista
         .map(
           (r) =>
-            `<div class="ru${ruta && r.id === ruta.id ? " on" : ""}"><div><b>${esc(r.tren)}</b> · ${esc(r.origen || "?")} → ${esc(r.destino || "?")}<small>${fecha(r.fecha)}${r.ltv ? " · DLTV nº " + esc(r.ltv) : " · sin DLTV"}</small></div>` +
+            `<div class="ru${ruta && r.id === ruta.id ? " on" : ""}"><div><b>${esc(r.tren)}</b> · ${esc(r.origen || "?")} → ${esc(r.destino || "?")}<small>${r.tren === "PRUEBA" ? "ruta de prueba del GPS (sin datos de ADIF)" : fecha(r.fecha) + (r.ltv ? " · DLTV nº " + esc(r.ltv) : " · sin DLTV")}</small></div>` +
             `<div>${ruta && r.id === ruta.id ? '<span class="act">En uso</span>' : `<button data-abrir="${esc(r.id)}">Abrir</button>`}<button data-comp="${esc(r.id)}" title="Enviar la ruta (AirDrop, Mensajes, Correo…)">Compartir</button><button data-borrar="${esc(r.id)}" title="Borrar del dispositivo">Borrar</button></div></div>`,
         )
         .join("")
     : '<div class="note">Todavía no hay rutas guardadas en este dispositivo.</div>';
   pintarTablas();
+  pintarPruebas();
   for (const m of Object.keys(MODOS)) {
     const r = document.querySelector(`input[name=modo][value=${m}]`);
     if (r) r.checked = pos?.modo === m;
@@ -496,6 +499,7 @@ function iniciarAjustes() {
         pintarAjustes();
         return;
       }
+      if (r.value !== "gps") pararGpsSimulado();
       pos.cambiarModo(r.value);
       prefs.escribir("modo", pos.modo);
       inercia = 0;
@@ -517,6 +521,22 @@ function iniciarAjustes() {
   };
   $("b-probar-aviso").onclick = probarAviso;
   $("b-geo").onclick = prepararGps;
+  iniciarGpsSimulado();
+  $("pruebas").onclick = async (e) => {
+    const b = e.target.closest("button[data-prueba]");
+    if (!b) return;
+    b.disabled = true;
+    try {
+      const p = await fetch("datos/pruebas/" + b.dataset.prueba).then((r) => (r.ok ? r.json() : Promise.reject(new Error(`HTTP ${r.status}`))));
+      await abrir(p, true);
+      $("msg-pruebas").textContent = `Abierta: ${p.tren.origen} → ${p.tren.destino}. Elige «GPS» en «Posición del tren».`;
+    } catch (err) {
+      $("msg-pruebas").textContent = `No se ha podido abrir: ${err.message}`;
+    } finally {
+      b.disabled = false;
+      pintarAjustes();
+    }
+  };
   iniciarGrabacion();
   $("oi").onclick = () => mostrar("pictos");
   $("bk").onclick = () => mostrar("ajustes");
@@ -573,13 +593,13 @@ function desactivarGps() {
 
 function pasoGps() {
   if (pos?.modo !== "gps" || !seguidor) return false;
-  const d = seguidor.estimar(Date.now());
+  const d = seguidor.estimar(ahoraGps());
   const fiable = d != null && seguidor.fiable;
   const ult = seguidor.ultima;
   const etiqueta =
     d == null
       ? errorGps ? `GPS: ${errorGps.toUpperCase()}` : "GPS: BUSCANDO POSICIÓN…"
-      : !fiable ? "POSICIÓN NO FIABLE" : `GPS ±${Math.round(ult?.precision ?? 0)} m`;
+      : !fiable ? "POSICIÓN NO FIABLE" : `${esSimulado() ? "GPS SIMULADO" : "GPS"} ±${Math.round(ult?.precision ?? 0)} m`;
   let cambio = etiqueta !== pos.etiqueta || fiable !== pos.fiable;
   pos.etiqueta = etiqueta;
   pos.fiable = fiable;
@@ -595,6 +615,7 @@ function pintarEstadoGps() {
   if (pos?.modo !== "gps") return void (e.textContent = "");
   const u = seguidor?.ultima;
   e.textContent = errorGps ? errorGps : !u ? "esperando la primera lectura…" : `última lectura ±${Math.round(u.precision)} m · ${u.motivo}`;
+  if (gpsSim && seguidor?.d != null) e.textContent += ` · error respecto al tren simulado: ${Math.round(Math.abs(seguidor.d - gpsSim.d) * 1000)} m`;
   e.className = "estado " + (seguidor?.fiable ? "ok" : "mal");
 }
 
@@ -603,16 +624,23 @@ function pintarGeo() {
   const opcion = document.querySelector("input[name=modo][value=gps]");
   opcion.disabled = !g;
   $("op-gps").classList.toggle("off", !g);
+  $("op-simgps").classList.toggle("off", !g);
+  $("op-simgps").querySelector("input").disabled = !g;
+  $("op-simgps").querySelector("input").checked = !!gpsSim;
   if (!g) {
     $("geo-info").innerHTML = "Esta ruta todavía no tiene el trazado de la vía: pulsa «Preparar el GPS de esta ruta» (con conexión).";
     $("b-geo").textContent = "Preparar el GPS de esta ruta";
+    $("b-geo").hidden = false;
     return;
   }
   const dud = g.dudosos || [], km = dud.reduce((s, [a, b]) => s + (b - a), 0);
   $("geo-info").innerHTML =
-    `<b>Trazado preparado</b> (${fecha(g.fecha)}): ${g.anclas.length} de ${g.estaciones} dependencias de la hoja situadas en el mapa` +
+    ruta.p.prueba
+      ? `<b>Ruta de prueba</b>: recorrido por la vía de OpenStreetMap con ${g.anclas.length} estaciones y apeaderos` + (g.tuneles?.length ? ` · ${g.tuneles.length} túneles (sin señal en el GPS simulado).` : ".")
+      : `<b>Trazado preparado</b> (${fecha(g.fecha)}): ${g.anclas.length} de ${g.estaciones} dependencias de la hoja situadas en el mapa` +
     (dud.length ? ` · <b>${km.toFixed(1)} km dudosos</b> (allí la posición sale «no fiable»):<ul>${dud.slice(0, 5).map((d) => `<li>${esc(d[2])}</li>`).join("")}</ul>` : " · sin tramos dudosos.");
   $("b-geo").textContent = "Volver a preparar el trazado";
+  $("b-geo").hidden = !!ruta.p.prueba; // el de una ruta de prueba sale de la vía misma
 }
 
 async function prepararGps() {
@@ -639,6 +667,54 @@ async function prepararGps() {
     $("b-geo").disabled = false;
     pintarAjustes();
   }
+}
+
+// ---------- GPS simulado (pruebas en casa) ----------
+let gpsSim = null;
+
+function iniciarGpsSimulado() {
+  $("sel-simgps").value = String(prefs.leer("simgps", 5));
+  $("sel-simgps").onchange = () => {
+    const f = Number($("sel-simgps").value);
+    prefs.escribir("simgps", f);
+    gpsSim?.cambiarFactor(f);
+  };
+  $("op-simgps").querySelector("input").onchange = (e) => {
+    if (e.target.checked && via && ruta) {
+      gpsSim = new GpsSimulado(via, {
+        d: pos.d,
+        velocidad: (d) => ruta.vEn(d) ?? 80,
+        factor: Number($("sel-simgps").value),
+        tuneles: ruta.p.geo?.tuneles || [],
+        semilla: Date.now() % 1e9,
+      });
+      simular(gpsSim);
+      if (pos.modo !== "gps") {
+        pos.cambiarModo("gps");
+        prefs.escribir("modo", "gps");
+      }
+      activarGps();
+    } else pararGpsSimulado();
+    pintarAjustes();
+    pintarSim();
+  };
+}
+
+function pararGpsSimulado() {
+  if (!gpsSim) return;
+  gpsSim = null;
+  simular(null);
+  if (pos?.modo === "gps") activarGps();
+}
+
+// ---------- rutas de prueba del GPS ----------
+let pruebas = null;
+
+async function pintarPruebas() {
+  pruebas ??= await fetch("datos/pruebas/indice.json").then((r) => (r.ok ? r.json() : null)).catch(() => null);
+  $("pruebas").innerHTML = pruebas?.rutas?.length
+    ? pruebas.rutas.map((r) => `<div class="ru"><div><b>${esc(r.nombre)}</b><small>${String(r.km).replace(".", ",")} km</small></div><div><button data-prueba="${esc(r.archivo)}">Abrir</button></div></div>`).join("")
+    : '<div class="note">No hay rutas de prueba en esta versión.</div>';
 }
 
 // ---------- grabar recorrido ----------
@@ -675,7 +751,7 @@ function iniciarGrabacion() {
         $("est-grabar").textContent = "este navegador no da la posición";
         return;
       }
-      grabar.empezar({ ruta: ruta?.id, tren: ruta?.tren?.numero, posicion: () => pos?.d, modo: () => pos?.modo }, (r, err) => {
+      grabar.empezar({ ruta: ruta?.id, tren: ruta?.tren?.numero, posicion: () => pos?.d, modo: () => pos?.modo + (esSimulado() ? " simulado" : "") }, (r, err) => {
         pintarGrabacion(r, err);
         if (vista === "ajustes" && r.puntos.length % 10 === 1) pintarRecorridos();
       });

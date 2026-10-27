@@ -117,7 +117,7 @@ export function pintarMarcha(ruta, pos, { desvio: conDesvio = false } = {}) {
   if (tramo?.revisar) s += `<rect x="14" y="12" width="96" height="20" rx="5" fill="none" stroke="var(--dn)" stroke-dasharray="3 2"/><text x="62" y="26" font-size="12" font-weight="800" text-anchor="middle" fill="var(--dn)">A REVISAR</text>`;
   s += vp != null
     ? `<text x="154" y="176" font-size="158" font-weight="700" text-anchor="middle" fill="${lt ? "var(--lt)" : "var(--tx)"}">${vp}</text>`
-    : `<text x="154" y="120" font-size="26" font-weight="700" text-anchor="middle" fill="var(--gy)">Sin V Max</text><text x="154" y="148" font-size="14" text-anchor="middle" fill="var(--gy)">la hoja no la da en este tramo</text>`;
+    : `<text x="154" y="120" font-size="26" font-weight="700" text-anchor="middle" fill="var(--gy)">Sin V Max</text><text x="154" y="148" font-size="14" text-anchor="middle" fill="var(--gy)">${ruta.p.prueba ? "ruta de prueba: sin datos de ADIF" : "la hoja no la da en este tramo"}</text>`;
   s += `${vp != null ? '<text x="154" y="198" font-size="13" text-anchor="middle" fill="var(--gy)">km/h</text>' : ""}<line x1="14" x2="294" y1="212" y2="212" stroke="var(--ln)"/>`;
   s += `<text x="16" y="234" font-size="13" fill="var(--gy)">Siguiente</text>`;
   if (nx) {

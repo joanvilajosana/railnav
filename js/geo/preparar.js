@@ -5,7 +5,10 @@ import { deLista, estaciones, vias } from "./osm.js";
 import { anclar, caja, claves, Red, trazar } from "./trazado.js";
 
 export const VERSION_GEO = 1;
-const TROZO_KM = 45; // las vías se piden por trozos de ruta para que Overpass no se atasque
+// Las vías se piden por trozos de ruta: consultas pequeñas, que los servidores públicos de
+// Overpass sí atienden (con trozos de 45 km la zona de Madrid daba error 504).
+const TROZO_KM = 15;
+const MARGEN_KM = 3;
 
 /** Filas de la hoja del paquete con nombre y pk_acum (el paquete omite los pka = 0). */
 export function filasConNombre(paquete) {
@@ -18,10 +21,12 @@ export function filasConNombre(paquete) {
  * @param {object} paquete  paquete de ruta
  * @param {(texto) => void} progreso
  * @param {object} [opciones]  {lista}: contenido de datos/estaciones.json (sin él, se buscan
- *                             las estaciones en OpenStreetMap, que es más lento y frágil)
+ *                             las estaciones en OpenStreetMap, que es más lento y frágil);
+ *                             {vias}: otra fuente de vías (caja) => [...] (en el ordenador, la red
+ *                             local de app/tests/red_local.mjs en vez de Overpass)
  * @returns geo para `paquete.geo`
  */
-export async function preparar(paquete, progreso = () => {}, { lista = null } = {}) {
+export async function preparar(paquete, progreso = () => {}, { lista = null, vias: fuenteVias = vias } = {}) {
   const filas = filasConNombre(paquete);
   let osm;
   if (lista) osm = deLista(lista);
@@ -42,7 +47,7 @@ export async function preparar(paquete, progreso = () => {}, { lista = null } = 
   const todas = new Map();
   for (const [k, t] of trozos.entries()) {
     progreso(`Descargando las vías (${k + 1} de ${trozos.length})…`);
-    for (const w of await vias(caja(t, 5))) todas.set(w.id, w);
+    for (const w of await fuenteVias(caja(t, MARGEN_KM))) todas.set(w.id, w);
   }
   progreso("Calculando el trazado…");
   await new Promise((r) => setTimeout(r, 0));

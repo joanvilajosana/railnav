@@ -106,6 +106,11 @@
    <div id="geo-info" class="geo-info"></div>
    <button id="b-geo">Preparar el GPS de esta ruta</button>
    <div id="geo-msg" class="gen-msg" aria-live="polite"></div>
+   <label class="op" id="op-simgps"><input type="checkbox"> GPS simulado, para probar en casa: un tren ficticio sale de la posición actual y la app lo sigue como si fuera el GPS del iPad (con errores, saltos y túneles sin señal) <select id="sel-simgps" aria-label="Velocidad del tiempo"><option value="1">tiempo real</option><option value="5">×5</option><option value="10">×10</option><option value="20">×20</option></select></label>
+   <h3>Rutas de prueba</h3>
+   <div class="sec-ley">Para probar el GPS viajando de pasajero, sin hoja de ruta: recorrido por la vía de OpenStreetMap con sus estaciones y apeaderos. No llevan velocidades, horario, radio ni bloqueo.</div>
+   <div id="pruebas"></div>
+   <div id="msg-pruebas" class="note"></div>
    <h3>Grabar recorrido</h3>
    <label class="op"><input type="checkbox" id="op-grabar"> Grabar las posiciones del iPad durante el viaje, para medir su precisión <span id="est-grabar" class="estado"></span></label>
    <div id="recorridos"></div>
