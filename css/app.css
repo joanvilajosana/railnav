@@ -492,3 +492,23 @@ code{font:12px ui-monospace,Menlo,monospace;background:var(--in);padding:0 4px;b
 .ajb span{flex:1}
 .ajb button{margin:0;width:48px;height:44px;font-size:22px;font-weight:700;padding:0}
 .ajb b{min-width:64px;text-align:center;font-variant-numeric:tabular-nums}
+
+/* ===================================================================== colores en grises
+   Ajustes → Pantalla → Colores. Blanco, negro y grises, a juego con el logo; los colores con
+   significado no cambian: LTV en rojo, bajadas en naranja, subidas en verde, CSV en el azul de
+   ADIF, posición en amarillo y los pictogramas. */
+:root[data-paleta="grises"]{--bg:#e4e4e6;--ln:#a9a9ae;--tx:#0d0d0f;--gy:#5c5c62;--disc:#1c1c1e;--dt:#fff;--blu:#8e8e93;--blu2:#cfcfd3;--bt:#d1d1d6;--pn:#fff;--in:#f2f2f4;--ac:#111113}
+@media (prefers-color-scheme:dark){:root[data-paleta="grises"]:not([data-theme="light"]){--bg:#0a0a0b;--ln:#3d3d42;--tx:#f2f2f4;--gy:#a1a1a8;--disc:#e5e5ea;--dt:#000;--blu:#636366;--blu2:#3a3a3e;--bt:#2c2c2e;--pn:#1c1c1e;--in:#111113;--ac:#f2f2f4}}
+:root[data-paleta="grises"][data-theme="dark"]{--bg:#0a0a0b;--ln:#3d3d42;--tx:#f2f2f4;--gy:#a1a1a8;--disc:#e5e5ea;--dt:#000;--blu:#636366;--blu2:#3a3a3e;--bt:#2c2c2e;--pn:#1c1c1e;--in:#111113;--ac:#f2f2f4}
+/* lo que estaba escrito en azul fijo (pestañas de noche, texto sobre el color de acento) */
+:root[data-paleta="grises"][data-theme="dark"] .tabs button{color:var(--gy);border-color:var(--ln);background:var(--in)}
+:root[data-paleta="grises"][data-theme="dark"] .tabs button.on{background:var(--ac);border-color:var(--ac);color:#000;border-bottom:2px solid var(--ac)}
+@media (prefers-color-scheme:dark){
+:root[data-paleta="grises"]:not([data-theme="light"]) .tabs button{color:var(--gy);border-color:var(--ln);background:var(--in)}
+:root[data-paleta="grises"]:not([data-theme="light"]) .tabs button.on{background:var(--ac);border-color:var(--ac);color:#000;border-bottom:2px solid var(--ac)}
+}
+:root[data-paleta="grises"] button.pri,:root[data-paleta="grises"] .sb-pl.on,:root[data-paleta="grises"] .sb-f button.on{color:var(--pn)}
+:root[data-paleta="grises"][data-theme="dark"] button.pri,:root[data-paleta="grises"][data-theme="dark"] .sb-pl.on,:root[data-paleta="grises"][data-theme="dark"] .sb-f button.on{color:#000}
+@media (prefers-color-scheme:dark){:root[data-paleta="grises"]:not([data-theme="light"]) button.pri,:root[data-paleta="grises"]:not([data-theme="light"]) .sb-pl.on,:root[data-paleta="grises"]:not([data-theme="light"]) .sb-f button.on{color:#000}}
+:root[data-paleta="grises"] .nav button.on{color:var(--tx)}
+:root[data-paleta="grises"] .tr-ruta span{color:var(--gy)}

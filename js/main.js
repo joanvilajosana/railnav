@@ -35,6 +35,7 @@ function barra() {
     document.documentElement.dataset.theme = oscuro() ? "light" : "dark";
     prefs.escribir("tema", document.documentElement.dataset.theme);
     iconoTema();
+    aplicarPaleta();
     sucio = true;
   };
   matchMedia("(prefers-color-scheme: dark)").addEventListener("change", iconoTema);
@@ -456,6 +457,7 @@ async function pintarAjustes() {
   for (const r of document.querySelectorAll("input[name=sonar]")) r.checked = r.value === prefs.leer("sonar", "urgentes");
   $("op-voz").checked = prefs.leer("voz", true);
   pintarBordes();
+  for (const r of document.querySelectorAll("input[name=paleta]")) r.checked = r.value === prefs.leer("paleta", "azul");
   const pp = prefs.leer("pantalla", "auto");
   for (const r of document.querySelectorAll("input[name=pantalla]")) r.checked = r.value === pp;
   $("est-pantalla").textContent = pp === "auto" ? `ahora: ${automatica() === "telefono" ? "teléfono" : "tablet"}` : "";
@@ -686,7 +688,25 @@ function aplicarPantalla() {
   if (vista === "datos" && ruta) pintarDatos(ruta, pos.d);
 }
 
+const FONDO = { azul: ["#dbe5f0", "#16365f"], grises: ["#e4e4e6", "#0a0a0b"] };
+
+function aplicarPaleta() {
+  const c = prefs.leer("paleta", "azul");
+  if (c === "grises") document.documentElement.dataset.paleta = c;
+  else delete document.documentElement.dataset.paleta;
+  // color de la barra de estado del sistema
+  document.querySelector('meta[name="theme-color"]').content = FONDO[c in FONDO ? c : "azul"][oscuro() ? 1 : 0];
+  sucio = true;
+}
+
 function iniciarPantalla() {
+  document.querySelectorAll("input[name=paleta]").forEach((r) =>
+    r.addEventListener("change", () => {
+      prefs.escribir("paleta", r.value);
+      aplicarPaleta();
+    }),
+  );
+  aplicarPaleta();
   document.querySelectorAll("input[name=pantalla]").forEach((r) =>
     r.addEventListener("change", () => {
       prefs.escribir("pantalla", r.value);
