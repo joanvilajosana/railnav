@@ -3,15 +3,20 @@
 export const ICO = {
   marcha: '<path d="M3 11L12 3l9 8M5 10v10h5v-6h4v6h5V10"/>',
   datos: '<rect x="5" y="3" width="14" height="14" rx="3"/><path d="M5 11h14M8 21l1.5-4M16 21l-1.5-4"/><circle cx="9" cy="14" r=".6"/><circle cx="15" cy="14" r=".6"/>',
+  // Engranaje de 8 dientes (perfil cerrado y eje), bien distinto del sol del modo día/noche.
   ajustes:
-    '<circle cx="12" cy="12" r="3.2"/>' +
+    '<path d="' +
     [...Array(8).keys()]
-      .map((i) => {
-        const a = (i * Math.PI) / 4, c = Math.cos(a), s = Math.sin(a);
-        return `<line x1="${12 + 7 * c}" y1="${12 + 7 * s}" x2="${12 + 10 * c}" y2="${12 + 10 * s}"/>`;
+      .flatMap((i) => {
+        const a = i * 45, p = (r, g) => {
+          const t = ((a + g) * Math.PI) / 180;
+          return `${(12 + r * Math.cos(t)).toFixed(2)} ${(12 + r * Math.sin(t)).toFixed(2)}`;
+        };
+        return [p(7.6, -14), p(10.6, -8.5), p(10.6, 8.5), p(7.6, 14)];
       })
+      .map((q, k) => (k ? "L" : "M") + q)
       .join("") +
-    '<circle cx="12" cy="12" r="7"/>',
+    'Z"/><circle cx="12" cy="12" r="3"/>',
   sol:
     '<circle cx="12" cy="12" r="4"/>' +
     [...Array(8).keys()]
