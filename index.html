@@ -5,7 +5,7 @@
 <title>RailNav</title>
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
 <meta name="description" content="Hoja de ruta y LTV para el maquinista. Servicio no oficial ni homologado por la AESF.">
-<meta name="theme-color" content="#16365f">
+<meta name="theme-color" content="#0a0a0b">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -24,8 +24,6 @@
     const d = JSON.parse(localStorage.getItem("railnav.pantalla")) || "auto";
     document.documentElement.dataset.disp = d !== "auto" ? d : Math.min(screen.width, screen.height) < 600 ? "telefono" : "tablet";
   } catch (e) { document.documentElement.dataset.disp = Math.min(screen.width, screen.height) < 600 ? "telefono" : "tablet"; }
-  // Colores (Ajustes → Pantalla): azules (los de siempre) o grises.
-  try { const c = JSON.parse(localStorage.getItem("railnav.paleta")); if (c === "grises") document.documentElement.dataset.paleta = c; } catch (e) {}
 </script>
 </head>
 <body>
@@ -152,12 +150,6 @@
     <label><input type="radio" name="pantalla" value="tablet">Tablet</label>
    </div>
    <div id="est-pantalla" class="seg-desc"></div>
-   <div class="seg-t">Colores</div>
-   <div class="seg paletas" role="radiogroup" aria-label="Colores">
-    <label><input type="radio" name="paleta" value="azul"><i class="mu azul"></i>Azules</label>
-    <label><input type="radio" name="paleta" value="grises"><i class="mu grises"></i>Grises</label>
-   </div>
-   <div class="seg-desc">Lo que tiene significado mantiene su color: LTV, bajadas, subidas, CSV, posición y pictogramas.</div>
    <details class="mas"><summary>Bordes de la pantalla</summary>
     <div class="sec-ley">Si con la app instalada queda un hueco abajo, o la parte de arriba queda bajo la hora y la batería.</div>
     <div class="ajb"><span>Bajar la parte de arriba</span><button data-aj="sup" data-d="-4" aria-label="Menos">−</button><b id="aj-sup"></b><button data-aj="sup" data-d="4" aria-label="Más">+</button></div>

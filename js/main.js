@@ -486,7 +486,6 @@ async function pintarAjustes() {
   $("est-despierto").className = "estado " + ed[1];
   for (const r of document.querySelectorAll("input[name=sonar]")) r.checked = r.value === prefs.leer("sonar", "urgentes");
   pintarBordes();
-  for (const r of document.querySelectorAll("input[name=paleta]")) r.checked = r.value === prefs.leer("paleta", "azul");
   const pp = prefs.leer("pantalla", "auto");
   for (const r of document.querySelectorAll("input[name=pantalla]")) r.checked = r.value === pp;
   $("est-pantalla").textContent = pp === "auto" ? `Según el tamaño de la pantalla: ahora, ${automatica() === "telefono" ? "teléfono" : "tablet"}.` : pp === "telefono" ? "Piezas grandes, una debajo de otra." : "La pantalla de marcha completa en tres columnas.";
@@ -738,24 +737,13 @@ function aplicarPantalla() {
   if (vista === "datos" && ruta) pintarDatos(ruta, pos.d);
 }
 
-const FONDO = { azul: ["#dbe5f0", "#16365f"], grises: ["#e4e4e6", "#0a0a0b"] };
-
+// Color de la barra de estado del sistema: el fondo de la app (gris claro o casi negro).
 function aplicarPaleta() {
-  const c = prefs.leer("paleta", "azul");
-  if (c === "grises") document.documentElement.dataset.paleta = c;
-  else delete document.documentElement.dataset.paleta;
-  // color de la barra de estado del sistema
-  document.querySelector('meta[name="theme-color"]').content = FONDO[c in FONDO ? c : "azul"][oscuro() ? 1 : 0];
+  document.querySelector('meta[name="theme-color"]').content = oscuro() ? "#0a0a0b" : "#e4e4e6";
   sucio = true;
 }
 
 function iniciarPantalla() {
-  document.querySelectorAll("input[name=paleta]").forEach((r) =>
-    r.addEventListener("change", () => {
-      prefs.escribir("paleta", r.value);
-      aplicarPaleta();
-    }),
-  );
   aplicarPaleta();
   document.querySelectorAll("input[name=pantalla]").forEach((r) =>
     r.addEventListener("change", () => {

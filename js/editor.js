@@ -56,7 +56,7 @@ export function iniciarEditor() {
     $("grid").querySelector(`[data-i="${sel}"]`).innerHTML = icono(todos()[sel], 48, MUESTRA) + esc(todos()[sel].nombre);
   };
   $("nw").onclick = () => {
-    todos().push({ id: "nuevo_" + (todos().length + 1), nombre: "Nuevo pictograma", forma: "cuadrado", fondo: "#10223c", borde: "#c5d1e0", color: "#ffffff", glifo: "?", svg: "", aviso: 3, accion: "", marca: "", tipos: [] });
+    todos().push({ id: "nuevo_" + (todos().length + 1), nombre: "Nuevo pictograma", forma: "cuadrado", fondo: "#1c1c1e", borde: "#c7c7cc", color: "#ffffff", glifo: "?", svg: "", aviso: 3, accion: "", marca: "", tipos: [] });
     sel = todos().length - 1;
     guardar();
     pintarEditor();

@@ -37,7 +37,7 @@ const limpiarSvg = (s) =>
 
 /** SVG (48×48) de un pictograma con los datos de un evento. */
 export function forma(p, datos) {
-  const st = `fill="${esc(p.fondo || "#10223c")}" stroke="${esc(p.borde || "#c5d1e0")}" stroke-width="3"`;
+  const st = `fill="${esc(p.fondo || "#1c1c1e")}" stroke="${esc(p.borde || "#c7c7cc")}" stroke-width="3"`;
   const c = esc(p.color || "#fff");
   const sh =
     {
