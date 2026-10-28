@@ -250,6 +250,8 @@ export function pintarMarchaMovil(ruta, pos, { desvio: conDesvio = false } = {})
       if (ty < arriba - 8) continue;
       fondo += `<circle cx="${x}" cy="${yy}" r="3.5" fill="${esc(k.borde || "var(--gy)")}"/><path d="M${x} ${yy}L${x + 8} ${ty}" stroke="${esc(k.borde || "var(--gy)")}" stroke-width="2" fill="none"/>`;
       frente += `<g transform="translate(${x + 8} ${ty - tam / 2}) scale(${esc_})">${forma(k, e.datos)}</g>`;
+      if (W - (x + 12 + tam) >= 34)
+        frente += `<text x="${W - 4}" y="${ty + 4}" font-size="12" font-weight="700" text-anchor="end" fill="var(--tx)">${dm((e.pk_acum - d) * 1000)}</text>`;
     }
     s += fondo + frente;
     s += `<polygon points="${x},${abajo - 12} ${x - 10},${abajo + 8} ${x + 10},${abajo + 8}" fill="var(--yl)"/>`;

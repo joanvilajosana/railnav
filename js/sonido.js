@@ -47,16 +47,15 @@ export function ponerSilencio(s) {
 
 const audible = () => !estado.silencio && estado.volumen > 0;
 
-// Tonos: [frecuencia Hz, inicio s, duración s, intensidad 0–1]
+// Tonos: [frecuencia Hz, inicio s, duración s, intensidad 0–1]. Avisos sencillos, como una
+// notificación del teléfono (campanita de notas cortas, sin voz).
 const TONOS = {
-  prueba: [[880, 0, 0.14, 0.5], [1175, 0.16, 0.14, 0.5]],
-  // aviso urgente (LTV, CSV, bajada de velocidad): tres notas descendentes
-  urgente: [[988, 0, 0.16, 0.7], [784, 0.19, 0.16, 0.7], [659, 0.38, 0.26, 0.7]],
-  // aviso informativo: una nota suave
-  info: [[660, 0, 0.22, 0.35]],
-  // llegada al punto de una LTV o una bajada: dos notas rápidas
-  accion: [[1046, 0, 0.1, 0.6], [1046, 0.14, 0.1, 0.6]],
+  // al llegar a la distancia de aviso: tres notas que suben
+  aviso: [[1047, 0, 0.32, 0.55], [1319, 0.1, 0.32, 0.5], [1568, 0.2, 0.5, 0.5]],
+  // al pasar por el punto: la misma campanita, más corta y bajando
+  paso: [[1568, 0, 0.3, 0.45], [1175, 0.11, 0.45, 0.45]],
 };
+TONOS.prueba = TONOS.aviso;
 
 /** Toca un tono (no suena en silencio). Devuelve su duración en s. */
 export function tono(tipo = "prueba") {
@@ -74,6 +73,15 @@ export function tono(tipo = "prueba") {
     o.connect(g).connect(maestro);
     o.start(t);
     o.stop(t + dur + 0.01);
+    const o2 = c.createOscillator(), g2 = c.createGain();
+    o2.type = "sine";
+    o2.frequency.value = f * 2.76; // parcial de campana
+    g2.gain.setValueAtTime(0, t);
+    g2.gain.linearRampToValueAtTime(amp * 0.18, t + 0.01);
+    g2.gain.exponentialRampToValueAtTime(0.001, t + dur * 0.5);
+    o2.connect(g2).connect(maestro);
+    o2.start(t);
+    o2.stop(t + dur + 0.01);
   }
   return Math.max(...notas.map(([, ini, dur]) => ini + dur));
 }

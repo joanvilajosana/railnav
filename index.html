@@ -38,14 +38,13 @@
   </div>
 </div>
 <div class="info" aria-live="polite">
-  <div class="ic"><small>Tren</small><b id="in-tren">—</b></div>
+  <div class="ic"><small>Tren</small><b id="in-tren">—</b><span id="in-ruta" class="ic-r"></span></div>
   <div class="ic"><small>Bloqueo</small><b id="in-bq">—</b></div>
   <div class="ic"><small><span class="larga">Radiotelefonía</span><span class="corta">Radio</span></small><b id="in-rd">—</b></div>
 </div>
-<div id="pop-vol" class="pop" role="dialog" aria-label="Volumen" hidden>
-  <div class="pop-t">Volumen <b id="vol-n"></b></div>
-  <input id="vol" type="range" min="0" max="100" step="5" aria-label="Volumen">
-  <div class="note">Para los avisos sonoros (llegarán más adelante). Al soltar suena una prueba.</div>
+<div id="pop-vol" class="pop pop-vol" role="dialog" aria-label="Volumen" hidden>
+  <b id="vol-n" class="vol-n"></b>
+  <div id="vol" class="vslider" role="slider" tabindex="0" aria-label="Volumen" aria-orientation="vertical" aria-valuemin="0" aria-valuemax="100"><i class="vs-fill"></i><i class="vs-thumb"></i></div>
 </div>
 <div class="vw">
  <!-- Pantalla de marcha -->
@@ -67,7 +66,6 @@
     <button id="sb-pl" class="sb-pl" aria-label="Marcha"></button>
     <span class="sb-f" role="group" aria-label="Velocidad de la simulación"><button data-f="1">×1</button><button data-f="10">×10</button><button data-f="40">×40</button><button data-f="100">×100</button></span>
    </div>
-   <span class="pie-t">Desarrollado por Joan Vilajosana Quesada · Servicio no oficial ni homologado por la AESF</span>
   </div>
  </div>
  <!-- Datos -->
@@ -87,79 +85,101 @@
  </div>
  <!-- Ajustes -->
  <div id="v-ajustes" hidden>
-  <div class="pn">
-   <h2>Generar ruta desde los PDF</h2>
-   <label class="carga">Hoja de ruta (PDF)<input id="f-hoja" type="file" accept="application/pdf,.pdf"></label>
-   <label class="carga">DLTV de la semana (PDF)<input id="f-dltv" type="file" accept="application/pdf,.pdf"></label>
-   <label>DLTV con el que cruzar<select id="sel-dltv"></select></label>
-   <button id="b-generar" class="pri" disabled>Generar ruta</button>
+  <section class="pn aj">
+   <h2 data-i="doc">Nueva ruta</h2>
+   <div class="cargas">
+    <label class="carga"><span class="carga-i" data-i="doc"></span><span><b>Hoja de ruta</b><small class="carga-n" data-vacio="Elegir PDF">Elegir PDF</small></span><input id="f-hoja" type="file" accept="application/pdf,.pdf"></label>
+    <label class="carga"><span class="carga-i" data-i="ltv"></span><span><b>DLTV de la semana</b><small class="carga-n" data-vacio="Elegir PDF">Elegir PDF</small></span><input id="f-dltv" type="file" accept="application/pdf,.pdf"></label>
+   </div>
+   <label class="fila"><span>Cruzar con</span><select id="sel-dltv"></select></label>
+   <button id="b-generar" class="pri ancho" disabled>Generar ruta</button>
    <div id="gen-msg" class="gen-msg" aria-live="polite"></div>
    <div id="gen-tramos" class="tr-rev" hidden></div>
-   <div class="note">Los PDF se leen en este iPad y no se envían a ningún sitio. El DLTV se lee una vez y queda guardado para las hojas de esa semana.</div>
-  </div>
-  <div class="pn">
-   <h2>Rutas</h2>
+   <div class="note">Los PDF se leen en este dispositivo y no salen de él. El DLTV queda guardado para toda la semana.</div>
+  </section>
+  <section class="pn aj">
+   <h2 data-i="rutas">Rutas guardadas</h2>
    <div id="rutas"></div>
-   <label class="carga">Cargar paquete de ruta (.railnav.json)<input id="f-ruta" type="file" accept=".json,application/json" multiple></label>
+   <div class="botones">
+    <label class="boton"><input id="f-ruta" type="file" accept=".json,application/json" multiple>Cargar paquete</label>
+    <button id="b-demo">Ruta de demostración</button>
+   </div>
    <div id="msg-rutas" class="note"></div>
-   <div class="note">Un paquete también se puede generar en el ordenador con <code>python -m cruce.paquete</code>. Las rutas se guardan solo en este dispositivo.</div>
-   <button id="b-demo">Ver la ruta de demostración</button>
-  </div>
-  <div class="pn">
-   <h2>Tablas de tramos</h2>
-   <div class="sec-ley">Línea de ADIF de cada tramo de una ruta: con ella se cruza la hoja con el DLTV. Las «de serie» vienen con la app; al editarlas se guarda una copia en este dispositivo, que es la que se usa.</div>
-   <div id="tablas"></div>
-   <div id="tabla-ed" class="tr-rev" hidden></div>
-   <label class="carga">Cargar tabla de tramos (.json)<input id="f-tabla" type="file" accept=".json,application/json"></label>
-   <div id="msg-tablas" class="gen-msg" aria-live="polite"></div>
-  </div>
-  <div class="pn">
-   <h2>Posición del tren</h2>
-   <label class="op"><input type="radio" name="modo" value="manual"> Manual: arrastra la línea de tiempo (derecha) hacia abajo para avanzar y hacia arriba para retroceder</label>
-   <label class="op"><input type="radio" name="modo" value="simulacion"> Simulación a la velocidad máxima permitida (pruebas): marcha, pausa, inicio y velocidad se controlan abajo en la pantalla de marcha</label>
-   <label class="op" id="op-gps"><input type="radio" name="modo" value="gps"> GPS: la posición del iPad sobre el trazado de la vía <span id="est-gps" class="estado"></span></label>
+  </section>
+  <section class="pn aj">
+   <h2 data-i="pin">Posición del tren</h2>
+   <div class="seg" role="radiogroup" aria-label="De dónde sale la posición">
+    <label><input type="radio" name="modo" value="manual">Manual</label>
+    <label><input type="radio" name="modo" value="simulacion">Simulación</label>
+    <label id="op-gps"><input type="radio" name="modo" value="gps">GPS</label>
+   </div>
+   <div id="desc-modo" class="seg-desc"></div>
+   <div id="est-gps" class="estado"></div>
    <div id="geo-info" class="geo-info"></div>
    <button id="b-geo">Preparar el GPS de esta ruta</button>
    <div id="geo-msg" class="gen-msg" aria-live="polite"></div>
-   <label class="op" id="op-simgps"><input type="checkbox"> GPS simulado, para probar en casa: un tren ficticio sale de la posición actual y la app lo sigue como si fuera el GPS del iPad (con errores, saltos y túneles sin señal) <select id="sel-simgps" aria-label="Velocidad del tiempo"><option value="1">tiempo real</option><option value="5">×5</option><option value="10">×10</option><option value="20">×20</option></select></label>
-   <h3>Rutas de prueba</h3>
-   <div class="sec-ley">Para probar el GPS viajando de pasajero, sin hoja de ruta: recorrido por la vía de OpenStreetMap con sus estaciones y apeaderos. No llevan velocidades, horario, radio ni bloqueo.</div>
-   <div id="pruebas"></div>
-   <div id="msg-pruebas" class="note"></div>
-   <h3>Grabar recorrido</h3>
-   <label class="op"><input type="checkbox" id="op-grabar"> Grabar las posiciones del iPad durante el viaje, para medir su precisión <span id="est-grabar" class="estado"></span></label>
+   <label class="sw" id="op-simgps"><span>GPS simulado<small>Un tren ficticio con errores y túneles, para probar en casa</small></span><input type="checkbox" role="switch"></label>
+   <label class="fila sub"><span>Velocidad del tiempo</span><select id="sel-simgps"><option value="1">Real</option><option value="5">×5</option><option value="10">×10</option><option value="20">×20</option></select></label>
+   <label class="sw"><span>Grabar recorrido<small id="est-grabar" class="estado">Para medir la precisión en un viaje</small></span><input type="checkbox" id="op-grabar" role="switch"></label>
    <div id="recorridos"></div>
-   <div class="note">El trazado de la vía sale de OpenStreetMap (© colaboradores de OpenStreetMap, licencia ODbL), con las estaciones de la hoja como referencia de los PK. Las rutas conocidas ya lo traen con la app. Para una ruta nueva hay que prepararlo una vez con conexión: los servidores públicos de OpenStreetMap a veces están ocupados; si falla, vuelve a pulsar más tarde (lo ya descargado no se repite). Después funciona sin conexión y se reutiliza para la misma ruta otros días. Un iPad solo Wi-Fi toma la posición de las redes Wi-Fi cercanas: en vía abierta puede quedarse sin lecturas y la app avisa «posición no fiable».</div>
-  </div>
-  <div class="pn">
-   <h2>Pantalla</h2>
-   <label class="op"><input type="radio" name="pantalla" value="auto"> Automática: según el tamaño de la pantalla <span id="est-pantalla" class="estado"></span></label>
-   <label class="op"><input type="radio" name="pantalla" value="telefono"> Teléfono: piezas grandes, una debajo de otra</label>
-   <label class="op"><input type="radio" name="pantalla" value="tablet"> Tablet: la pantalla de marcha completa en tres columnas</label>
-   <h3>Colores</h3>
-   <label class="op"><input type="radio" name="paleta" value="azul"> Azules, como los de ERTMS</label>
-   <label class="op"><input type="radio" name="paleta" value="grises"> Blanco, negro y grises, como el logo. Los colores con significado no cambian: LTV en rojo, bajadas en naranja, subidas en verde, CSV en azul, posición en amarillo y los pictogramas</label>
-   <h3>Bordes de la pantalla</h3>
-   <div class="sec-ley">Con la app instalada, iOS no siempre da bien el tamaño de la pantalla. Si queda un hueco debajo de la barra de abajo, súbelo con «+» hasta que la barra toque el borde; si arriba queda tapado o difuminado por la hora y la batería, baja la parte de arriba con «+».</div>
-   <div class="ajb"><span>Bajar la parte de arriba</span><button data-aj="sup" data-d="-4" aria-label="Menos">−</button><b id="aj-sup"></b><button data-aj="sup" data-d="4" aria-label="Más">+</button></div>
-   <div class="ajb"><span>Alargar hasta el borde de abajo</span><button data-aj="inf" data-d="-4" aria-label="Menos">−</button><b id="aj-inf"></b><button data-aj="inf" data-d="4" aria-label="Más">+</button></div>
-   <button id="aj-rest">Restablecer</button>
-   <div id="medidas" class="note"></div>
-  </div>
-  <div class="pn">
-   <h2>Durante la marcha</h2>
-   <label class="op"><input type="checkbox" id="op-despierto"> Mantener la pantalla encendida mientras la app está abierta <span id="est-despierto" class="estado"></span></label>
-   <h3>Avisos sonoros</h3>
-   <label class="op"><input type="radio" name="sonar" value="no"> Desactivados</label>
-   <label class="op"><input type="radio" name="sonar" value="urgentes"> Solo los urgentes: LTV, CSV y bajadas de velocidad</label>
-   <label class="op"><input type="radio" name="sonar" value="todos"> Todos los avisos (también estaciones, radio, bloqueo, curvas…)</label>
-   <label class="op"><input type="checkbox" id="op-voz"> Leer los avisos en voz alta («Limitación temporal a 30 en 3 kilómetros, vía 2»)</label>
-   <button id="b-probar-aviso">Probar un aviso</button>
-   <h3>Horario</h3>
-   <label class="op"><input type="checkbox" id="op-desvio"> Mostrar el adelanto o retraso respecto al horario de la hoja</label>
-   <div class="note">El sonido sigue el volumen y el silencio de la barra superior. El aviso suena al llegar a su distancia de aviso (la de cada pictograma) y, en las LTV, CSV y bajadas de velocidad, otra vez al llegar al punto. El adelanto o retraso compara la hora del iPad con la prevista en la posición del tren: en posición manual, la que marques.</div>
-  </div>
-  <div class="pn"><h2>Otros</h2><button id="oi">Pictogramas</button><div id="acerca" class="note"></div></div>
+   <details class="mas"><summary>Rutas de prueba (sin hoja de ADIF)</summary>
+    <div class="sec-ley">Para probar el GPS de pasajero: recorrido por la vía de OpenStreetMap con sus estaciones. Sin velocidades, horario, radio ni bloqueo.</div>
+    <div id="pruebas"></div>
+    <div id="msg-pruebas" class="note"></div>
+   </details>
+   <details class="mas"><summary>Cómo funciona el GPS</summary>
+    <div class="note">El trazado de la vía sale de OpenStreetMap (© colaboradores de OpenStreetMap, licencia ODbL), con las estaciones de la hoja como referencia de los PK. Las rutas conocidas ya lo traen; para una nueva se prepara una vez con conexión y luego funciona sin ella. Sin lecturas buenas, la app avisa «posición no fiable». Un iPad solo Wi-Fi no tiene GPS: toma la posición de las redes Wi-Fi cercanas.</div>
+   </details>
+  </section>
+  <section class="pn aj">
+   <h2 data-i="campana">Durante la marcha</h2>
+   <div class="seg-t">Avisos sonoros</div>
+   <div class="seg" role="radiogroup" aria-label="Avisos sonoros">
+    <label><input type="radio" name="sonar" value="no">No</label>
+    <label><input type="radio" name="sonar" value="urgentes">Urgentes</label>
+    <label><input type="radio" name="sonar" value="todos">Todos</label>
+   </div>
+   <div id="desc-sonar" class="seg-desc"></div>
+   <button id="b-probar-aviso">Escuchar los avisos</button>
+   <label class="sw"><span>Pantalla siempre encendida<small id="est-despierto" class="estado"></small></span><input type="checkbox" id="op-despierto" role="switch"></label>
+   <label class="sw"><span>Adelanto o retraso<small>Respecto al horario de la hoja</small></span><input type="checkbox" id="op-desvio" role="switch"></label>
+  </section>
+  <section class="pn aj">
+   <h2 data-i="pantalla">Pantalla</h2>
+   <div class="seg" role="radiogroup" aria-label="Disposición">
+    <label><input type="radio" name="pantalla" value="auto">Automática</label>
+    <label><input type="radio" name="pantalla" value="telefono">Teléfono</label>
+    <label><input type="radio" name="pantalla" value="tablet">Tablet</label>
+   </div>
+   <div id="est-pantalla" class="seg-desc"></div>
+   <div class="seg-t">Colores</div>
+   <div class="seg paletas" role="radiogroup" aria-label="Colores">
+    <label><input type="radio" name="paleta" value="azul"><i class="mu azul"></i>Azules</label>
+    <label><input type="radio" name="paleta" value="grises"><i class="mu grises"></i>Grises</label>
+   </div>
+   <div class="seg-desc">Lo que tiene significado mantiene su color: LTV, bajadas, subidas, CSV, posición y pictogramas.</div>
+   <details class="mas"><summary>Bordes de la pantalla</summary>
+    <div class="sec-ley">Si con la app instalada queda un hueco abajo, o la parte de arriba queda bajo la hora y la batería.</div>
+    <div class="ajb"><span>Bajar la parte de arriba</span><button data-aj="sup" data-d="-4" aria-label="Menos">−</button><b id="aj-sup"></b><button data-aj="sup" data-d="4" aria-label="Más">+</button></div>
+    <div class="ajb"><span>Alargar hasta abajo</span><button data-aj="inf" data-d="-4" aria-label="Menos">−</button><b id="aj-inf"></b><button data-aj="inf" data-d="4" aria-label="Más">+</button></div>
+    <button id="aj-rest">Restablecer</button>
+    <div id="medidas" class="note"></div>
+   </details>
+  </section>
+  <section class="pn aj">
+   <h2 data-i="tabla">Tablas de tramos</h2>
+   <div class="sec-ley">La línea de ADIF de cada tramo, para cruzar la hoja con el DLTV. Al editar una de serie se guarda una copia en este dispositivo.</div>
+   <details class="mas" id="tablas-d"><summary id="tablas-n">Tablas</summary><div id="tablas"></div></details>
+   <div id="tabla-ed" class="tr-rev" hidden></div>
+   <div class="botones"><label class="boton"><input id="f-tabla" type="file" accept=".json,application/json">Cargar tabla</label></div>
+   <div id="msg-tablas" class="gen-msg" aria-live="polite"></div>
+  </section>
+  <section class="pn aj">
+   <h2 data-i="pictos">Pictogramas</h2>
+   <div class="sec-ley">Los avisos de la pantalla de marcha: forma, colores, distancia de aviso y mensaje.</div>
+   <button id="oi">Editar pictogramas</button>
+  </section>
+  <div id="acerca" class="acerca"></div>
  </div>
  <!-- Pictogramas -->
  <div id="v-pictos" hidden>

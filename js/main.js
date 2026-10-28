@@ -10,8 +10,8 @@ import { ajustarDibujo, alcance, altoDibujo, altoLinea, limitesLineaMovil, pinta
 import { irAqui, mostrarPestana, movil, pintarDatos } from "./datos.js";
 import { iniciarEditor, pintarEditor } from "./editor.js";
 import { LOGO, linea } from "./iconos.js";
-import { desbloquear, hablar, ponerSilencio, ponerVolumen, probar, silenciado, tono, volumen } from "./sonido.js";
-import { Avisador, textoVoz } from "./avisos.js";
+import { desbloquear, ponerSilencio, ponerVolumen, probar, silenciado, tono, volumen } from "./sonido.js";
+import { Avisador } from "./avisos.js";
 import * as despierto from "./despierto.js";
 import { Seguidor, Via } from "./geo/seguimiento.js";
 import { ahora as ahoraGps, disponible as hayUbicacion, escuchar as escucharUbicacion, esSimulado, simular } from "./geo/ubicacion.js";
@@ -52,8 +52,10 @@ function pintarSonido() {
   $("m-mute").title = mudo ? "Sonido desactivado: pulsa para activarlo" : "Silenciar";
   $("m-mute").setAttribute("aria-pressed", String(mudo));
   $("m-mute").classList.toggle("mudo", mudo);
-  $("vol").value = String(v);
-  $("vol-n").textContent = mudo ? `${v} % · en silencio` : `${v} %`;
+  $("vol").style.setProperty("--v", v + "%");
+  $("vol").setAttribute("aria-valuenow", String(v));
+  $("vol").classList.toggle("mudo", mudo);
+  $("vol-n").textContent = mudo ? "Silencio" : `${v} %`;
 }
 
 function iniciarSonido() {
@@ -73,12 +75,35 @@ function iniciarSonido() {
     $("m-vol").setAttribute("aria-expanded", "true");
     $("m-vol").classList.add("on");
   };
-  $("vol").oninput = (e) => {
-    ponerVolumen(+e.target.value / 100);
-    if (silenciado() && +e.target.value > 0) ponerSilencio(false);
+  // Barra vertical: arriba, más volumen. Se arrastra o se toca; al soltar suena la campanita.
+  const barraVol = $("vol");
+  const poner = (y) => {
+    const r = barraVol.getBoundingClientRect();
+    const v = Math.round(Math.min(1, Math.max(0, (r.bottom - y) / r.height)) * 20) / 20;
+    ponerVolumen(v);
+    if (silenciado() && v > 0) ponerSilencio(false);
     pintarSonido();
   };
-  $("vol").onchange = () => probar();
+  let arrastrando = false;
+  barraVol.onpointerdown = (e) => {
+    arrastrando = true;
+    barraVol.setPointerCapture(e.pointerId);
+    poner(e.clientY);
+  };
+  barraVol.onpointermove = (e) => arrastrando && poner(e.clientY);
+  barraVol.onpointerup = () => {
+    if (!arrastrando) return;
+    arrastrando = false;
+    probar();
+  };
+  barraVol.onpointercancel = () => (arrastrando = false);
+  barraVol.onkeydown = (e) => {
+    const d = { ArrowUp: 0.05, ArrowRight: 0.05, ArrowDown: -0.05, ArrowLeft: -0.05 }[e.key];
+    if (!d) return;
+    e.preventDefault();
+    ponerVolumen(volumen() + d);
+    pintarSonido();
+  };
   $("m-mute").onclick = () => {
     ponerSilencio(!silenciado());
     pintarSonido();
@@ -106,6 +131,9 @@ function estado() {
     $(id).classList.toggle("vacio", v == null);
   };
   poner("in-tren", ruta?.tren?.numero ?? null);
+  const t = ruta?.tren;
+  $("in-ruta").textContent = t ? `${t.origen || "?"} → ${t.destino || "?"}` : "";
+  $("in-ruta").title = $("in-ruta").textContent;
   poner("in-bq", bq || null);
   poner("in-rd", rd != null ? `Canal ${rd}` : null);
 }
@@ -266,7 +294,7 @@ function revisarTramos(g, ruta, ltv, propuesta) {
           `<tr><td>${esc(t.desde)} → ${esc(t.hasta)}</td><td><input data-i="${i}" value="${esc(t.linea)}" inputmode="numeric" aria-label="Línea del tramo ${i + 1}"${t.linea === "?" ? ' class="duda"' : ""}></td><td class="nota">${esc(t.nota ?? "")}</td></tr>`,
       )
       .join("") +
-    `</tbody></table><div class="note">Pon el número de línea de ADIF de cada tramo. Si dejas «?», las LTV de ese tramo saldrán «a revisar». La tabla se guarda en este iPad para las próximas hojas de esta ruta.</div>` +
+    `</tbody></table><div class="note">Pon el número de línea de ADIF de cada tramo. Si dejas «?», las LTV de ese tramo saldrán «a revisar». La tabla se guarda en este dispositivo para las próximas hojas de esta ruta.</div>` +
     `<button id="tr-ok" class="pri">Confirmar y generar</button><button id="tr-no">Cancelar</button>`;
   caja.hidden = false;
   caja.querySelectorAll("input").forEach((inp) => inp.addEventListener("input", () => inp.classList.toggle("duda", inp.value.trim() === "?" || !inp.value.trim())));
@@ -279,7 +307,7 @@ function revisarTramos(g, ruta, ltv, propuesta) {
       ruta: propuesta.ruta,
       tramos: propuesta.tramos.map((t, i) => {
         const linea = caja.querySelector(`input[data-i="${i}"]`).value.trim() || "?";
-        return { ...t, linea, verificado: linea !== "?", nota: linea === t.linea ? t.nota : `confirmado en el iPad (propuesta: ${t.linea})` };
+        return { ...t, linea, verificado: linea !== "?", nota: linea === t.linea ? t.nota : `confirmado en el dispositivo (propuesta: ${t.linea})` };
       }),
     };
     await tramos.guardar(tabla);
@@ -330,6 +358,8 @@ async function pintarTablas() {
     ...propias.map((t) => ({ t, propia: true })),
     ...(tablasDeSerie || []).filter((t) => !nombres.has(t.ruta)).map((t) => ({ t, propia: false })),
   ].sort((a, b) => (a.t.ruta < b.t.ruta ? -1 : 1));
+  const propiasN = tablasVistas.filter((x) => x.propia).length;
+  $("tablas-n").textContent = `${tablasVistas.length} tablas` + (propiasN ? ` (${propiasN} de este dispositivo)` : "");
   $("tablas").innerHTML = tablasVistas.length
     ? tablasVistas
         .map(({ t, propia }, i) => {
@@ -455,12 +485,21 @@ async function pintarAjustes() {
   $("est-despierto").textContent = despierto.activado() ? ed[0] : "";
   $("est-despierto").className = "estado " + ed[1];
   for (const r of document.querySelectorAll("input[name=sonar]")) r.checked = r.value === prefs.leer("sonar", "urgentes");
-  $("op-voz").checked = prefs.leer("voz", true);
   pintarBordes();
   for (const r of document.querySelectorAll("input[name=paleta]")) r.checked = r.value === prefs.leer("paleta", "azul");
   const pp = prefs.leer("pantalla", "auto");
   for (const r of document.querySelectorAll("input[name=pantalla]")) r.checked = r.value === pp;
-  $("est-pantalla").textContent = pp === "auto" ? `ahora: ${automatica() === "telefono" ? "teléfono" : "tablet"}` : "";
+  $("est-pantalla").textContent = pp === "auto" ? `Según el tamaño de la pantalla: ahora, ${automatica() === "telefono" ? "teléfono" : "tablet"}.` : pp === "telefono" ? "Piezas grandes, una debajo de otra." : "La pantalla de marcha completa en tres columnas.";
+  $("desc-modo").textContent = {
+    manual: "Arrastra la línea de tiempo hacia abajo para avanzar y hacia arriba para retroceder.",
+    simulacion: "El tren avanza solo a la velocidad máxima: marcha, pausa y velocidad, abajo en la pantalla de marcha.",
+    gps: "La posición del dispositivo sobre el trazado de la vía.",
+  }[pos?.modo] || "";
+  $("desc-sonar").textContent = {
+    no: "Sin sonido.",
+    urgentes: "Una campanita al acercarse a una LTV, CSV o bajada de velocidad, y otra más corta al pasar.",
+    todos: "Una campanita en cada aviso (también estaciones, radio, bloqueo…) y otra más corta al pasar.",
+  }[prefs.leer("sonar", "urgentes")];
   $("op-desvio").checked = prefs.leer("desvio", true);
   $("acerca").innerHTML = `RailNav v${VERSION_APP} · Desarrollado por Joan Vilajosana Quesada · Servicio no oficial ni homologado por la AESF`;
 }
@@ -519,8 +558,20 @@ function iniciarAjustes() {
     despierto.activar(e.target.checked);
     pintarAjustes();
   };
-  document.querySelectorAll("input[name=sonar]").forEach((r) => r.addEventListener("change", () => prefs.escribir("sonar", r.value)));
-  $("op-voz").onchange = (e) => prefs.escribir("voz", e.target.checked);
+  document.querySelectorAll("input[name=sonar]").forEach((r) =>
+    r.addEventListener("change", () => {
+      prefs.escribir("sonar", r.value);
+      pintarAjustes();
+    }),
+  );
+  // iconos de las secciones y nombre del archivo elegido en las casillas de carga
+  for (const e of document.querySelectorAll("#v-ajustes [data-i]")) e.insertAdjacentHTML("afterbegin", linea(e.dataset.i, e.tagName === "H2" ? 22 : 26));
+  for (const l of document.querySelectorAll("label.carga"))
+    l.querySelector("input").addEventListener("change", (e) => {
+      const n = l.querySelector(".carga-n"), f = e.target.files?.[0];
+      if (f) n.textContent = f.name;
+      l.classList.toggle("elegido", !!f);
+    });
   $("op-desvio").onchange = (e) => {
     prefs.escribir("desvio", e.target.checked);
     sucio = true;
@@ -556,17 +607,15 @@ function sonarAvisos() {
   const modo = prefs.leer("sonar", "urgentes");
   const salida = avisador.revisar(ruta, pos.d);
   if (modo === "no") return;
-  for (const x of salida) {
-    if (modo === "urgentes" && !urgente(x)) continue;
-    const dur = tono(x.fase === "accion" ? "accion" : urgente(x) ? "urgente" : "info");
-    if (prefs.leer("voz", true)) hablar(textoVoz(x), dur + 0.1);
-  }
+  // Una sola campanita aunque coincidan varios avisos: la de aviso si hay alguno, si no la de paso.
+  const sonar = salida.filter((x) => modo === "todos" || urgente(x));
+  if (sonar.some((x) => x.fase !== "accion")) tono("aviso");
+  else if (sonar.length) tono("paso");
 }
 
 function probarAviso() {
-  const x = { fase: "anuncio", e: { tipo: "ltv_inicio", datos: { v: 30, via: "vía II" }, estado: "ok" }, metros: 3000 };
-  const dur = tono("urgente");
-  if (prefs.leer("voz", true)) hablar(textoVoz(x), dur + 0.1);
+  const dur = tono("aviso");
+  setTimeout(() => tono("paso"), (dur + 0.6) * 1000);
 }
 
 // ---------- GPS (Fase 8) ----------
@@ -633,6 +682,7 @@ function pintarGeo() {
   $("op-simgps").classList.toggle("off", !g);
   $("op-simgps").querySelector("input").disabled = !g;
   $("op-simgps").querySelector("input").checked = !!gpsSim;
+  $("sel-simgps").closest(".fila").hidden = !gpsSim;
   if (!g) {
     $("geo-info").innerHTML = "Esta ruta todavía no tiene el trazado de la vía: pulsa «Preparar el GPS de esta ruta» (con conexión).";
     $("b-geo").textContent = "Preparar el GPS de esta ruta";
@@ -770,7 +820,11 @@ async function pintarPruebas() {
 function pintarGrabacion(r, e) {
   const g = r || grabar.enCurso();
   $("op-grabar").checked = !!g;
-  if (!g) return void ($("est-grabar").textContent = "");
+  if (!g) {
+    $("est-grabar").textContent = "Para medir la precisión en un viaje";
+    $("est-grabar").className = "estado";
+    return;
+  }
   const u = g.puntos.at(-1);
   $("est-grabar").textContent = `● grabando · ${g.puntos.length} posiciones` + (u ? ` · última ±${u[3]} m` : "") + (e ? ` · ${e}` : "");
   $("est-grabar").className = "estado " + (e ? "mal" : "ok");
@@ -832,6 +886,7 @@ function iniciarGrabacion() {
 function pintarSim() {
   const sim = pos?.modo === "simulacion";
   $("simbar").hidden = !sim;
+  document.querySelector(".pie").hidden = !sim; // abajo solo queda la barra de la simulación
   if (!sim) return;
   $("sb-pl").innerHTML = linea(pos.enMarcha ? "pausa" : "play", 24) + `<span>${pos.enMarcha ? "Pausa" : "Marcha"}</span>`;
   $("sb-pl").classList.toggle("on", pos.enMarcha);

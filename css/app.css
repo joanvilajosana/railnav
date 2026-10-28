@@ -512,3 +512,81 @@ code{font:12px ui-monospace,Menlo,monospace;background:var(--in);padding:0 4px;b
 @media (prefers-color-scheme:dark){:root[data-paleta="grises"]:not([data-theme="light"]) button.pri,:root[data-paleta="grises"]:not([data-theme="light"]) .sb-pl.on,:root[data-paleta="grises"]:not([data-theme="light"]) .sb-f button.on{color:#000}}
 :root[data-paleta="grises"] .nav button.on{color:var(--tx)}
 :root[data-paleta="grises"] .tr-ruta span{color:var(--gy)}
+
+/* ===================================================================== ajustes (v0.9.7)
+   Tarjetas con icono, controles segmentados, interruptores y lo largo plegado en «details». */
+:root{--sobre-ac:#fff}
+:root[data-theme="dark"]{--sobre-ac:#04142a}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--sobre-ac:#04142a}}
+:root[data-paleta="grises"][data-theme="dark"]{--sobre-ac:#000}
+@media (prefers-color-scheme:dark){:root[data-paleta="grises"]:not([data-theme="light"]){--sobre-ac:#000}}
+#v-ajustes .aj h2{display:flex;align-items:center;gap:9px;font-size:18px;margin:0 0 12px}
+#v-ajustes .aj h2 svg{flex:none;color:var(--gy)}
+#v-ajustes .cargas{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:10px}
+#v-ajustes label.carga{position:relative;display:flex;align-items:center;gap:12px;margin:0;padding:14px;border:1.5px dashed var(--ln);border-radius:12px;background:var(--in);color:var(--tx);cursor:pointer;font-weight:400}
+#v-ajustes label.carga.elegido{border-style:solid;border-color:var(--ac)}
+#v-ajustes .carga-i{display:grid;place-items:center;width:44px;height:44px;flex:none;border-radius:10px;background:var(--pn);border:1px solid var(--ln);color:var(--gy)}
+#v-ajustes label.carga.elegido .carga-i{color:var(--ac)}
+#v-ajustes label.carga b{display:block;font-size:16px}
+#v-ajustes label.carga small{display:block;font-size:13px;color:var(--gy);overflow-wrap:anywhere}
+#v-ajustes label.carga input,#v-ajustes label.boton input{position:absolute;width:1px;height:1px;opacity:0;pointer-events:none}
+#v-ajustes .fila{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:12px 0 0;font-size:15px;color:var(--tx)}
+#v-ajustes .fila select{width:auto;max-width:65%;margin:0}
+#v-ajustes .fila.sub{margin:4px 0 0 0;padding-left:14px}
+#v-ajustes button.ancho{display:block;width:100%;margin:12px 0 0;min-height:48px;font-size:16px}
+#v-ajustes .botones{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
+#v-ajustes .botones button,#v-ajustes label.boton{margin:0}
+#v-ajustes label.boton{position:relative;display:inline-flex;align-items:center;justify-content:center;font-size:15px;color:var(--tx);background:var(--in);border:1px solid var(--ln);border-radius:8px;padding:7px 12px;cursor:pointer;min-height:38px}
+#v-ajustes .seg-t{font-size:12px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--gy);margin:16px 0 6px}
+#v-ajustes .seg{display:flex;border:1.5px solid var(--ln);border-radius:12px;background:var(--in);padding:3px;gap:3px}
+#v-ajustes .seg label{position:relative;flex:1;display:flex;align-items:center;justify-content:center;gap:8px;margin:0;min-height:42px;padding:6px 8px;border-radius:9px;font-size:15px;font-weight:700;color:var(--gy);cursor:pointer;text-align:center}
+#v-ajustes .seg label input{position:absolute;opacity:0;width:1px;height:1px;pointer-events:none}
+#v-ajustes .seg label:has(input:checked){background:var(--ac);color:var(--sobre-ac)}
+#v-ajustes .seg label:has(input:disabled){opacity:.4;cursor:default}
+#v-ajustes .seg label:has(input:focus-visible){outline:2px solid var(--ac);outline-offset:2px}
+#v-ajustes .seg-desc{font-size:13px;color:var(--gy);margin:6px 2px 0;line-height:1.4}
+#v-ajustes .seg-desc:empty{display:none}
+#v-ajustes .mu{display:inline-block;width:18px;height:18px;border-radius:50%;border:1.5px solid var(--ln)}
+#v-ajustes .mu.azul{background:linear-gradient(135deg,#1d5fe0 50%,#16365f 50%)}
+#v-ajustes .mu.grises{background:linear-gradient(135deg,#fff 50%,#1c1c1e 50%)}
+#v-ajustes label.sw{display:flex;align-items:center;justify-content:space-between;gap:14px;margin:14px 0 0;padding-top:12px;border-top:1px solid color-mix(in srgb,var(--ln) 55%,transparent);font-size:16px;font-weight:600;color:var(--tx);cursor:pointer}
+#v-ajustes label.sw.off{opacity:.45}
+#v-ajustes label.sw small{display:block;font-size:13px;font-weight:400;color:var(--gy);margin:2px 0 0}
+#v-ajustes label.sw small.ok{color:var(--up);font-weight:700}
+#v-ajustes label.sw small.mal{color:var(--dn);font-weight:700}
+#v-ajustes label.sw input{appearance:none;-webkit-appearance:none;flex:none;position:relative;width:52px;height:32px;margin:0;padding:0;border-radius:16px;border:1.5px solid var(--ln);background:var(--blu2);cursor:pointer;transition:background .15s}
+#v-ajustes label.sw input::after{content:"";position:absolute;top:2px;left:2px;width:25px;height:25px;border-radius:50%;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.35);transition:transform .15s}
+#v-ajustes label.sw input:checked{background:var(--up);border-color:var(--up)}
+#v-ajustes label.sw input:checked::after{transform:translateX(20px)}
+#v-ajustes label.sw input:disabled{opacity:.5}
+#v-ajustes #est-gps{display:block;margin:6px 2px 0}
+#v-ajustes #est-gps:empty{display:none}
+#v-ajustes #b-geo{margin-top:10px}
+#v-ajustes details.mas{margin-top:14px;padding-top:10px;border-top:1px solid color-mix(in srgb,var(--ln) 55%,transparent)}
+#v-ajustes details.mas summary{cursor:pointer;font-size:15px;font-weight:600;color:var(--gy);list-style:none;display:flex;align-items:center;gap:8px;min-height:32px}
+#v-ajustes details.mas summary::-webkit-details-marker{display:none}
+#v-ajustes details.mas summary::before{content:"›";display:inline-block;font-size:22px;line-height:1;transition:transform .15s}
+#v-ajustes details.mas[open] summary::before{transform:rotate(90deg)}
+#v-ajustes details.mas>:not(summary){margin-top:8px}
+#v-ajustes .sec-ley{margin:0 0 10px}
+.acerca{font-size:11px;opacity:.75;text-align:center;margin:6px 0 14px;line-height:1.4}
+
+/* volumen: barra vertical */
+:root .pop.pop-vol{width:96px!important;display:flex;flex-direction:column;align-items:center;gap:10px;padding:14px 10px}
+.vol-n{font-size:15px;font-variant-numeric:tabular-nums}
+.vslider{--v:70%;position:relative;width:56px;height:210px;border-radius:16px;background:var(--in);border:1.5px solid var(--ln);overflow:hidden;touch-action:none;cursor:ns-resize}
+.vs-fill{position:absolute;left:0;right:0;bottom:0;height:var(--v);background:var(--ac)}
+.vslider.mudo .vs-fill{background:var(--gy);opacity:.5}
+.vs-thumb{position:absolute;left:8px;right:8px;bottom:calc(var(--v) - 3px);height:6px;border-radius:3px;background:var(--pn);box-shadow:0 1px 3px rgba(0,0,0,.35)}
+
+/* origen → destino bajo el número del tren */
+.ic-r{display:block;max-width:100%;font-size:11px;font-weight:600;color:var(--gy);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ic-r:empty{display:none}
+:root[data-disp="telefono"] .ic-r{font-size:10px}
+
+/* teléfono: línea de tiempo más ancha (con la distancia de cada aviso) */
+:root[data-disp="telefono"] .scr{grid-template-columns:minmax(0,1fr) 124px}
+@media (orientation:landscape){
+:root[data-disp="telefono"] .scr{grid-template-columns:minmax(0,250px) minmax(0,1fr) 124px}
+:root[data-disp="telefono"] .ic-r{display:none}
+}
