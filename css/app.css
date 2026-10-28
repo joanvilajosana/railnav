@@ -22,7 +22,8 @@ body{margin:0;overflow:hidden;background:var(--bg);color:var(--tx);font:15px/1.3
 .ic b{min-width:0;font-size:clamp(17px,2.3vw,26px);line-height:1.15;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .ic b.vacio{color:var(--gy);font-weight:600}
 .ic .corta{display:none}
-.mb{display:flex;gap:10px;align-items:center}
+.mb,.nav,.herr{display:flex;gap:10px;align-items:center}
+.mv-vel,.mv-prox,.mv-linea,.mv-odo{display:none}
 .mb .sep{width:1.5px;height:40px;background:var(--ln);margin:0 4px;border-radius:1px}
 
 .brand{display:flex;align-items:center;gap:8px;min-width:0}
@@ -67,7 +68,8 @@ td,th{padding:5px 6px;border-bottom:1px solid var(--ln);text-align:left}
 @media (max-width:600px){.ic .larga{display:none}
 .ic .corta{display:inline}
 .menu{flex-wrap:wrap;justify-content:center;gap:6px}
-.mb{justify-content:center;gap:6px}
+.mb,.nav,.herr{justify-content:center;gap:6px}
+.herr{flex-wrap:wrap}
 .ic{flex-direction:column;align-items:flex-start;gap:0;padding:4px 8px}
 .ic b{font-size:16px}
 .menu button{width:46px;height:46px}
@@ -148,7 +150,7 @@ table.hj{border-collapse:separate;border-spacing:0;width:100%;font-size:14px;fon
 .menu{flex-wrap:nowrap!important;justify-content:space-between!important;gap:6px}
 .menu button{width:38px;height:38px;border-radius:10px}
 .menu svg{width:20px;height:20px}
-.mb{gap:5px}
+.mb,.nav,.herr{gap:5px}
 .mb .sep{height:24px}
 .brand img{height:24px!important}
 .brand .ver{font-size:10px}
@@ -274,3 +276,183 @@ code{font:12px ui-monospace,Menlo,monospace;background:var(--in);padding:0 4px;b
 .tr-rev label{margin-top:0}
 .tr-rev .pop-t{margin-bottom:6px}
 .tr-t input[type=checkbox]{width:22px;height:22px}
+
+/* ===================================================================== teléfono
+   Ajustes → Pantalla («auto»: pantallas de menos de 600 px de lado corto). Vertical: arriba el
+   logo y el sonido, debajo Tren / Bloqueo / Radio, la vista y, abajo del todo, los botones de
+   las vistas (como las apps del iPhone). Apaisado: una sola fila arriba. */
+:root[data-disp="telefono"]{--sup:calc(env(safe-area-inset-top,0px) + 8px);--inf:0px}
+:root[data-disp="telefono"] body{font-size:16px;padding-left:calc(12px + env(safe-area-inset-left,0px));padding-right:calc(12px + env(safe-area-inset-right,0px))}
+:root[data-disp="telefono"] .row{display:grid;grid-template-columns:minmax(0,1fr) auto;grid-template-rows:auto auto minmax(0,1fr) auto;grid-template-areas:"brand mb" "info info" "vw vw" "nav nav";gap:8px}
+:root[data-disp="telefono"] .menu,:root[data-disp="telefono"] .herr{display:contents}
+:root[data-disp="telefono"] .brand{grid-area:brand;align-self:center}
+:root[data-disp="telefono"] .brand img{height:30px!important}
+:root[data-disp="telefono"] .mb{grid-area:mb;gap:6px;justify-content:flex-end}
+:root[data-disp="telefono"] .info{grid-area:info;gap:6px}
+:root[data-disp="telefono"] .vw{grid-area:vw;min-height:0}
+:root[data-disp="telefono"] .menu .mb button{width:44px;height:44px;border-radius:12px}
+:root[data-disp="telefono"] .menu svg{width:24px;height:24px}
+:root[data-disp="telefono"] .mb .sep{height:28px;margin:0 2px}
+:root[data-disp="telefono"] .ic{flex-direction:column;align-items:flex-start;gap:1px;padding:5px 10px;border-radius:10px}
+:root[data-disp="telefono"] .ic small{font-size:10px}
+:root[data-disp="telefono"] .ic b{font-size:18px}
+:root[data-disp="telefono"] .ic .larga{display:none}
+:root[data-disp="telefono"] .ic .corta{display:inline}
+/* barra de vistas, abajo */
+:root[data-disp="telefono"] .nav{grid-area:nav;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px;margin:0 calc(-12px - env(safe-area-inset-right,0px)) 0 calc(-12px - env(safe-area-inset-left,0px));padding:6px calc(12px + env(safe-area-inset-right,0px)) calc(6px + env(safe-area-inset-bottom,0px)) calc(12px + env(safe-area-inset-left,0px));border-top:1.5px solid var(--ln);background:var(--pn)}
+:root[data-disp="telefono"] .nav button{width:auto;height:54px;margin:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;border:0;border-radius:12px;background:transparent;color:var(--gy);font-size:12px;font-weight:700}
+:root[data-disp="telefono"] .nav button::after{content:attr(data-l)}
+:root[data-disp="telefono"] .nav button svg{width:26px;height:26px}
+:root[data-disp="telefono"] .nav button.on{outline:0;background:var(--in);color:var(--ac)}
+/* vistas con scroll: el margen lateral ya lo da el cuerpo */
+:root[data-disp="telefono"] #v-datos,:root[data-disp="telefono"] #v-ajustes,:root[data-disp="telefono"] #v-pictos{padding:0}
+:root[data-disp="telefono"] .pn{padding:12px;border-radius:14px}
+
+/* --- marcha --- */
+:root[data-disp="telefono"] #sa,:root[data-disp="telefono"] #sc{display:none}
+:root[data-disp="telefono"] .scr{flex:1;min-height:0;container-type:normal;display:grid;grid-template-columns:minmax(0,1fr) 92px;grid-template-rows:auto auto minmax(0,1fr) auto;grid-template-areas:"vel vel" "prox lin" "hist lin" "odo odo";gap:8px}
+:root[data-disp="telefono"] .mv-vel{grid-area:vel;display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,1fr);gap:12px;align-items:center;border:1.5px solid var(--ln);border-radius:12px;padding:8px 14px;background:var(--pn)}
+:root[data-disp="telefono"] .mv-prox{grid-area:prox;display:flex;flex-direction:column;gap:6px;max-height:36vh;overflow-y:auto}
+:root[data-disp="telefono"] .hist{grid-area:hist;height:auto;min-height:0;font-size:16px;border-radius:12px}
+:root[data-disp="telefono"] .mv-linea{grid-area:lin;display:block;width:100%;height:100%;border:1.5px solid var(--ln);border-radius:12px;touch-action:none;cursor:ns-resize}
+:root[data-disp="telefono"] .mv-odo{grid-area:odo;display:flex;align-items:center;gap:10px;min-height:40px}
+.mv-v{position:relative;display:flex;align-items:baseline;gap:6px;min-width:0}
+.mv-n{font-size:84px;font-weight:700;line-height:.95;font-variant-numeric:tabular-nums;letter-spacing:-.02em}
+.mv-v.ltv .mv-n{color:var(--lt)}
+.mv-u{font-size:15px;color:var(--gy)}
+.mv-sin{font-size:24px;font-weight:700;color:var(--gy);line-height:1.15}
+.mv-sin small{display:block;font-size:13px;font-weight:400;margin-top:2px}
+.mv-et{position:absolute;top:-2px;right:0;display:flex;flex-direction:column;align-items:flex-end;gap:4px}
+.mv-ltv{font-size:13px;font-weight:800;color:#fff;background:var(--lt);border-radius:6px;padding:1px 7px}
+.mv-sig{display:flex;flex-wrap:wrap;align-items:baseline;column-gap:10px;min-width:0;border-left:1.5px solid var(--ln);padding-left:12px}
+.mv-sig small{flex-basis:100%;font-size:13px;color:var(--gy)}
+.mv-sig b{font-size:34px;line-height:1.1}
+.mv-sig b.baja{color:var(--dn)}
+.mv-sig b.sube{color:var(--up)}
+.mv-sig b.mv-nada{font-size:20px;color:var(--gy)}
+.mv-dist{font-size:22px;font-weight:700;margin-left:auto}
+.mv-bar{flex-basis:100%;display:block;height:6px;border-radius:3px;background:var(--blu2);margin-top:6px;overflow:hidden}
+.mv-bar i{display:block;height:100%;border-radius:3px}
+.mv-bar i.baja{background:var(--dn)}
+.mv-bar i.sube{background:var(--up)}
+.px{display:flex;align-items:center;gap:10px;padding:7px 10px;border:1.5px solid var(--bc,var(--ln));border-radius:10px;background:var(--pn)}
+.px.pri{border-width:3px;padding:6px 9px}
+.px.rv{border-style:dashed}
+.px svg{flex:none;width:40px;height:40px}
+.px b{display:block;font-size:17px;line-height:1.2}
+.px small{display:block;font-size:14px;color:var(--gy);margin-top:2px}
+.px small strong{color:var(--tx);font-size:16px}
+.mv-prox .vac{padding:8px 4px;color:var(--gy);font-size:14px}
+.odo-km{background:var(--disc);color:var(--dt);font-weight:800;font-size:20px;padding:5px 12px;border-radius:8px;font-variant-numeric:tabular-nums}
+.odo-h{font-size:18px;font-variant-numeric:tabular-nums}
+.odo-d{font-size:17px;font-weight:800}
+.odo-m{margin-left:auto;font-size:11px;font-weight:800;letter-spacing:.05em;color:var(--gy);text-align:right}
+.odo-m.mal{color:var(--lt)}
+:root[data-disp="telefono"] .hr{padding:.55em .6em}
+:root[data-disp="telefono"] .pie{margin-top:6px;flex-wrap:wrap}
+:root[data-disp="telefono"] .pie-t{font-size:10px;text-align:center;margin:0 auto}
+:root[data-disp="telefono"] .simbar{flex-wrap:wrap;gap:6px;width:100%}
+:root[data-disp="telefono"] .simbar .sb-t{display:none}
+:root[data-disp="telefono"] .simbar button{height:44px;min-width:46px}
+:root[data-disp="telefono"] .sb-pl{min-width:108px!important;flex:1}
+:root[data-disp="telefono"] .sb-f button{min-width:46px;padding:0 6px}
+
+/* --- datos --- */
+:root[data-disp="telefono"] .ficha{display:block}
+:root[data-disp="telefono"] .tr-cab{border-right:0;padding:0;gap:12px}
+:root[data-disp="telefono"] .tr-txt{flex:1;min-width:0}
+:root[data-disp="telefono"] .tr-num{font-size:28px}
+:root[data-disp="telefono"] .tr-ruta{font-size:16px;line-height:1.25}
+.tr-res,.fi-tg{display:none}
+:root[data-disp="telefono"] .fi-tg{display:block;flex:none;align-self:flex-start;margin:0;padding:8px 12px;font-size:14px;font-weight:700;border-radius:10px}
+:root[data-disp="telefono"] .plegada .tr-res{display:block;font-size:14px;color:var(--gy);margin-top:3px}
+:root[data-disp="telefono"] .plegada .tr-tiles{display:none}
+:root[data-disp="telefono"] .tr-tiles{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin-top:12px}
+:root[data-disp="telefono"] .tt{min-width:0;padding:8px 10px 8px 8px}
+:root[data-disp="telefono"] .tt>div{min-width:0}
+:root[data-disp="telefono"] .tt b{font-size:11px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+:root[data-disp="telefono"] .tt span{display:block;font-size:16px;overflow-wrap:anywhere}
+:root[data-disp="telefono"] .tt:last-child{grid-column:1/-1}
+:root[data-disp="telefono"] .tt>svg,:root[data-disp="telefono"] .tt>.tl{flex:none}
+:root[data-disp="telefono"] #v-datos>.pn:first-child{flex:none}
+/* Con la ficha desplegada la vista entera se desplaza y la hoja conserva un alto útil. */
+:root[data-disp="telefono"] #v-datos{overflow-y:auto}
+:root[data-disp="telefono"] #v-datos>.pn:last-child{flex:1 0 auto;height:max(360px,100%)}
+.t-corta{display:none}
+:root[data-disp="telefono"] #hj-aqui .t-larga{display:none}
+:root[data-disp="telefono"] #hj-aqui .t-corta{display:inline}
+:root[data-disp="telefono"] .tabs button{white-space:nowrap}
+:root[data-disp="telefono"] .hj-top{flex-wrap:nowrap}
+:root[data-disp="telefono"] .tabs button{padding:9px 14px;font-size:16px}
+:root[data-disp="telefono"] #hj-aqui{flex:none;padding:8px 10px;font-size:14px;font-weight:700}
+:root[data-disp="telefono"] .hj-ley{font-size:12px;gap:4px 12px}
+:root[data-disp="telefono"] table.hj{font-size:15px}
+:root[data-disp="telefono"] .hj td{white-space:normal;padding:8px 10px}
+.hm-g{display:grid;grid-template-columns:62px minmax(0,1fr) auto;column-gap:10px;align-items:center}
+.hm-pk{font-variant-numeric:tabular-nums;font-size:15px;line-height:1.2;text-align:right}
+.hm-pk small{display:block;font-size:11px;color:var(--gy)}
+.hm-g .nm{min-width:0;font-size:16px;overflow-wrap:anywhere}
+.hm-v .vm{font-size:22px}
+.hm-x{grid-column:2/-1;display:flex;flex-wrap:wrap;gap:4px 12px;margin-top:4px;font-size:14px}
+.hm-x .hk i{font-style:normal;font-size:11px;font-weight:700;letter-spacing:.03em;text-transform:uppercase;color:var(--gy)}
+.hm-x .hk.hora{font-weight:800}
+.hm-x .rep{color:color-mix(in srgb,var(--gy) 70%,transparent)}
+:root[data-disp="telefono"] .hj tr.nota td{padding:3px 10px 8px 82px}
+:root[data-disp="telefono"] .hj tr.pg td{padding:5px 10px}
+.dm-g{display:flex;flex-direction:column;gap:5px}
+.dm-1{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.dm-v{margin-left:auto;font-size:24px}
+.dm-2{display:flex;flex-wrap:wrap;gap:3px 14px;font-size:14px}
+.dm-2 i,.dm-o i{font-style:normal;font-size:11px;font-weight:700;letter-spacing:.03em;text-transform:uppercase;color:var(--gy)}
+.dm-t{font-weight:700;font-size:15px}
+.dm-m{font-size:14px}
+.dm-o{font-size:13px}
+.dm-por{font-size:13px;color:var(--dn)}
+:root[data-disp="telefono"] .dlc td{padding:10px}
+
+/* --- ajustes y pictogramas: letra y botones a la medida del dedo --- */
+:root[data-disp="telefono"] h2{font-size:19px;margin-bottom:8px}
+:root[data-disp="telefono"] .pn h3{font-size:13px;margin-top:20px}
+:root[data-disp="telefono"] label{font-size:14px}
+:root[data-disp="telefono"] label.op{font-size:16px;gap:10px;margin-top:12px;line-height:1.35}
+:root[data-disp="telefono"] label.op input[type=radio],:root[data-disp="telefono"] label.op input[type=checkbox]{width:22px;height:22px;margin-top:0;flex:none}
+:root[data-disp="telefono"] label.carga{font-size:16px}
+:root[data-disp="telefono"] input,:root[data-disp="telefono"] select,:root[data-disp="telefono"] textarea{font-size:16px;padding:10px 12px}
+:root[data-disp="telefono"] #v-ajustes button,:root[data-disp="telefono"] #v-pictos button{min-height:44px;padding:9px 14px;font-size:16px}
+:root[data-disp="telefono"] .note,:root[data-disp="telefono"] .sec-ley{font-size:13px}
+:root[data-disp="telefono"] .gen-msg,:root[data-disp="telefono"] .geo-info{font-size:15px}
+:root[data-disp="telefono"] label.op{display:grid;grid-template-columns:auto minmax(0,1fr);align-items:start}
+:root[data-disp="telefono"] label.op>:not(input){grid-column:2}
+:root[data-disp="telefono"] .estado{display:block;margin:2px 0 0;font-size:13px}
+:root[data-disp="telefono"] .ru{flex-wrap:wrap;padding:10px 12px}
+:root[data-disp="telefono"] .ru>div:first-child{flex:1 1 100%;font-size:16px}
+:root[data-disp="telefono"] .ru small{font-size:13px}
+:root[data-disp="telefono"] .ru>div:last-child{display:flex;flex-wrap:wrap;gap:6px;margin-left:auto}
+:root[data-disp="telefono"] .ru button{margin:0}
+:root[data-disp="telefono"] .rec{flex-wrap:wrap;font-size:15px}
+:root[data-disp="telefono"] #sel-simgps{display:block;margin:8px 0 0;width:auto}
+:root[data-disp="telefono"] #grid{grid-template-columns:repeat(3,minmax(0,1fr))}
+:root[data-disp="telefono"] .c{font-size:13px;padding:10px 4px}
+:root[data-disp="telefono"] .tr-t{font-size:15px}
+:root[data-disp="telefono"] .pop{width:min(320px,calc(100vw - 24px))}
+
+/* --- teléfono apaisado: una sola fila arriba y la marcha en tres columnas --- */
+@media (orientation:landscape){
+:root[data-disp="telefono"]{--inf:calc(env(safe-area-inset-bottom,0px) + 6px)}
+:root[data-disp="telefono"] .row{grid-template-columns:minmax(0,1fr) auto auto;grid-template-rows:auto minmax(0,1fr);grid-template-areas:"info nav mb" "vw vw vw";gap:6px}
+:root[data-disp="telefono"] .brand{display:none}
+:root[data-disp="telefono"] .nav{display:flex;gap:5px;margin:0;padding:0;border:0;background:transparent}
+:root[data-disp="telefono"] .nav button{width:44px;height:44px;border:1px solid var(--ln);background:var(--in);color:var(--tx)}
+:root[data-disp="telefono"] .nav button::after{content:none}
+:root[data-disp="telefono"] .nav button.on{outline:3px solid var(--ac);background:var(--in);color:var(--tx)}
+:root[data-disp="telefono"] .mb{gap:5px}
+:root[data-disp="telefono"] .ic{flex-direction:row;align-items:center;justify-content:space-between;padding:3px 10px;min-height:44px}
+:root[data-disp="telefono"] .scr{grid-template-columns:minmax(0,250px) minmax(0,1fr) 92px;grid-template-rows:auto minmax(0,1fr) auto;grid-template-areas:"vel prox lin" "vel hist lin" "odo hist lin";gap:6px}
+:root[data-disp="telefono"] .mv-vel{grid-template-columns:1fr;align-content:start;gap:10px}
+:root[data-disp="telefono"] .mv-n{font-size:72px}
+:root[data-disp="telefono"] .mv-sig{border-left:0;padding-left:0;border-top:1.5px solid var(--ln);padding-top:8px}
+:root[data-disp="telefono"] .mv-prox{max-height:45vh}
+:root[data-disp="telefono"] .mv-odo{flex-wrap:wrap;gap:4px 10px}
+:root[data-disp="telefono"] .odo-m{flex-basis:100%;text-align:left;margin:0}
+:root[data-disp="telefono"] .pie-t{display:none}
+}

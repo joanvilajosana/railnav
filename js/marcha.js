@@ -84,9 +84,9 @@ export const cuadroViaHtml = (v, conResto = true) => {
 const MODO_TXT = { manual: "POSICIÓN MANUAL", simulacion: "SIMULACIÓN", gps: "GPS" };
 
 // Adelanto o retraso: con la posición que da el maquinista o el GPS (en la simulación solo a
-// tiempo real ×1, si no no tiene sentido).
-function cuadroDesvio(ruta, pos, eta) {
-  if (eta == null || (pos.modo === "simulacion" && pos.factor !== 1)) return "";
+// tiempo real ×1, si no no tiene sentido). [texto, color] o null.
+function valorDesvio(ruta, pos, eta) {
+  if (eta == null || (pos.modo === "simulacion" && pos.factor !== 1)) return null;
   const t = new Date(), ahora = t.getHours() * 60 + t.getMinutes() + t.getSeconds() / 60;
   // Solo el día de la hoja (o el siguiente, trenes de noche) y dentro de ±4 h: fuera de eso no
   // es la marcha real y la cifra no significaría nada.
@@ -94,12 +94,17 @@ function cuadroDesvio(ruta, pos, eta) {
   if (f) {
     const hoy = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
     const ayer = new Date(t.getTime() - 864e5);
-    if (f !== hoy(t) && f !== hoy(ayer)) return "";
+    if (f !== hoy(t) && f !== hoy(ayer)) return null;
   }
   const x = desvio(ahora, eta), n = Math.round(x);
-  if (Math.abs(x) > 240) return "";
-  const [txt, color] =
-    n === 0 ? ["en hora", "var(--up)"] : n > 0 ? [`+${n} min`, n >= 5 ? "var(--lt)" : "var(--dn)"] : [`−${-n} min`, "var(--ac)"];
+  if (Math.abs(x) > 240) return null;
+  return n === 0 ? ["en hora", "var(--up)"] : n > 0 ? [`+${n} min`, n >= 5 ? "var(--lt)" : "var(--dn)"] : [`−${-n} min`, "var(--ac)"];
+}
+
+function cuadroDesvio(ruta, pos, eta) {
+  const v = valorDesvio(ruta, pos, eta);
+  if (!v) return "";
+  const [txt, color] = v;
   return `<text x="886" y="${H - 15}" font-size="15" font-weight="800" text-anchor="end" fill="${color}">${txt}</text>`;
 }
 
@@ -178,4 +183,85 @@ function pintarHistorial(ruta, d) {
         return `<div class="hr${e.estado === "revisar" ? " rv" : ""}">${icono(k, 26, e.datos)}<div><b>${esc(accion(e))}</b><small>${eta == null ? "" : hm(eta) + " · "}hace ${dm((d - e.pk_acum) * 1000)}${e.datos?.via ? " · " + cuadroViaHtml(e.datos.via) : ""}${e.estado === "revisar" ? ' · <span class="rvchip">A REVISAR</span>' : ""}</small></div></div>`;
       }).join("")
     : `<div class="vac">Todavía no ha pasado nada</div>`;
+}
+
+// ---------------------------------------------------------------- teléfono
+// Las mismas informaciones que la pantalla de tablet, en piezas que se leen a ese tamaño:
+// velocidad y siguiente cambio (arriba), próximos avisos y pasados (lista), línea de tiempo
+// estrecha a la derecha (se arrastra igual) y odómetro con la hora abajo.
+
+/** Línea de tiempo del teléfono: [y(3000 m), y(0 m)] en píxeles del elemento. */
+export const limitesLineaMovil = (alto) => [26, alto - 30];
+const yMovil = (m, arriba, abajo) => {
+  for (let i = 1; i < K.length; i++)
+    if (m <= K[i][0]) {
+      const [a, fa] = K[i - 1], [b, fb] = K[i];
+      return abajo - (fa + ((fb - fa) * (m - a)) / (b - a)) * (abajo - arriba);
+    }
+  return arriba;
+};
+
+const chipsLinea2 = (e) =>
+  (e.datos?.via ? " · " + cuadroViaHtml(e.datos.via) : "") + (e.estado === "revisar" ? ' · <span class="rvchip">A REVISAR</span>' : "");
+
+export function pintarMarchaMovil(ruta, pos, { desvio: conDesvio = false } = {}) {
+  const d = pos.d;
+  const tramo = ruta.tramo(d);
+  const vp = tramo?.v ?? null;
+  const lt = tramo?.fuente === "ltv";
+  const nx = ruta.siguiente(d);
+  // Velocidad y siguiente cambio
+  let v = `<div class="mv-v${lt ? " ltv" : ""}">`;
+  if (vp != null) v += `<span class="mv-n">${vp}</span><span class="mv-u">km/h</span>`;
+  else v += `<span class="mv-sin">Sin V Max<small>${ruta.p.prueba ? "ruta de prueba: sin datos de ADIF" : "la hoja no la da en este tramo"}</small></span>`;
+  if (lt || tramo?.revisar)
+    v += `<span class="mv-et">${lt ? '<span class="mv-ltv">LTV</span>' : ""}${tramo?.revisar ? '<span class="rvchip">A REVISAR</span>' : ""}</span>`;
+  v += `</div><div class="mv-sig"><small>Siguiente</small>`;
+  if (nx) {
+    const m = (nx.pk - d) * 1000, baja = vp != null && nx.v < vp;
+    v += `<b class="${baja ? "baja" : "sube"}">${baja ? "▼" : "▲"} ${nx.v}</b><span class="mv-dist">${dm(m)}</span>`;
+    v += `<i class="mv-bar"><i class="${baja ? "baja" : "sube"}" style="width:${(100 * (1 - Math.min(m, 3000) / 3000)).toFixed(1)}%"></i></i>`;
+  } else v += `<b class="mv-nada">Sin más cambios</b>`;
+  v += `</div>`;
+  $("mv-vel").innerHTML = v;
+  // Próximos avisos
+  const ev = ruta.proximos(d, alcance);
+  $("mv-prox").innerHTML = ev.length
+    ? ev
+        .map((e, i) => {
+          const k = picDe(e) || {};
+          return `<div class="px${i ? "" : " pri"}${e.estado === "revisar" ? " rv" : ""}" style="--bc:${esc(k.borde || "var(--ln)")}">${icono(k, 40, e.datos)}<div><b>${esc(accion(e))}</b><small>a <strong>${dm((e.pk_acum - d) * 1000)}</strong>${chipsLinea2(e)}</small></div></div>`;
+        })
+        .join("")
+    : `<div class="vac">Sin avisos en los próximos 3 km</div>`;
+  // Línea de tiempo
+  const el = $("mv-linea"), W = el.clientWidth, Ht = el.clientHeight;
+  if (W && Ht) {
+    const [arriba, abajo] = limitesLineaMovil(Ht), x = 34, y = (m) => yMovil(m, arriba, abajo);
+    let s = "";
+    for (const m of [0, 500, 1000, 2000, 3000])
+      s += `<line x1="${x}" x2="${W - 4}" y1="${y(m)}" y2="${y(m)}" stroke="var(--gy)" opacity=".35" stroke-dasharray="3 4"/><text x="${x - 6}" y="${y(m) + 4}" font-size="11" text-anchor="end" fill="var(--gy)">${m}</text>`;
+    s += `<line x1="${x}" x2="${x}" y1="${arriba}" y2="${abajo}" stroke="var(--gy)" stroke-width="3" stroke-linecap="round"/>`;
+    const tam = Math.min(36, W - x - 12), esc_ = tam / 48;
+    let pv = 1e9, fondo = "", frente = "";
+    for (const e of ev) {
+      const k = picDe(e) || {}, yy = y((e.pk_acum - d) * 1000), ty = Math.min(yy, pv - tam - 4);
+      pv = ty;
+      if (ty < arriba - 8) continue;
+      fondo += `<circle cx="${x}" cy="${yy}" r="3.5" fill="${esc(k.borde || "var(--gy)")}"/><path d="M${x} ${yy}L${x + 8} ${ty}" stroke="${esc(k.borde || "var(--gy)")}" stroke-width="2" fill="none"/>`;
+      frente += `<g transform="translate(${x + 8} ${ty - tam / 2}) scale(${esc_})">${forma(k, e.datos)}</g>`;
+    }
+    s += fondo + frente;
+    s += `<polygon points="${x},${abajo - 12} ${x - 10},${abajo + 8} ${x + 10},${abajo + 8}" fill="var(--yl)"/>`;
+    el.setAttribute("viewBox", `0 0 ${W} ${Ht}`);
+    el.innerHTML = s;
+  }
+  // Odómetro, hora prevista, adelanto o retraso y de dónde sale la posición
+  const eta = ruta.eta(d), dsv = conDesvio ? valorDesvio(ruta, pos, eta) : null;
+  const modo = pos.etiqueta || (pos.fiable ? MODO_TXT[pos.modo] || "" : "POSICIÓN NO FIABLE");
+  $("mv-odo").innerHTML =
+    `<span class="odo-km">${miles(d * 1000)} m</span><span class="odo-h">${eta == null ? "--:--:--" : hms(eta)}</span>` +
+    (dsv ? `<span class="odo-d" style="color:${dsv[1]}">${dsv[0]}</span>` : "") +
+    `<span class="odo-m${pos.fiable ? "" : " mal"}">${esc(modo)}</span>`;
+  pintarHistorial(ruta, d);
 }

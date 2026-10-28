@@ -3,9 +3,12 @@
 import { esc, fecha, nf } from "./util.js";
 import { icono, pic } from "./pictos.js";
 import { cuadroViaHtml } from "./marcha.js";
+import { prefs } from "./almacen.js";
 
 const $ = (id) => document.getElementById(id);
 let pestana = "hoja";
+/** Disposición de teléfono (Ajustes → Pantalla). */
+export const movil = () => document.documentElement.dataset.disp === "telefono";
 
 const TI = {
   fecha: '<rect x="3.5" y="5" width="17" height="15" rx="2"/><path d="M3.5 10h17M8 3v4M16 3v4"/>',
@@ -28,9 +31,20 @@ export function pintarDatos(ruta, d) {
   const tec = ruta.eventos.filter((e) => e.tipo === "parada_tecnica");
   const tile = (ico, lab, val, tit) => `<div class="tt" title="${esc(tit || lab)}">${ico}<div><b>${lab}</b><span>${val}</span></div></div>`;
   const radio0 = p.radios?.[0]?.[1];
+  // En el teléfono la ficha se puede plegar a una línea para dejar sitio a la hoja.
+  const resumen = [
+    fecha(t.fecha) || null,
+    dl ? `${ap} LTV${rv ? ` · ${rv} a revisar` : ""}` : "sin DLTV",
+    tec.length ? `${tec.length} ${tec.length > 1 ? "paradas técnicas" : "parada técnica"}` : null,
+  ]
+    .filter(Boolean)
+    .join(" · ");
+  const plegada = prefs.leer("ficha.plegada", true);
+  $("kv").classList.toggle("plegada", plegada);
   $("kv").innerHTML =
-    `<div class="tr-cab"><span class="tr-ico">${lineal("tren", 30)}</span><div><div class="tr-num">${esc(t.numero)}${t.clase ? ` <span class="tr-cl">${CLASE[t.clase] || esc(t.clase)}</span>` : ""}</div>` +
-    `<div class="tr-ruta">${esc(t.origen || "?")} <span>→</span> ${esc(t.destino || "?")}</div></div></div><div class="tr-tiles">` +
+    `<div class="tr-cab"><span class="tr-ico">${lineal("tren", 30)}</span><div class="tr-txt"><div class="tr-num">${esc(t.numero)}${t.clase ? ` <span class="tr-cl">${CLASE[t.clase] || esc(t.clase)}</span>` : ""}</div>` +
+    `<div class="tr-ruta">${esc(t.origen || "?")} <span>→</span> ${esc(t.destino || "?")}</div><div class="tr-res">${esc(resumen)}</div></div>` +
+    `<button class="fi-tg" aria-expanded="${!plegada}" aria-label="${plegada ? "Ver la ficha completa" : "Plegar la ficha"}">${plegada ? "Ficha ▾" : "Plegar ▴"}</button></div><div class="tr-tiles">` +
     tile(`<span class="tl">${lineal("fecha")}</span>`, "Fecha", fecha(t.fecha) || "?") +
     tile(`<span class="tl">${lineal("loco")}</span>`, "Locomotora", esc(t.locomotora || "?")) +
     tile(`<span class="tl">${lineal("peso")}</span>`, "Peso", t.masa_t ? nf(t.masa_t, 0) + " t" : "?") +
@@ -40,6 +54,10 @@ export function pintarDatos(ruta, d) {
     (dl ? tile('<span class="tl rv">?</span>', "LTV a revisar", rv) : "") +
     tile(icono(pic("parada_tecnica"), 34, { min: "" }), "Paradas técnicas", tec.length ? tec.map((e) => `${esc(e.datos.nombre)} (${String(e.datos.min).replace(".", ",")} min)`).join(", ") : "Ninguna") +
     `</div>`;
+  $("kv").querySelector(".fi-tg").onclick = () => {
+    prefs.escribir("ficha.plegada", !plegada);
+    pintarDatos(ruta, d);
+  };
   pintarHoja(ruta, d);
   pintarDltv(ruta, d);
   mostrarPestana();
@@ -64,6 +82,7 @@ function pintarHoja(ruta, d) {
   H.forEach((r, i) => {
     if (r.pka != null && r.pka <= d + 1e-6) aqui = i;
   });
+  if (movil()) return void ($("tb").innerHTML = hojaMovil(H, aqui));
   const clase = (k) => (["tec", "conc"].includes(k) ? ' class="cc"' : ["pk", "v"].includes(k) ? ' style="text-align:right"' : "");
   let h = "<thead><tr>" + cols.map(([k, n]) => `<th${clase(k)}>${n}</th>`).join("") + "</tr></thead><tbody>";
   let pg = null;
@@ -91,6 +110,53 @@ function pintarHoja(ruta, d) {
   $("tb").innerHTML = h + "</tbody>";
 }
 
+// Teléfono: cada fila de la hoja en dos líneas (PK, dependencia y V Max; debajo hora, bloqueo,
+// radio y paradas). Los valores que repiten la fila anterior salen en gris, como en la tabla.
+function hojaMovil(H, aqui) {
+  let h = "<tbody>", pg = null;
+  const prev = {};
+  H.forEach((r, i) => {
+    if (r.pag !== pg) {
+      pg = r.pag;
+      h += `<tr class="pg"><td>Página ${pg} del PDF</td></tr>`;
+    }
+    const tp = /^BIF\b/i.test(r.nom || "") ? "bifurcacion" : TIPO_PIC[r.tipo];
+    const rep = (k) => r[k] != null && prev[k] === r[k] && !r.cv;
+    const x = [];
+    if (r.hora) x.push(`<span class="hk hora">${esc(r.hora)}</span>`);
+    for (const [k, lab] of [["bq", "Bloqueo"], ["radio", "Radio"], ["tec", "Técn."], ["conc", "Conc."], ["tcop", "Tc. Op."]])
+      if (r[k] != null) x.push(`<span class="hk${rep(k) ? " rep" : ""}"><i>${lab}</i> ${esc(String(r[k]).replace(/^(\d+)\.(\d+)$/, "$1,$2"))}</span>`);
+    const v = r.v == null ? "" : r.cv ? `<span class="cs vm">${r.v}</span>` : `<span class="vm${rep("v") ? " rep" : ""}">${r.v}</span>`;
+    h += `<tr class="hm${i === aqui ? " aqui" : ""}"><td><div class="hm-g">`;
+    h += `<div class="hm-pk">${r.pk != null ? `<b>${nf(r.pk)}</b>` : ""}${r.pkl != null ? `<small>antes ${nf(r.pkl)}</small>` : ""}${r.lin ? `<small>línea ${esc(r.lin)}</small>` : ""}</div>`;
+    h += `<div class="nm${r.nom ? "" : " sin"}">${tp && r.nom ? icono(pic(tp), 28, { nombre: r.nom, pk: nf(r.pk) }) : ""}${r.nom ? esc(r.nom) : "—"}</div>`;
+    h += `<div class="hm-v">${v}</div>${x.length ? `<div class="hm-x">${x.join("")}</div>` : ""}</div></td></tr>`;
+    for (const k of ["v", "bq", "radio"]) if (r[k] != null) prev[k] = r[k];
+    for (const n of r.notas || []) h += `<tr class="nota${i === aqui ? " aqui" : ""}"><td><span${(r.cn || []).includes(n) ? ' class="cs"' : ""}>${esc(n)}</span></td></tr>`;
+  });
+  return h + "</tbody>";
+}
+
+// Teléfono: cada LTV en una tarjeta con todos sus datos.
+function dltvMovil(DL, d) {
+  let h = "<tbody>";
+  for (const x of DL.ltv) {
+    const aq = x.pkai != null && d >= Math.min(x.pkai, x.pkaf) - 1e-6 && d <= Math.max(x.pkai, x.pkaf) + 1e-6;
+    const dudas = (x.ev || []).filter((e) => e.startsWith("a revisar")).map((e) => e.replace(/^a revisar:\s*/, ""));
+    const dato = (lab, v) => (v ? `<span><i>${lab}</i> ${v}</span>` : "");
+    h += `<tr class="dm${aq ? " aqui" : ""}" data-a="${x.pkai ?? ""}"><td><div class="dm-g">`;
+    h += `<div class="dm-1">${x.res === "APLICA" ? '<span class="dl-res ap">Aplica</span>' : '<span class="dl-res rv">A revisar</span>'}${x.va ? " " + cuadroViaHtml(x.va, false) : ""}${x.csv ? ' <span class="cs">CSV</span>' : ""}<span class="vm dm-v">${esc(x.vel)}</span></div>`;
+    h += `<div class="dm-2">${dato("Km ruta", x.pkai != null ? `<b>${nf(x.pkai)} → ${nf(x.pkaf)}</b>` : "")}${dato("Línea", esc(x.lin || ""))}${dato("Vía", x.via ? `<b>${esc(x.via)}</b>${x.via_txt ? " " + esc(x.via_txt) : ""}` : "")}${dato("PK", `${nf(x.pki, 3)} → ${nf(x.pkf, 3)}`)}</div>`;
+    if (x.tray?.length) h += `<div class="dm-t">${esc(x.tray.join(" – "))}</div>`;
+    if (x.mot) h += `<div class="dm-m">${esc(x.mot)}</div>`;
+    h += `<div class="dm-2">${dato("Vigencia", x.vig === "declarada" ? fecha(x.desde) + " – " + fecha(x.hasta) : "semana")}${dato("Horario", esc(x.hor || ""))}</div>`;
+    if (x.obs) h += `<div class="dm-o"><i>Observaciones</i> ${esc(x.obs)}</div>`;
+    if (dudas.length) h += `<div class="dm-por">Por qué a revisar: ${esc(dudas.join(" · "))}</div>`;
+    h += `</div></td></tr>`;
+  }
+  return h + "</tbody>";
+}
+
 function pintarDltv(ruta, d) {
   const DL = ruta.p.dltv;
   if (!DL) {
@@ -103,6 +169,7 @@ function pintarDltv(ruta, d) {
     `<span><b style="color:var(--tx)">DLTV nº ${esc(DL.numero || "?")}</b> · semana ${fecha(DL.desde)} – ${fecha(DL.hasta)}</span>` +
     `<span><span class="dl-res ap">Aplica</span> ${ap}</span><span><span class="dl-res rv">A revisar</span> ${rv}</span>` +
     `<span>${cuadroViaHtml("vía II", false)} LTV de una sola vía: aparece siempre, indicando a qué vía afecta</span><span>Ordenadas por su posición en la ruta</span>`;
+  if (movil()) return void ($("dl").innerHTML = dltvMovil(DL, d));
   const cols = ["Estado", "Km ruta", "Línea", "Vía", "PK inicio → fin", "Veloc.", "Trayecto", "Motivo", "Vigencia", "CSV", "Horario", "Observaciones"];
   let h = "<thead><tr>" + cols.map((c) => `<th>${c}</th>`).join("") + "</tr></thead><tbody>";
   for (const x of DL.ltv) {

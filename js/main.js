@@ -6,8 +6,8 @@ import { Ruta, validar } from "./ruta.js";
 import { MODOS, Posicion, metrosPorPixel } from "./posicion.js";
 import { dltvs, firmaRuta, geos, persistir, prefs, recorridos, rutas, tramos } from "./almacen.js";
 import { cargarPictos, deSerie, picDe } from "./pictos.js";
-import { ajustarDibujo, alcance, altoDibujo, altoLinea, pintarMarcha, reiniciarHistorial } from "./marcha.js";
-import { irAqui, mostrarPestana, pintarDatos } from "./datos.js";
+import { ajustarDibujo, alcance, altoDibujo, altoLinea, limitesLineaMovil, pintarMarcha, pintarMarchaMovil, reiniciarHistorial } from "./marcha.js";
+import { irAqui, mostrarPestana, movil, pintarDatos } from "./datos.js";
 import { iniciarEditor, pintarEditor } from "./editor.js";
 import { LOGO, linea } from "./iconos.js";
 import { desbloquear, hablar, ponerSilencio, ponerVolumen, probar, silenciado, tono, volumen } from "./sonido.js";
@@ -455,6 +455,9 @@ async function pintarAjustes() {
   $("est-despierto").className = "estado " + ed[1];
   for (const r of document.querySelectorAll("input[name=sonar]")) r.checked = r.value === prefs.leer("sonar", "urgentes");
   $("op-voz").checked = prefs.leer("voz", true);
+  const pp = prefs.leer("pantalla", "auto");
+  for (const r of document.querySelectorAll("input[name=pantalla]")) r.checked = r.value === pp;
+  $("est-pantalla").textContent = pp === "auto" ? `ahora: ${automatica() === "telefono" ? "teléfono" : "tablet"}` : "";
   $("op-desvio").checked = prefs.leer("desvio", true);
   $("acerca").innerHTML = `RailNav v${VERSION_APP} · Desarrollado por Joan Vilajosana Quesada · Servicio no oficial ni homologado por la AESF`;
 }
@@ -669,6 +672,31 @@ async function prepararGps() {
   }
 }
 
+// ---------- pantalla: teléfono o tablet ----------
+const automatica = () => (Math.min(screen.width, screen.height) < 600 ? "telefono" : "tablet");
+
+function aplicarPantalla() {
+  const p = prefs.leer("pantalla", "auto");
+  const d = p === "auto" ? automatica() : p;
+  if (document.documentElement.dataset.disp === d) return;
+  document.documentElement.dataset.disp = d;
+  reiniciarHistorial();
+  sucio = true;
+  if (vista === "datos" && ruta) pintarDatos(ruta, pos.d);
+}
+
+function iniciarPantalla() {
+  document.querySelectorAll("input[name=pantalla]").forEach((r) =>
+    r.addEventListener("change", () => {
+      prefs.escribir("pantalla", r.value);
+      aplicarPantalla();
+      pintarAjustes();
+    }),
+  );
+  new ResizeObserver(() => (sucio = true)).observe($("mv-linea"));
+  aplicarPantalla();
+}
+
 // ---------- GPS simulado (pruebas en casa) ----------
 let gpsSim = null;
 
@@ -820,9 +848,18 @@ const FRENADA = 0.4; // s: cuánto dura la inercia (constante de tiempo)
 let inercia = 0; // km/s
 
 function iniciarArrastre() {
-  const sc = $("sc");
+  arrastrable($("sc"), () => ($("sc").getBoundingClientRect().height * altoLinea()) / (altoDibujo() - 6.5));
+  // Teléfono: línea de tiempo estrecha, dibujada en píxeles
+  arrastrable($("mv-linea"), () => {
+    const [arriba, abajo] = limitesLineaMovil($("mv-linea").clientHeight);
+    return abajo - arriba;
+  });
+}
+
+/** El arrastre de una línea de tiempo; `altoPx` = píxeles que ocupan sus 3 km. */
+function arrastrable(sc, altoPx) {
   let y0 = null, t0 = 0, vel = 0;
-  const mpp = () => metrosPorPixel((sc.getBoundingClientRect().height * altoLinea()) / (altoDibujo() - 6.5));
+  const mpp = () => metrosPorPixel(altoPx());
   sc.addEventListener("pointerdown", (e) => {
     if (!pos || pos.modo !== "manual") return;
     inercia = 0;
@@ -909,7 +946,7 @@ function bucle(t) {
   if (sucio && ruta) {
     sucio = false;
     estado();
-    if (vista === "marcha") pintarMarcha(ruta, pos, { desvio: prefs.leer("desvio", true) });
+    if (vista === "marcha") (movil() ? pintarMarchaMovil : pintarMarcha)(ruta, pos, { desvio: prefs.leer("desvio", true) });
   }
   requestAnimationFrame(bucle);
 }
@@ -928,6 +965,7 @@ async function iniciar() {
   iniciarSimulacion();
   iniciarTablas();
   iniciarTamano();
+  iniciarPantalla();
   $("tabs").onclick = (e) => {
     const b = e.target.closest("button");
     if (!b) return;
