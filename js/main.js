@@ -909,7 +909,30 @@ function pasoInercia(dt) {
 }
 
 // ---------- tamaño del dibujo según la pantalla (16:9, iPad…) ----------
+// App instalada en iOS: el sistema da a veces un alto de pantalla al que le falta justo la barra
+// de estado (la app empieza debajo de ella pero acaba antes del borde inferior). Si falta
+// exactamente eso, se suma; si iOS lo corrige, no se suma nada.
+function corregirAlto() {
+  const r = document.documentElement;
+  let extra = 0;
+  if (r.classList.contains("instalada")) {
+    const sonda = document.createElement("div");
+    sonda.style.cssText = "position:fixed;top:0;left:0;width:1px;height:env(safe-area-inset-top,0px);visibility:hidden;pointer-events:none";
+    document.body.appendChild(sonda);
+    const arriba = sonda.offsetHeight;
+    sonda.remove();
+    const apaisado = innerWidth > innerHeight;
+    const pantalla = apaisado ? Math.min(screen.width, screen.height) : Math.max(screen.width, screen.height);
+    const falta = pantalla - innerHeight;
+    if (arriba > 0 && falta > 0 && Math.abs(falta - arriba) <= 3) extra = falta;
+  }
+  r.style.setProperty("--extra", extra + "px");
+}
+
 function iniciarTamano() {
+  corregirAlto();
+  addEventListener("resize", corregirAlto);
+  addEventListener("orientationchange", () => setTimeout(corregirAlto, 300));
   const scr = document.querySelector(".scr");
   const medir = () => {
     const r = scr.getBoundingClientRect();

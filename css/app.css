@@ -197,7 +197,8 @@ html,body{overscroll-behavior:none}
 :root.instalada{--sup:calc(max(env(safe-area-inset-top,0px),32px) + 18px)}
 body{-webkit-user-select:none;user-select:none;-webkit-tap-highlight-color:transparent;padding:var(--sup) calc(18px + env(safe-area-inset-right,0px)) var(--inf) calc(18px + env(safe-area-inset-left,0px))}
 :root{padding:0}
-.w{height:calc(100vh - var(--sup) - var(--inf));height:calc(100dvh - var(--sup) - var(--inf))}
+/* --extra: lo que iOS resta de más al alto de la pantalla en la app instalada (main.js). */
+.w{height:calc(100vh + var(--extra,0px) - var(--sup) - var(--inf));height:calc(100dvh + var(--extra,0px) - var(--sup) - var(--inf))}
 button,input,select{touch-action:manipulation}
 input,textarea,select,.hj td,.hj th{-webkit-user-select:text;user-select:text}
 #sc{touch-action:none;cursor:ns-resize}
@@ -282,6 +283,8 @@ code{font:12px ui-monospace,Menlo,monospace;background:var(--in);padding:0 4px;b
    logo y el sonido, debajo Tren / Bloqueo / Radio, la vista y, abajo del todo, los botones de
    las vistas (como las apps del iPhone). Apaisado: una sola fila arriba. */
 :root[data-disp="telefono"]{--sup:calc(env(safe-area-inset-top,0px) + 8px);--inf:0px}
+/* Instalada: la barra de estado (hora, batería) va encima y iOS difumina su borde; se baja todo. */
+:root[data-disp="telefono"].instalada{--sup:calc(env(safe-area-inset-top,0px) + 26px)}
 :root[data-disp="telefono"] body{font-size:16px;padding-left:calc(12px + env(safe-area-inset-left,0px));padding-right:calc(12px + env(safe-area-inset-right,0px))}
 :root[data-disp="telefono"] .row{display:grid;grid-template-columns:minmax(0,1fr) auto;grid-template-rows:auto auto minmax(0,1fr) auto;grid-template-areas:"brand mb" "info info" "vw vw" "nav nav";gap:8px}
 :root[data-disp="telefono"] .menu,:root[data-disp="telefono"] .herr{display:contents}
