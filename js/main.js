@@ -455,6 +455,7 @@ async function pintarAjustes() {
   $("est-despierto").className = "estado " + ed[1];
   for (const r of document.querySelectorAll("input[name=sonar]")) r.checked = r.value === prefs.leer("sonar", "urgentes");
   $("op-voz").checked = prefs.leer("voz", true);
+  pintarBordes();
   const pp = prefs.leer("pantalla", "auto");
   for (const r of document.querySelectorAll("input[name=pantalla]")) r.checked = r.value === pp;
   $("est-pantalla").textContent = pp === "auto" ? `ahora: ${automatica() === "telefono" ? "teléfono" : "tablet"}` : "";
@@ -925,8 +926,53 @@ function corregirAlto() {
     const pantalla = apaisado ? Math.min(screen.width, screen.height) : Math.max(screen.width, screen.height);
     const falta = pantalla - innerHeight;
     if (arriba > 0 && falta > 0 && Math.abs(falta - arriba) <= 3) extra = falta;
+    // Otra señal del mismo fallo: el «viewport grande» (100lvh) mide más que la ventana, cosa
+    // que en una app instalada (sin barras de Safari que se escondan) no debería pasar.
+    const lvh = medir("100lvh");
+    if (lvh > innerHeight + 10 && lvh - innerHeight <= 90) extra = Math.max(extra, lvh - innerHeight);
   }
   r.style.setProperty("--extra", extra + "px");
+  r.style.setProperty("--aj-sup", prefs.leer("aj.sup", 0) + "px");
+  r.style.setProperty("--aj-inf", prefs.leer("aj.inf", 0) + "px");
+}
+
+/** Alto en píxeles de una medida CSS (100vh, 100lvh, env(...)…). */
+function medir(alto) {
+  const s = document.createElement("div");
+  s.style.cssText = `position:fixed;top:0;left:0;width:1px;height:${alto};visibility:hidden;pointer-events:none`;
+  document.body.appendChild(s);
+  const h = s.offsetHeight;
+  s.remove();
+  return h;
+}
+
+function pintarBordes() {
+  $("aj-sup").textContent = `${prefs.leer("aj.sup", 0)} px`;
+  $("aj-inf").textContent = `${prefs.leer("aj.inf", 0)} px`;
+  const r = document.documentElement;
+  $("medidas").textContent =
+    `Medidas (para revisar el ajuste): pantalla ${screen.width}×${screen.height} · ventana ${innerWidth}×${innerHeight} · ` +
+    `100vh ${medir("100vh")} · 100lvh ${medir("100lvh")} · 100dvh ${medir("100dvh")} · ` +
+    `zona segura arriba ${medir("env(safe-area-inset-top,0px)")}, abajo ${medir("env(safe-area-inset-bottom,0px)")} · ` +
+    `corrección ${getComputedStyle(r).getPropertyValue("--extra").trim() || "0px"} · ${r.classList.contains("instalada") ? "instalada" : "en Safari"} · v${VERSION_APP}`;
+}
+
+function iniciarBordes() {
+  document.querySelectorAll("button[data-aj]").forEach((b) =>
+    b.addEventListener("click", () => {
+      const k = "aj." + b.dataset.aj, v = Math.max(-40, Math.min(120, prefs.leer(k, 0) + +b.dataset.d));
+      prefs.escribir(k, v);
+      corregirAlto();
+      pintarBordes();
+      sucio = true;
+    }),
+  );
+  $("aj-rest").onclick = () => {
+    prefs.escribir("aj.sup", 0);
+    prefs.escribir("aj.inf", 0);
+    corregirAlto();
+    pintarBordes();
+  };
 }
 
 function iniciarTamano() {
@@ -989,6 +1035,7 @@ async function iniciar() {
   iniciarTablas();
   iniciarTamano();
   iniciarPantalla();
+  iniciarBordes();
   $("tabs").onclick = (e) => {
     const b = e.target.closest("button");
     if (!b) return;

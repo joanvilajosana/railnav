@@ -132,8 +132,14 @@
   <div class="pn">
    <h2>Pantalla</h2>
    <label class="op"><input type="radio" name="pantalla" value="auto"> Automática: según el tamaño de la pantalla <span id="est-pantalla" class="estado"></span></label>
-   <label class="op"><input type="radio" name="pantalla" value="telefono"> Teléfono: piezas grandes, una debajo de otra, y los botones de las vistas abajo</label>
+   <label class="op"><input type="radio" name="pantalla" value="telefono"> Teléfono: piezas grandes, una debajo de otra</label>
    <label class="op"><input type="radio" name="pantalla" value="tablet"> Tablet: la pantalla de marcha completa en tres columnas</label>
+   <h3>Bordes de la pantalla</h3>
+   <div class="sec-ley">Con la app instalada, iOS no siempre da bien el tamaño de la pantalla. Si queda un hueco debajo de la barra de abajo, súbelo con «+» hasta que la barra toque el borde; si arriba queda tapado o difuminado por la hora y la batería, baja la parte de arriba con «+».</div>
+   <div class="ajb"><span>Bajar la parte de arriba</span><button data-aj="sup" data-d="-4" aria-label="Menos">−</button><b id="aj-sup"></b><button data-aj="sup" data-d="4" aria-label="Más">+</button></div>
+   <div class="ajb"><span>Alargar hasta el borde de abajo</span><button data-aj="inf" data-d="-4" aria-label="Menos">−</button><b id="aj-inf"></b><button data-aj="inf" data-d="4" aria-label="Más">+</button></div>
+   <button id="aj-rest">Restablecer</button>
+   <div id="medidas" class="note"></div>
   </div>
   <div class="pn">
    <h2>Durante la marcha</h2>

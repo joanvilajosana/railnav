@@ -195,10 +195,11 @@ html,body{overscroll-behavior:none}
    encima de la app; se deja su alto (hasta 32 px) aunque Safari no lo indique, y aire. */
 @media (display-mode:standalone){:root{--sup:calc(max(env(safe-area-inset-top,0px),32px) + 18px)}}
 :root.instalada{--sup:calc(max(env(safe-area-inset-top,0px),32px) + 18px)}
-body{-webkit-user-select:none;user-select:none;-webkit-tap-highlight-color:transparent;padding:var(--sup) calc(18px + env(safe-area-inset-right,0px)) var(--inf) calc(18px + env(safe-area-inset-left,0px))}
+body{-webkit-user-select:none;user-select:none;-webkit-tap-highlight-color:transparent;padding:calc(var(--sup) + var(--aj-sup,0px)) calc(18px + env(safe-area-inset-right,0px)) var(--inf) calc(18px + env(safe-area-inset-left,0px))}
 :root{padding:0}
 /* --extra: lo que iOS resta de más al alto de la pantalla en la app instalada (main.js). */
-.w{height:calc(100vh + var(--extra,0px) - var(--sup) - var(--inf));height:calc(100dvh + var(--extra,0px) - var(--sup) - var(--inf))}
+/* --aj-sup / --aj-inf: ajuste a mano (Ajustes → Pantalla → Bordes). */
+.w{height:calc(100vh + var(--extra,0px) + var(--aj-inf,0px) - var(--aj-sup,0px) - var(--sup) - var(--inf));height:calc(100dvh + var(--extra,0px) + var(--aj-inf,0px) - var(--aj-sup,0px) - var(--sup) - var(--inf))}
 button,input,select{touch-action:manipulation}
 input,textarea,select,.hj td,.hj th{-webkit-user-select:text;user-select:text}
 #sc{touch-action:none;cursor:ns-resize}
@@ -459,3 +460,35 @@ code{font:12px ui-monospace,Menlo,monospace;background:var(--in);padding:0 4px;b
 :root[data-disp="telefono"] .odo-m{flex-basis:100%;text-align:left;margin:0}
 :root[data-disp="telefono"] .pie-t{display:none}
 }
+
+/* ===================================================================== tablet
+   También con las vistas en una barra abajo (pedido por Joan). Arriba, en una fila: logo,
+   Tren / Bloqueo / Radiotelefonía y tema/volumen/silencio; en vertical, los cuadros debajo. */
+:root[data-disp="tablet"]{--inf:0px}
+:root[data-disp="tablet"] .row{display:grid;grid-template-columns:auto minmax(0,1fr) auto;grid-template-rows:auto minmax(0,1fr) auto;grid-template-areas:"brand info mb" "vw vw vw" "nav nav nav";gap:8px 12px}
+:root[data-disp="tablet"] .menu,:root[data-disp="tablet"] .herr{display:contents}
+:root[data-disp="tablet"] .brand{grid-area:brand;align-self:center}
+:root[data-disp="tablet"] .mb{grid-area:mb;justify-content:flex-end}
+:root[data-disp="tablet"] .info{grid-area:info;align-self:center}
+:root[data-disp="tablet"] .vw{grid-area:vw;min-height:0}
+:root[data-disp="tablet"] .ic{flex-direction:column;align-items:flex-start;justify-content:center;gap:1px;min-height:60px;padding:4px 14px}
+:root[data-disp="tablet"] .nav{grid-area:nav;display:flex;justify-content:center;gap:12px;margin:0 calc(-18px - env(safe-area-inset-right,0px)) 0 calc(-18px - env(safe-area-inset-left,0px));padding:7px 18px calc(7px + env(safe-area-inset-bottom,0px));border-top:1.5px solid var(--ln);background:var(--pn)}
+:root[data-disp="tablet"] .nav button{flex:0 1 220px;width:auto;height:52px;margin:0;display:flex;flex-direction:row;align-items:center;justify-content:center;gap:10px;border:0;border-radius:12px;background:transparent;color:var(--gy);font-size:16px;font-weight:700}
+:root[data-disp="tablet"] .nav button::after{content:attr(data-l)}
+:root[data-disp="tablet"] .nav button svg{width:28px;height:28px}
+:root[data-disp="tablet"] .nav button.on{outline:0;background:var(--in);color:var(--ac)}
+@media (max-aspect-ratio:1/1){
+:root[data-disp="tablet"] .row{grid-template-rows:auto auto minmax(0,1fr) auto;grid-template-areas:"brand brand mb" "info info info" "vw vw vw" "nav nav nav"}
+:root[data-disp="tablet"] .ic{min-height:0;padding:6px 14px}
+}
+/* Ventana baja (iPad en pantalla dividida, Stage Manager): todo más compacto. */
+@media (max-height:600px){
+:root[data-disp="tablet"] .nav button{height:42px}
+:root[data-disp="tablet"] .ic{min-height:0}
+}
+
+/* Bordes de la pantalla (Ajustes → Pantalla) */
+.ajb{display:flex;align-items:center;gap:8px;margin-top:10px;font-size:15px}
+.ajb span{flex:1}
+.ajb button{margin:0;width:48px;height:44px;font-size:22px;font-weight:700;padding:0}
+.ajb b{min-width:64px;text-align:center;font-variant-numeric:tabular-nums}
