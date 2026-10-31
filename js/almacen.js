@@ -87,6 +87,10 @@ const almacen = (nombre) => ({
     mem[nombre].delete(id);
     await tx(nombre, "readwrite", (s) => s && s.delete(id)).catch(() => null);
   },
+  async vaciar() {
+    mem[nombre].clear();
+    await tx(nombre, "readwrite", (s) => s && s.clear()).catch(() => null);
+  },
 });
 const A = Object.fromEntries(Object.keys(ALMACENES).map((k) => [k, almacen(k)]));
 
@@ -159,12 +163,19 @@ export const geos = {
   cargar: async (firma) => (await A.geo.una(firma))?.geo ?? null,
 };
 
-// Recorridos grabados (los 10 últimos).
+// Recorridos grabados: los 10 últimos sin marcar, más los marcados «Conservar». Los que pasan
+// de 30 días sin marcar se borran solos (retencion.js; main.js lo revisa al abrir la app).
 export const recorridos = {
   async guardar(r) {
     await A.recorridos.poner(r);
-    const todas = (await A.recorridos.todas()).sort((a, b) => (a.id < b.id ? 1 : -1));
+    const todas = (await A.recorridos.todas()).filter((f) => !f.conservar).sort((a, b) => (a.id < b.id ? 1 : -1));
     for (const f of todas.slice(10)) await A.recorridos.quitar(f.id);
+  },
+  async conservar(id, si) {
+    const r = await A.recorridos.una(id);
+    if (!r) return;
+    r.conservar = !!si;
+    await A.recorridos.poner(r);
   },
   listar: async () => (await A.recorridos.todas()).sort((a, b) => (a.id < b.id ? 1 : -1)),
   cargar: (id) => A.recorridos.una(id),
@@ -173,3 +184,60 @@ export const recorridos = {
 
 /** Pide al navegador que no borre los datos guardados (iPad: app en la pantalla de inicio). */
 export const persistir = () => navigator.storage?.persist?.().catch(() => false);
+
+// ---------------------------------------------------------------- tus datos
+// Copia de seguridad (un archivo con todo lo guardado en el dispositivo), restaurarla y borrarlo
+// todo. Las preferencias son las claves «railnav.*» de localStorage.
+export const FORMATO_COPIA = "railnav-copia";
+
+function clavesPrefs() {
+  try {
+    return Object.keys(localStorage).filter((k) => k.startsWith(PREFIJO));
+  } catch {
+    return [];
+  }
+}
+
+export const datos = {
+  async recuento() {
+    const n = {};
+    for (const k of Object.keys(ALMACENES)) n[k] = (await A[k].todas()).length;
+    return n;
+  },
+  async exportar() {
+    const almacenes = {};
+    for (const k of Object.keys(ALMACENES)) almacenes[k] = await A[k].todas();
+    const preferencias = {};
+    for (const k of clavesPrefs()) preferencias[k.slice(PREFIJO.length)] = localStorage.getItem(k);
+    return { formato: FORMATO_COPIA, version: 1, fecha: new Date().toISOString(), almacenes, preferencias };
+  },
+  /** Añade lo que trae la copia (lo que ya hay con la misma clave se sustituye). */
+  async importar(copia) {
+    if (copia?.formato !== FORMATO_COPIA) throw new Error("no es una copia de seguridad de RailNav");
+    let n = 0;
+    for (const [k, filas] of Object.entries(copia.almacenes || {}))
+      if (A[k] && Array.isArray(filas))
+        for (const f of filas)
+          if (f && f[ALMACENES[k]] != null) {
+            await A[k].poner(f);
+            n++;
+          }
+    for (const [k, v] of Object.entries(copia.preferencias || {}))
+      try {
+        if (typeof v === "string") localStorage.setItem(PREFIJO + k, v);
+      } catch {
+        /* sin almacenamiento */
+      }
+    return n;
+  },
+  async borrarTodo() {
+    for (const k of Object.keys(ALMACENES)) await A[k].vaciar();
+    memoria.clear();
+    for (const k of clavesPrefs())
+      try {
+        localStorage.removeItem(k);
+      } catch {
+        /* nada */
+      }
+  },
+};

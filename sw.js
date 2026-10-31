@@ -2,11 +2,12 @@
 // zonas sin cobertura). Las rutas no pasan por aquí: están en IndexedDB.
 // Al publicar una versión nueva hay que cambiar VERSION (y la de js/version.js).
 
-const VERSION = "0.9.8";
+const VERSION = "0.10.0";
 const CACHE = "railnav-" + VERSION;
 const ARCHIVOS = [
   "./",
   "index.html",
+  "legal.html",
   "manifest.webmanifest",
   "css/app.css",
   "js/main.js",
@@ -23,6 +24,8 @@ const ARCHIVOS = [
   "js/avisos.js",
   "js/despierto.js",
   "js/compartir.js",
+  "js/legal.js",
+  "js/retencion.js",
   "js/geo/osm.js",
   "js/geo/trazado.js",
   "js/geo/firma.js",

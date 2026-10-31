@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>RailNav · Información legal</title>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="description" content="Condiciones de uso, privacidad y contacto de RailNav. Servicio no oficial ni homologado por la AESF.">
+<meta name="theme-color" content="#0a0a0b">
+<link rel="icon" type="image/png" sizes="192x192" href="img/icon-192.png">
+<link rel="stylesheet" href="css/app.css">
+<style>
+  html,body{overflow:auto;height:auto}
+  body{padding:calc(16px + env(safe-area-inset-top,0px)) 16px calc(24px + env(safe-area-inset-bottom,0px));user-select:text;-webkit-user-select:text}
+  main{max-width:760px;margin:0 auto}
+  .cab{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:14px}
+  .cab img{height:36px}
+  .cab a{color:var(--tx)}
+</style>
+</head>
+<body>
+<main>
+  <div class="cab"><a href="./" aria-label="Abrir RailNav"><img class="lg-d" src="img/logo_horizontal_dia.png" alt="RailNav"><img class="lg-n" src="img/logo_horizontal_noche.png" alt="RailNav"></a><a href="./">Abrir la app</a></div>
+  <div id="legal" class="pn"></div>
+</main>
+<script type="module">
+  import { htmlLegal } from "./js/legal.js";
+  document.getElementById("legal").innerHTML = htmlLegal();
+</script>
+</body>
+</html>

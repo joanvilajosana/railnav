@@ -2,10 +2,10 @@
 // Solo hace falta conexión al preparar el GPS de una ruta; el trazado queda en el paquete.
 // Datos © colaboradores de OpenStreetMap, licencia ODbL.
 
-// Primero el que mejor ha respondido en las pruebas desde España (27-10-2026); los demás
-// suelen limitar (429) o no responder.
+// Servidores públicos de Overpass en Europa. maps.mail.ru (Rusia) se quitó en la v0.10.0: la
+// consulta lleva la IP del dispositivo (ver la política de privacidad, js/legal.js). Las rutas
+// conocidas traen el trazado preparado en el ordenador con la red local, sin Overpass.
 const SERVIDORES = [
-  "https://maps.mail.ru/osm/tools/overpass/api/interpreter",
   "https://overpass-api.de/api/interpreter",
   "https://overpass.kumi.systems/api/interpreter",
   "https://overpass.private.coffee/api/interpreter",

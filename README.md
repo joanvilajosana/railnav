@@ -13,5 +13,8 @@ no sustituye a la documentación oficial ni a la señalización.
   contiene documentos de ADIF; la ruta de demostración es sintética.
 - Lectura de PDF con [pdf.js](https://mozilla.github.io/pdf.js/) (Apache 2.0, ver
   `vendor/pdfjs/LICENSE`).
+- Sin cuentas, analíticas ni publicidad: ver la
+  [información legal](https://joanvilajosana.github.io/railnav/legal.html) (condiciones de
+  uso, privacidad y contacto).
 
-Desarrollado por Joan Vilajosana Quesada.
+Desarrollado por Joan Vilajosana Quesada. Código con licencia MIT (ver `LICENSE`).

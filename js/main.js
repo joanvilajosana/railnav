@@ -4,7 +4,9 @@ import { VERSION_APP } from "./version.js";
 import { esc, fecha } from "./util.js";
 import { Ruta, validar } from "./ruta.js";
 import { MODOS, Posicion, metrosPorPixel } from "./posicion.js";
-import { dltvs, firmaRuta, geos, persistir, prefs, recorridos, rutas, tramos } from "./almacen.js";
+import { datos, dltvs, firmaRuta, geos, persistir, prefs, recorridos, rutas, tramos } from "./almacen.js";
+import { caducados, dltvAntiguo, DIAS, rutaAntigua } from "./retencion.js";
+import { htmlLegal } from "./legal.js";
 import { cargarPictos, deSerie, picDe } from "./pictos.js";
 import { ajustarDibujo, alcance, altoDibujo, altoLinea, limitesLineaMovil, pintarMarcha, pintarMarchaMovil, reiniciarHistorial } from "./marcha.js";
 import { irAqui, mostrarPestana, movil, pintarDatos } from "./datos.js";
@@ -141,8 +143,8 @@ function estado() {
 // ---------- vistas ----------
 function mostrar(v) {
   vista = v;
-  for (const k of ["marcha", "datos", "ajustes", "pictos"]) $("v-" + k).hidden = k !== v;
-  for (const k of ["marcha", "datos", "ajustes"]) $("m-" + k).classList.toggle("on", k === v || (v === "pictos" && k === "ajustes"));
+  for (const k of ["marcha", "datos", "ajustes", "pictos", "legal"]) $("v-" + k).hidden = k !== v;
+  for (const k of ["marcha", "datos", "ajustes"]) $("m-" + k).classList.toggle("on", k === v || ((v === "pictos" || v === "legal") && k === "ajustes"));
   if (v === "datos" && ruta) {
     pintarDatos(ruta, pos.d);
     requestAnimationFrame(() => irAqui(pos.d));
@@ -486,6 +488,7 @@ async function pintarAjustes() {
   $("est-despierto").className = "estado " + ed[1];
   for (const r of document.querySelectorAll("input[name=sonar]")) r.checked = r.value === prefs.leer("sonar", "urgentes");
   pintarBordes();
+  pintarTusDatos();
   const pp = prefs.leer("pantalla", "auto");
   for (const r of document.querySelectorAll("input[name=pantalla]")) r.checked = r.value === pp;
   $("est-pantalla").textContent = pp === "auto" ? `Según el tamaño de la pantalla: ahora, ${automatica() === "telefono" ? "teléfono" : "tablet"}.` : pp === "telefono" ? "Piezas grandes, una debajo de otra." : "La pantalla de marcha completa en tres columnas.";
@@ -804,6 +807,94 @@ async function pintarPruebas() {
     : '<div class="note">No hay rutas de prueba en esta versión.</div>';
 }
 
+// ---------- tus datos: copia de seguridad, borrar, retención ----------
+const fechaCorta = (t) => new Date(t).toLocaleDateString("es-ES", { day: "2-digit", month: "2-digit" });
+
+async function antiguos() {
+  const activa = ruta?.id;
+  const r = (await rutas.listar()).filter((x) => x.id !== activa && rutaAntigua(x));
+  const d = (await dltvs.listar()).filter((x) => dltvAntiguo(x));
+  return { r, d };
+}
+
+async function pintarTusDatos() {
+  const n = await datos.recuento();
+  const plural = (k, uno, varios) => `${k} ${k === 1 ? uno : varios}`;
+  $("datos-res").textContent =
+    `En este dispositivo: ${plural(n.rutas, "ruta", "rutas")}, ${plural(n.dltv, "DLTV", "DLTV")}, ` +
+    `${plural(n.recorridos, "grabación", "grabaciones")} y ${plural(n.tramos, "tabla de tramos propia", "tablas de tramos propias")}.`;
+  const { r, d } = await antiguos();
+  const k = r.length + d.length;
+  $("b-antiguos").hidden = !k;
+  $("b-antiguos").textContent = `Borrar ${[r.length ? plural(r.length, "ruta", "rutas") : "", d.length ? plural(d.length, "DLTV", "DLTV") : ""].filter(Boolean).join(" y ")} de hace más de ${DIAS} días`;
+}
+
+/** Al abrir la app: las grabaciones de más de 30 días sin «Conservar» se borran. */
+async function caducarGrabaciones() {
+  const ids = caducados(await recorridos.listar(), Date.now(), grabar.enCurso()?.id);
+  for (const id of ids) await recorridos.borrar(id);
+  return ids.length;
+}
+
+function iniciarTusDatos() {
+  const msg = (t, c = "") => {
+    $("msg-datos").className = "gen-msg " + c;
+    $("msg-datos").textContent = t;
+  };
+  $("b-copia").onclick = async () => {
+    const c = await datos.exportar();
+    const r = await compartirArchivo(`RailNav copia ${c.fecha.slice(0, 10)}.json`, JSON.stringify(c), "application/json");
+    msg(r === "descargado" ? "Copia descargada. Guárdala en un sitio seguro: lleva tus rutas y grabaciones." : r === "compartido" ? "Copia enviada." : "", "ok");
+  };
+  $("f-copia").onchange = async (e) => {
+    const f = e.target.files?.[0];
+    e.target.value = "";
+    if (!f) return;
+    try {
+      const n = await datos.importar(JSON.parse(await f.text()));
+      msg(`✓ Copia restaurada (${n} elementos). Se vuelve a abrir la app…`, "ok");
+      setTimeout(() => location.reload(), 1200);
+    } catch (err) {
+      msg(`✗ No se ha podido restaurar: ${err.message}`, "mal");
+    }
+  };
+  $("b-antiguos").onclick = async () => {
+    const { r, d } = await antiguos();
+    if (!confirm(`¿Borrar ${r.length} rutas y ${d.length} DLTV de hace más de ${DIAS} días?`)) return;
+    for (const x of r) await rutas.borrar(x.id);
+    for (const x of d) await dltvs.borrar(x.id);
+    msg("✓ Borrados.", "ok");
+    pintarAjustes();
+    pintarDltvs();
+  };
+  $("b-borrar-todo").onclick = async () => {
+    if (!confirm("¿Borrar TODOS los datos de RailNav en este dispositivo (rutas, DLTV, tablas, trazados, grabaciones y preferencias)? No se puede deshacer. Si quieres conservarlos, descarga antes una copia de seguridad.")) return;
+    await grabar.terminar();
+    desactivarGps();
+    await datos.borrarTodo();
+    location.reload();
+  };
+}
+
+// ---------- información legal ----------
+function pintarLegal(id) {
+  $("legal-txt").innerHTML = htmlLegal(id);
+  for (const b of document.querySelectorAll("#tabs-legal button")) b.classList.toggle("on", b.dataset.legal === id);
+  $("v-legal").scrollTop = 0;
+}
+
+function iniciarLegal() {
+  const abrirLegal = (e) => {
+    const b = e.target.closest("button[data-legal]");
+    if (!b) return;
+    if (vista !== "legal") mostrar("legal");
+    pintarLegal(b.dataset.legal);
+  };
+  document.querySelector(".legal-b").onclick = abrirLegal;
+  $("tabs-legal").onclick = abrirLegal;
+  $("bk-legal").onclick = () => mostrar("ajustes");
+}
+
 // ---------- grabar recorrido ----------
 function pintarGrabacion(r, e) {
   const g = r || grabar.enCurso();
@@ -827,8 +918,8 @@ async function pintarRecorridos() {
         `<div class="rec"><div><b>${esc(new Date(r.id).toLocaleString("es-ES", { dateStyle: "short", timeStyle: "short" }))}</b> · tren ${esc(r.tren ?? "?")}` +
         `<small>${x.puntos} posiciones · ${x.minutos.toFixed(0)} min` +
         (x.mediana != null ? ` · precisión típica ±${x.mediana} m, peor ±${x.peor} m` : "") +
-        (enCurso ? " · en curso" : "") +
-        `</small></div><div><button data-gpx="${esc(r.id)}">GPX</button><button data-json="${esc(r.id)}">JSON</button>${enCurso ? "" : `<button data-borrar-rec="${esc(r.id)}">Borrar</button>`}</div></div>`
+        (enCurso ? " · en curso" : r.conservar ? " · se conserva" : ` · se borrará el ${fechaCorta(Date.parse(r.id) + DIAS * 864e5)}`) +
+        `</small></div><div><button data-cons="${esc(r.id)}" class="${r.conservar ? "on" : ""}" aria-pressed="${!!r.conservar}" title="No borrarla a los ${DIAS} días">${r.conservar ? "Conservada" : "Conservar"}</button><button data-gpx="${esc(r.id)}">GPX</button><button data-json="${esc(r.id)}">JSON</button>${enCurso ? "" : `<button data-borrar-rec="${esc(r.id)}">Borrar</button>`}</div></div>`
       );
     })
     .join("");
@@ -856,9 +947,15 @@ function iniciarGrabacion() {
   $("recorridos").onclick = async (e) => {
     const b = e.target.closest("button");
     if (!b) return;
-    const id = b.dataset.gpx || b.dataset.json || b.dataset.borrarRec;
+    const id = b.dataset.gpx || b.dataset.json || b.dataset.borrarRec || b.dataset.cons;
     const r = await recorridos.cargar(id);
     if (!r) return;
+    if (b.dataset.cons) {
+      const si = !r.conservar, g = grabar.enCurso();
+      if (g?.id === id) g.conservar = si; // la grabación en curso se vuelve a guardar desde memoria
+      await recorridos.conservar(id, si);
+      return pintarRecorridos();
+    }
     const base = `railnav-${r.tren ?? "recorrido"}-${r.id.slice(0, 16).replace(/[:T]/g, "-")}`;
     if (b.dataset.gpx) compartirArchivo(base + ".gpx", grabar.gpx(r), "application/gpx+xml");
     if (b.dataset.json) compartirArchivo(base + ".json", grabar.json(r));
@@ -1099,6 +1196,8 @@ async function iniciar() {
   iniciarTamano();
   iniciarPantalla();
   iniciarBordes();
+  iniciarTusDatos();
+  iniciarLegal();
   $("tabs").onclick = (e) => {
     const b = e.target.closest("button");
     if (!b) return;
@@ -1116,6 +1215,7 @@ async function iniciar() {
   pintarSim();
   requestAnimationFrame(bucle);
   persistir();
+  caducarGrabaciones().catch(() => {});
   if ("serviceWorker" in navigator && (location.protocol === "https:" || location.hostname === "localhost"))
     navigator.serviceWorker.register("sw.js").catch(() => {});
 }
