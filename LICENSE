@@ -19,11 +19,3 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
-
-RailNav is an unofficial tool, not approved by the Spanish Railway Safety
-Agency (AESF). It does not replace official railway documentation or signals.
-See the in-app "Condiciones de uso" (legal.html).
-
-Third-party components keep their own licences: pdf.js (Apache License 2.0,
-app/vendor/pdfjs/LICENSE) and OpenStreetMap data (© OpenStreetMap
-contributors, ODbL).
