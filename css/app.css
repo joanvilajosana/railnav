@@ -327,6 +327,7 @@ code{font:12px ui-monospace,Menlo,monospace;background:var(--in);padding:0 4px;b
 .mv-sin{font-size:24px;font-weight:700;color:var(--gy);line-height:1.15}
 .mv-sin small{display:block;font-size:13px;font-weight:400;margin-top:2px}
 .mv-et{position:absolute;top:-2px;right:0;display:flex;flex-direction:column;align-items:flex-end;gap:4px}
+.mv-cola{font-weight:700;color:var(--tx)}
 .mv-ltv{font-size:13px;font-weight:800;color:#fff;background:var(--lt);border-radius:6px;padding:1px 7px}
 .mv-sig{display:flex;flex-wrap:wrap;align-items:baseline;column-gap:10px;min-width:0;border-left:1.5px solid var(--ln);padding-left:12px}
 .mv-sig small{flex-basis:100%;font-size:13px;color:var(--gy)}
@@ -523,6 +524,10 @@ code{font:12px ui-monospace,Menlo,monospace;background:var(--in);padding:0 4px;b
 #v-ajustes .seg-desc:empty{display:none}
 #v-ajustes label.sw{display:flex;align-items:center;justify-content:space-between;gap:14px;margin:14px 0 0;padding-top:12px;border-top:1px solid color-mix(in srgb,var(--ln) 55%,transparent);font-size:16px;font-weight:600;color:var(--tx);cursor:pointer}
 #v-ajustes label.sw.off{opacity:.45}
+#v-ajustes label.lon{cursor:default}
+.lon-c{display:flex;align-items:center;gap:6px;flex:none}
+.lon-c input{width:92px;height:44px;margin:0;padding:0 10px;font:inherit;font-size:18px;font-weight:700;text-align:right;font-variant-numeric:tabular-nums;border:1px solid var(--ln);border-radius:10px;background:var(--bg);color:var(--tx)}
+.lon-c b{font-size:15px;color:var(--gy)}
 #v-ajustes label.sw small{display:block;font-size:13px;font-weight:400;color:var(--gy);margin:2px 0 0}
 #v-ajustes label.sw small.ok{color:var(--up);font-weight:700}
 #v-ajustes label.sw small.mal{color:var(--dn);font-weight:700}

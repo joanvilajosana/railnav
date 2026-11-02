@@ -120,11 +120,13 @@ export function pintarMarcha(ruta, pos, { desvio: conDesvio = false } = {}) {
   // Velocidad
   if (lt) s += `<g transform="translate(252 10) scale(.5)">${forma(pic("ltv") || {}, { v: vp })}</g><text x="246" y="27" font-size="13" font-weight="700" text-anchor="end" fill="var(--lt)">LTV</text>`;
   if (tramo?.revisar) s += `<rect x="14" y="12" width="96" height="20" rx="5" fill="none" stroke="var(--dn)" stroke-dasharray="3 2"/><text x="62" y="26" font-size="12" font-weight="800" text-anchor="middle" fill="var(--dn)">A REVISAR</text>`;
+  if (tramo?.por_cola) s += `<text x="154" y="52" font-size="13" font-weight="700" text-anchor="middle" fill="var(--gy)">HASTA QUE PASE LA COLA · ${dm((tramo.libera - d) * 1000)}</text>`;
   s += vp != null
     ? `<text x="154" y="176" font-size="158" font-weight="700" text-anchor="middle" fill="${lt ? "var(--lt)" : "var(--tx)"}">${vp}</text>`
     : `<text x="154" y="120" font-size="26" font-weight="700" text-anchor="middle" fill="var(--gy)">Sin V Max</text><text x="154" y="148" font-size="14" text-anchor="middle" fill="var(--gy)">${ruta.p.prueba ? "ruta de prueba: sin datos de ADIF" : "la hoja no la da en este tramo"}</text>`;
   s += `${vp != null ? '<text x="154" y="198" font-size="13" text-anchor="middle" fill="var(--gy)">km/h</text>' : ""}<line x1="14" x2="294" y1="212" y2="212" stroke="var(--ln)"/>`;
-  s += `<text x="16" y="234" font-size="13" fill="var(--gy)">Siguiente</text>`;
+  const cola = tramo?.por_cola && nx && Math.abs(nx.pk - tramo.libera) < 1e-6;
+  s += `<text x="16" y="234" font-size="13" fill="var(--gy)">Siguiente${cola ? ' · <tspan font-weight="700" fill="var(--tx)">cuando pase la cola</tspan>' : ""}</text>`;
   if (nx) {
     const m = (nx.pk - d) * 1000, baja = vp != null && nx.v < vp, c = baja ? "var(--dn)" : "var(--up)";
     s += `<text x="16" y="274" font-size="40" font-weight="700" fill="${c}">${baja ? "▼ " : "▲ "}${nx.v}</text><text x="294" y="274" font-size="30" font-weight="700" text-anchor="end" fill="var(--tx)">${dm(m)}</text>`;
@@ -216,7 +218,8 @@ export function pintarMarchaMovil(ruta, pos, { desvio: conDesvio = false } = {})
   else v += `<span class="mv-sin">Sin V Max<small>${ruta.p.prueba ? "ruta de prueba: sin datos de ADIF" : "la hoja no la da en este tramo"}</small></span>`;
   if (lt || tramo?.revisar)
     v += `<span class="mv-et">${lt ? '<span class="mv-ltv">LTV</span>' : ""}${tramo?.revisar ? '<span class="rvchip">A REVISAR</span>' : ""}</span>`;
-  v += `</div><div class="mv-sig"><small>Siguiente</small>`;
+  const cola = tramo?.por_cola && nx && Math.abs(nx.pk - tramo.libera) < 1e-6;
+  v += `</div><div class="mv-sig"><small>Siguiente${cola ? " · <span class=\"mv-cola\">cuando pase la cola</span>" : ""}</small>`;
   if (nx) {
     const m = (nx.pk - d) * 1000, baja = vp != null && nx.v < vp;
     v += `<b class="${baja ? "baja" : "sube"}">${baja ? "▼" : "▲"} ${nx.v}</b><span class="mv-dist">${dm(m)}</span>`;

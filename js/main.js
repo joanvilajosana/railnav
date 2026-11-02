@@ -165,6 +165,7 @@ async function abrir(paquete, guardarla = true) {
   }
   if (guardarla) await rutas.guardar(paquete);
   ruta = new Ruta(paquete);
+  ruta.ponerLongitud(prefs.leer("longitud", 0));
   $("aviso-ruta").hidden = !obsoleta(paquete);
   via = paquete.geo?.puntos?.length ? new Via(paquete.geo) : null;
   prefs.escribir("activa", guardarla ? ruta.id : null);
@@ -577,6 +578,23 @@ function iniciarAjustes() {
     });
   $("op-desvio").onchange = (e) => {
     prefs.escribir("desvio", e.target.checked);
+    sucio = true;
+  };
+  const longitud = () => {
+    const m = Math.min(2000, Math.max(0, Math.round(Number($("op-longitud").value) || 0)));
+    $("desc-longitud").textContent = m
+      ? `Las limitaciones se mantienen hasta que pasan los ${m} m del tren (salvo LTV «solo vehículo cabeza»)`
+      : "Sin longitud: las limitaciones acaban en la cabeza. Mírala en la hoja o en el documento de admisión";
+    return m;
+  };
+  $("op-longitud").value = prefs.leer("longitud", 0) || "";
+  longitud();
+  $("op-longitud").oninput = longitud;
+  $("op-longitud").onchange = () => {
+    const m = longitud();
+    $("op-longitud").value = m || "";
+    prefs.escribir("longitud", m);
+    ruta?.ponerLongitud(m);
     sucio = true;
   };
   $("b-probar-aviso").onclick = probarAviso;
