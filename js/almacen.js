@@ -102,7 +102,14 @@ const resumen = (p, guardado) => ({
   destino: p.tren.destino,
   ltv: p.fuentes?.ltv_numero || null,
   guardado,
+  obsoleta: obsoleta(p),
 });
+
+/**
+ * Paquete generado antes de la regla de la V Max del 02-11-2026 (la de una celda rige desde la
+ * fila anterior, como el CVM): sus velocidades pueden ir una fila tarde; hay que regenerarlo.
+ */
+export const obsoleta = (p) => !p.vmax_regla && !p.prueba && (p.hoja || []).some((r) => r.v != null);
 
 export const rutas = {
   async guardar(paquete) {

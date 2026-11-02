@@ -122,6 +122,7 @@ export function construir(ruta, ltv, cruce, tramos, pictos) {
     radios: cambios(ruta, "radio"),
     bloqueos: cambios(ruta, "bloqueo"),
     vmax: eventos.vmax_efectiva,
+    vmax_regla: "fila_anterior", // la V Max de una celda rige desde la fila anterior (como el CVM)
     eventos: eventos.eventos,
     hoja: hojaOriginal(ruta),
     dltv: ltv && cruce ? dltvDeLaRuta(ltv, cruce) : null,

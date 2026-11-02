@@ -54,7 +54,7 @@
     {
       "pk_acum_ini": 0.0,
       "pk_acum_fin": 2.0,
-      "v": null,
+      "v": 100,
       "fuente": "hoja",
       "ltv": null,
       "revisar": false
@@ -69,16 +69,16 @@
     },
     {
       "pk_acum_ini": 4.0,
-      "pk_acum_fin": 10.0,
-      "v": null,
+      "pk_acum_fin": 20.0,
+      "v": 100,
       "fuente": "hoja",
       "ltv": null,
       "revisar": false
     },
     {
-      "pk_acum_ini": 10.0,
+      "pk_acum_ini": 20.0,
       "pk_acum_fin": 25.0,
-      "v": 100,
+      "v": 80,
       "fuente": "hoja",
       "ltv": null,
       "revisar": false
@@ -93,14 +93,6 @@
     },
     {
       "pk_acum_ini": 27.0,
-      "pk_acum_fin": 30.0,
-      "v": 100,
-      "fuente": "hoja",
-      "ltv": null,
-      "revisar": false
-    },
-    {
-      "pk_acum_ini": 30.0,
       "pk_acum_fin": 40.0,
       "v": 80,
       "fuente": "hoja",
@@ -108,6 +100,7 @@
       "revisar": false
     }
   ],
+  "vmax_regla": "fila_anterior",
   "eventos": [
     {
       "id": "ev-0001",
@@ -115,6 +108,7 @@
       "pk_acum": 2.0,
       "datos": {
         "v": 30,
+        "de": 100,
         "motivo": "SINTÉTICA: ESTADO DE VÍA",
         "nombre": "ALFA – GAMMA",
         "ltv": "ltv-0001",
@@ -218,11 +212,33 @@
     },
     {
       "id": "ev-0006",
+      "tipo": "csv",
+      "pk_acum": 20.0,
+      "datos": {
+        "de": 100,
+        "a": 80,
+        "sin_cambio": false,
+        "nombre": "GAMMA"
+      },
+      "pictograma": "csv",
+      "aviso_km": 3.0,
+      "estado": "ok",
+      "fase": null,
+      "origen": {
+        "archivo": "hoja.pdf",
+        "pagina": 1,
+        "fila": null,
+        "bbox": null,
+        "texto": null
+      }
+    },
+    {
+      "id": "ev-0007",
       "tipo": "ltv_inicio",
       "pk_acum": 25.0,
       "datos": {
         "v": 60,
-        "de": 100,
+        "de": 80,
         "motivo": "SINTÉTICA: OBRAS",
         "nombre": "GAMMA – EPSILON",
         "ltv": "ltv-0002",
@@ -243,7 +259,7 @@
       }
     },
     {
-      "id": "ev-0007",
+      "id": "ev-0008",
       "tipo": "ltv_fin",
       "pk_acum": 27.0,
       "datos": {
@@ -267,7 +283,7 @@
       }
     },
     {
-      "id": "ev-0008",
+      "id": "ev-0009",
       "tipo": "apeadero",
       "pk_acum": 30.0,
       "datos": {
@@ -286,7 +302,7 @@
       }
     },
     {
-      "id": "ev-0009",
+      "id": "ev-0010",
       "tipo": "parada_tecnica",
       "pk_acum": 30.0,
       "datos": {
@@ -301,28 +317,6 @@
         "archivo": "hoja.pdf",
         "pagina": 1,
         "fila": 31,
-        "bbox": null,
-        "texto": null
-      }
-    },
-    {
-      "id": "ev-0010",
-      "tipo": "csv",
-      "pk_acum": 30.0,
-      "datos": {
-        "de": 100,
-        "a": 80,
-        "sin_cambio": false,
-        "nombre": "DELTA (APD)"
-      },
-      "pictograma": "csv",
-      "aviso_km": 3.0,
-      "estado": "ok",
-      "fase": null,
-      "origen": {
-        "archivo": "hoja.pdf",
-        "pagina": 1,
-        "fila": null,
         "bbox": null,
         "texto": null
       }

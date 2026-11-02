@@ -4,7 +4,7 @@ import { VERSION_APP } from "./version.js";
 import { esc, fecha } from "./util.js";
 import { Ruta, validar } from "./ruta.js";
 import { MODOS, Posicion, metrosPorPixel } from "./posicion.js";
-import { datos, dltvs, firmaRuta, geos, persistir, prefs, recorridos, rutas, tramos } from "./almacen.js";
+import { datos, dltvs, firmaRuta, geos, obsoleta, persistir, prefs, recorridos, rutas, tramos } from "./almacen.js";
 import { caducados, dltvAntiguo, DIAS, rutaAntigua } from "./retencion.js";
 import { htmlLegal } from "./legal.js";
 import { cargarPictos, deSerie, picDe } from "./pictos.js";
@@ -165,6 +165,7 @@ async function abrir(paquete, guardarla = true) {
   }
   if (guardarla) await rutas.guardar(paquete);
   ruta = new Ruta(paquete);
+  $("aviso-ruta").hidden = !obsoleta(paquete);
   via = paquete.geo?.puntos?.length ? new Via(paquete.geo) : null;
   prefs.escribir("activa", guardarla ? ruta.id : null);
   pos = new Posicion({
@@ -467,7 +468,7 @@ async function pintarAjustes() {
     ? lista
         .map(
           (r) =>
-            `<div class="ru${ruta && r.id === ruta.id ? " on" : ""}"><div><b>${esc(r.tren)}</b> · ${esc(r.origen || "?")} → ${esc(r.destino || "?")}<small>${r.tren === "PRUEBA" ? "ruta de prueba del GPS (sin datos de ADIF)" : fecha(r.fecha) + (r.ltv ? " · DLTV nº " + esc(r.ltv) : " · sin DLTV")}</small></div>` +
+            `<div class="ru${ruta && r.id === ruta.id ? " on" : ""}"><div><b>${esc(r.tren)}</b> · ${esc(r.origen || "?")} → ${esc(r.destino || "?")}<small>${r.tren === "PRUEBA" ? "ruta de prueba del GPS (sin datos de ADIF)" : fecha(r.fecha) + (r.ltv ? " · DLTV nº " + esc(r.ltv) : " · sin DLTV")}${r.obsoleta ? '<br><span class="aviso">Generada con una versión anterior: vuelve a generarla</span>' : ""}</small></div>` +
             `<div>${ruta && r.id === ruta.id ? '<span class="act">En uso</span>' : `<button data-abrir="${esc(r.id)}">Abrir</button>`}<button data-comp="${esc(r.id)}" title="Enviar la ruta (AirDrop, Mensajes, Correo…)">Compartir</button><button data-borrar="${esc(r.id)}" title="Borrar del dispositivo">Borrar</button></div></div>`,
         )
         .join("")

@@ -61,16 +61,17 @@ export function generar(ruta, ltv, cruce, tramos, pictos) {
     if (prev !== null) {
       if (p.radio && prev.radio && p.radio !== prev.radio) add(p.pk_acum, "cambio_radio", { canal: p.radio, nombre: p.nombre }, o);
       if (p.bloqueo && prev.bloqueo && p.bloqueo !== prev.bloqueo) add(p.pk_acum, "cambio_bloqueo", { de: prev.bloqueo, a: p.bloqueo }, o);
+      // La V Max de una fila rige en el tramo que llega a ella: el cambio está en la fila anterior.
       const marca = marcasVmax.get(i);
       if (marca)
         add(
-          p.pk_acum,
+          prev.pk_acum,
           "csv",
-          { de: marca.v_anterior, a: marca.v_nueva, sin_cambio: !marca.cambia_vmax_tren, nombre: p.nombre },
+          { de: marca.v_anterior, a: marca.v_nueva, sin_cambio: !marca.cambia_vmax_tren, nombre: prev.nombre },
           conArchivo(marca.origen, archivo),
         );
       else if (p.vmax && prev.vmax && p.vmax !== prev.vmax)
-        add(p.pk_acum, p.vmax < prev.vmax ? "cambio_vmax_baja" : "cambio_vmax_sube", { de: prev.vmax, a: p.vmax }, o);
+        add(prev.pk_acum, p.vmax < prev.vmax ? "cambio_vmax_baja" : "cambio_vmax_sube", { de: prev.vmax, a: p.vmax }, o);
     }
     for (const nota of p.notas) {
       const mV = RE_NOTA_V.exec(nota), mKm = RE_NOTA_KM.exec(nota);
@@ -152,10 +153,10 @@ export function generar(ruta, ltv, cruce, tramos, pictos) {
   };
 }
 
+/** V Max justo antes de `acum`: la de la primera fila en `acum` o después (rige en el tramo que llega a ella). */
 function vmaxEn(puntos, acum) {
-  let v = null;
-  for (const p of puntos) if (p.pk_acum !== null && p.pk_acum <= acum && p.vmax !== null) v = p.vmax;
-  return v;
+  for (const p of puntos) if (p.pk_acum !== null && p.pk_acum >= acum) return p.vmax;
+  return null;
 }
 
 function vmaxEfectiva(puntos, tramosLtv) {
@@ -170,11 +171,8 @@ function vmaxEfectiva(puntos, tramosLtv) {
     const a = cortes[k], b = cortes[k + 1];
     if (b <= a) continue;
     const medio = (a + b) / 2;
-    let vHoja = null;
-    for (const p of conAcum) {
-      if (p.pk_acum <= a && p.vmax !== null) vHoja = p.vmax;
-      else if (p.pk_acum > a) break;
-    }
+    // La fila que cierra el tramo da su velocidad (rige desde la fila anterior).
+    const vHoja = conAcum.find((p) => p.pk_acum > medio)?.vmax ?? null;
     const aplican = tramosLtv.filter((t) => t[0] <= medio && medio <= t[1] && t[4] === "ok");
     const dudosas = tramosLtv.filter((t) => t[0] <= medio && medio <= t[1] && t[4] === "revisar");
     let v = vHoja, fuente = "hoja", ltvId = null;

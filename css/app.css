@@ -581,3 +581,6 @@ code{font:12px ui-monospace,Menlo,monospace;background:var(--in);padding:0 4px;b
 .legal-fecha{font-size:12px;color:var(--gy);margin-top:16px}
 .legal+.legal{margin-top:28px;padding-top:18px;border-top:1px solid var(--ln)}
 :root[data-disp="telefono"] .legal{font-size:16px}
+
+/* ruta generada con una versión anterior (regla de la V Max del 02-11-2026) */
+.aviso-ruta{flex:none;margin:0 0 8px;padding:10px 14px;border:2px solid var(--dn);border-radius:12px;color:var(--tx);background:color-mix(in srgb,var(--dn) 14%,transparent);font-size:15px;line-height:1.35}
