@@ -597,3 +597,61 @@ code{font:12px ui-monospace,Menlo,monospace;background:var(--in);padding:0 4px;b
 
 /* ruta generada con una versión anterior (regla de la V Max del 02-11-2026) */
 .aviso-ruta{flex:none;margin:0 0 8px;padding:10px 14px;border:2px solid var(--dn);border-radius:12px;color:var(--tx);background:color-mix(in srgb,var(--dn) 14%,transparent);font-size:15px;line-height:1.35}
+
+/* ===================================================================== telefonemas */
+.mv-vista{grid-column:1/-1;font-size:14px;font-weight:800;color:#111;background:#ffd200;border-radius:7px;padding:4px 8px;text-align:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+:root[data-disp="telefono"] .mb .tf-sep{display:none}
+.m-tf{position:relative}
+.menu .mb .m-tf svg{display:block}
+.tf-n{position:absolute;top:-5px;right:-5px;min-width:20px;height:20px;padding:0 5px;border-radius:10px;background:var(--lt);color:#fff;font-size:12px;font-weight:800;line-height:20px;text-align:center}
+.m-tf.on{outline:3px solid #ffd200}
+#v-tf{max-width:760px;margin:0 auto;padding-bottom:24px}
+.tf-cab{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin:0 0 10px}
+.tf-cab h2{margin:0;font-size:22px}
+.tf-cab button{margin:0}
+.tf-tren{color:var(--gy);font-weight:700}
+#v-tf .tf-nuevo{display:block;width:100%;margin:0 0 12px;min-height:56px;font-size:18px;font-weight:800;background:#ffd200;color:#111;border:0;border-radius:12px}
+.tf-form{display:flex;flex-direction:column;gap:10px;margin:0 0 14px}
+.tf-form label{display:flex;flex-direction:column;gap:4px;font-size:13px;font-weight:700;color:var(--gy);margin:0}
+.tf-form input,.tf-form textarea{margin:0;font-size:17px;font-weight:600;min-height:46px;border-radius:10px;padding:8px 10px}
+.tf-form textarea{min-height:76px;resize:vertical;font-weight:500}
+.tf-g2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.tf-g3{display:grid;grid-template-columns:90px 120px minmax(0,1fr);gap:10px;align-items:end}
+.tf-vel{grid-template-columns:150px auto minmax(0,1fr)}
+.tf-u{display:flex;align-items:center;gap:6px}
+.tf-u input{width:90px}
+.tf-u b{color:var(--gy);font-size:14px}
+.tf-form label.tf-csv{flex-direction:row;align-items:center;gap:8px;min-height:46px;font-size:16px;color:var(--tx)}
+.tf-csv input{width:22px;height:22px;min-height:0;margin:0}
+.tf-t{font-size:13px;font-weight:700;color:var(--gy);text-transform:uppercase;letter-spacing:.05em}
+#v-tf .seg{display:flex;border:1.5px solid var(--ln);border-radius:12px;background:var(--in);padding:3px;gap:3px}
+#v-tf .seg label{position:relative;flex:1;display:flex;flex-direction:row;align-items:center;justify-content:center;margin:0;min-height:44px;padding:6px 4px;border-radius:9px;font-size:15px;font-weight:700;color:var(--gy);cursor:pointer;text-align:center}
+#v-tf .seg label input{position:absolute;opacity:0;width:1px;height:1px;min-height:0;pointer-events:none}
+#v-tf .seg label:has(input:checked){background:var(--ac);color:var(--sobre-ac)}
+.tf-r{font-size:13px;font-weight:600;color:var(--up);min-height:1em}
+.tf-r.mal{color:var(--dn)}
+.tf-form[data-tipo="registro"] .tf-pt,.tf-form[data-tipo="registro"] .tf-vel,.tf-form:not([data-tipo="incidencia"]) .tf-inc,.tf-form[data-tipo="incidencia"] .tf-vel,.tf-form[data-tipo="incidencia"] .tf-hasta{display:none}
+.tf-form[data-tipo="vista"] .tf-csv,.tf-form[data-tipo="vista"] .tf-via{visibility:hidden}
+.tf-form[data-tipo="incidencia"] .tf-pt{grid-template-columns:1fr}
+.tf-err{color:var(--dn);font-weight:700;font-size:14px}
+.tf-err:empty{display:none}
+.tf-bot{display:flex;gap:10px}
+.tf-bot button{margin:0;min-height:52px;font-size:17px;font-weight:800;flex:1}
+.tf-bot button[type=submit]{background:var(--ac);color:var(--sobre-ac);border:0}
+.tf-it{background:var(--pn);border:1px solid var(--ln);border-radius:12px;padding:12px 14px;margin:0 0 10px}
+.tf-it header{display:flex;align-items:baseline;gap:12px}
+.tf-it header b{font-size:20px}
+.tf-it header span{font-size:17px;font-variant-numeric:tabular-nums}
+.tf-chip{margin-left:auto;font-size:12px!important;font-weight:800;padding:2px 8px;border-radius:6px;border:1.5px solid var(--ln);color:var(--gy)}
+.tf-chip.en{background:#ffd200;color:#111;border-color:#ffd200}
+.tf-chip.an{color:var(--dn);border-color:var(--dn)}
+.tf-presc{margin:6px 0 2px;font-size:17px;font-weight:800}
+.tf-it dl{display:grid;grid-template-columns:auto 1fr;gap:2px 10px;margin:6px 0 0;font-size:15px}
+.tf-it dt{color:var(--gy);font-weight:600}
+.tf-it dd{margin:0;white-space:pre-wrap}
+.tf-it.anulado .tf-presc,.tf-it.anulado dd{text-decoration:line-through;opacity:.6}
+.tf-acc{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}
+.tf-acc button{margin:0;min-height:40px}
+#v-tf .tf-comp{display:block;width:100%;margin:6px 0 0;min-height:48px;font-size:16px}
+@media (max-width:520px){.tf-g2{grid-template-columns:1fr}.tf-g3{grid-template-columns:76px 110px minmax(0,1fr)}.tf-vel{grid-template-columns:140px auto}.tf-vel .tf-via{grid-column:1/-1}}
+#v-tf button.peligro{color:var(--lt);border-color:var(--lt);background:transparent;font-weight:700}

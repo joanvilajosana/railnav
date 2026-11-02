@@ -38,14 +38,14 @@ export const prefs = {
 };
 
 let db = null;
-const ALMACENES = { rutas: "id", dltv: "id", tramos: "ruta", geo: "firma", recorridos: "id" };
+const ALMACENES = { rutas: "id", dltv: "id", tramos: "ruta", geo: "firma", recorridos: "id", telefonemas: "id" };
 const mem = Object.fromEntries(Object.keys(ALMACENES).map((k) => [k, new Map()]));
 
 function abrir() {
   if (db) return Promise.resolve(db);
   return new Promise((ok) => {
     try {
-      const r = indexedDB.open("railnav", 3);
+      const r = indexedDB.open("railnav", 4);
       r.onupgradeneeded = () => {
         for (const [nombre, clave] of Object.entries(ALMACENES))
           if (!r.result.objectStoreNames.contains(nombre)) r.result.createObjectStore(nombre, { keyPath: clave });
@@ -187,6 +187,14 @@ export const recorridos = {
   listar: async () => (await A.recorridos.todas()).sort((a, b) => (a.id < b.id ? 1 : -1)),
   cargar: (id) => A.recorridos.una(id),
   borrar: (id) => A.recorridos.quitar(id),
+};
+
+/** Telefonemas registrados a mano (ver js/telefonemas.js). */
+export const telefonemas = {
+  guardar: (t) => A.telefonemas.poner(t),
+  listar: async () => (await A.telefonemas.todas()).sort((a, b) => (a.id < b.id ? -1 : 1)),
+  deRuta: async (id) => (await telefonemas.listar()).filter((t) => t.ruta === id),
+  borrar: (id) => A.telefonemas.quitar(id),
 };
 
 /** Pide al navegador que no borre los datos guardados (iPad: app en la pantalla de inicio). */

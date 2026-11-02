@@ -32,7 +32,7 @@
   <div class="brand" id="brand"></div>
   <div class="herr">
    <nav class="nav"><button id="m-marcha" aria-label="Pantalla de marcha" data-l="Marcha"></button><button id="m-datos" aria-label="Datos del tren" data-l="Datos"></button><button id="m-ajustes" aria-label="Ajustes" data-l="Ajustes"></button></nav>
-   <div class="mb"><button id="m-tema" aria-label="Tema día o noche"></button><span class="sep" aria-hidden="true"></span><button id="m-vol" aria-label="Volumen" aria-haspopup="true" aria-expanded="false"></button><button id="m-mute" aria-label="Silenciar" aria-pressed="false"></button></div>
+   <div class="mb"><button id="m-tf" class="m-tf" aria-label="Telefonemas" title="Telefonemas"><svg viewBox="0 0 48 48" width="30" height="30" aria-hidden="true"><polygon points="24,5 45,42 3,42" fill="#ffd200" stroke="#111" stroke-width="3" stroke-linejoin="round"/><text x="24" y="38" font-size="24" font-weight="800" text-anchor="middle" fill="#111">!</text></svg><span id="tf-n" class="tf-n" hidden></span></button><span class="sep tf-sep" aria-hidden="true"></span><button id="m-tema" aria-label="Tema día o noche"></button><span class="sep" aria-hidden="true"></span><button id="m-vol" aria-label="Volumen" aria-haspopup="true" aria-expanded="false"></button><button id="m-mute" aria-label="Silenciar" aria-pressed="false"></button></div>
   </div>
 </div>
 <div class="info" aria-live="polite">
@@ -194,6 +194,44 @@
    </div>
   </section>
   <div id="acerca" class="acerca"></div>
+ </div>
+ <!-- Telefonemas -->
+ <div id="v-tf" hidden>
+  <div class="tf-cab"><button id="bk-tf">← Marcha</button><h2>Telefonemas</h2><span id="tf-tren" class="tf-tren"></span></div>
+  <button id="tf-nuevo" class="tf-nuevo">+ Nuevo telefonema</button>
+  <form id="tf-form" class="pn tf-form" hidden autocomplete="off">
+   <input type="hidden" id="tf-id">
+   <div class="tf-g3">
+    <label>Nº<input id="tf-num" type="number" inputmode="numeric" min="1" max="99" required></label>
+    <label>Hora<input id="tf-hora" type="time" required></label>
+    <label class="tf-firma">Firma<input id="tf-firma" placeholder="Apellido del emisor" autocapitalize="words"></label>
+   </div>
+   <label>Emisor<input id="tf-emisor" list="tf-emisores" placeholder="p. ej. RC CTC de Zaragoza"></label>
+   <label>Receptor<input id="tf-receptor" placeholder="Maquinista …"></label>
+   <div class="tf-t">Prescribe</div>
+   <div class="seg" role="radiogroup" aria-label="Qué prescribe">
+    <label><input type="radio" name="tf-tipo" value="ltv" checked>LTV</label>
+    <label><input type="radio" name="tf-tipo" value="vista">A la vista</label>
+    <label><input type="radio" name="tf-tipo" value="incidencia">Incidencia</label>
+    <label><input type="radio" name="tf-tipo" value="registro">Otro</label>
+   </div>
+   <div class="tf-g2 tf-pt">
+    <label><span id="tf-l-desde">Desde</span><input id="tf-desde" list="tf-deps" placeholder="PK o estación"><small id="tf-r-desde" class="tf-r"></small></label>
+    <label class="tf-hasta">Hasta<input id="tf-hasta" list="tf-deps" placeholder="PK o estación (vacío: solo la estación)"><small id="tf-r-hasta" class="tf-r"></small></label>
+   </div>
+   <div class="tf-g3 tf-vel">
+    <label><span id="tf-l-v">Velocidad</span><span class="tf-u"><input id="tf-v" type="number" inputmode="numeric" min="1" max="400"><b>km/h</b></span></label>
+    <label class="tf-csv"><input id="tf-csv" type="checkbox"> Es CSV</label>
+    <label class="tf-via">Vía<input id="tf-via" placeholder="opcional"></label>
+   </div>
+   <label class="tf-inc">Qué hay<input id="tf-texto" placeholder="p. ej. animales en la vía"></label>
+   <label>Mensaje<textarea id="tf-msg" rows="3" placeholder="El texto del telefonema"></textarea></label>
+   <div id="tf-err" class="tf-err" role="alert"></div>
+   <div class="tf-bot"><button type="submit" id="tf-guardar">Guardar</button><button type="button" id="tf-cancelar">Cancelar</button></div>
+  </form>
+  <datalist id="tf-deps"></datalist><datalist id="tf-emisores"></datalist>
+  <div id="tf-lista"></div>
+  <button id="tf-compartir" class="tf-comp">Compartir el registro</button>
  </div>
  <!-- Información legal -->
  <div id="v-legal" hidden>

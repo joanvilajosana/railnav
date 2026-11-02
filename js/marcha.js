@@ -135,7 +135,9 @@ export function pintarMarcha(ruta, pos, { desvio: conDesvio = false, residuo = n
   // Velocidad
   if (lt) s += `<g transform="translate(252 10) scale(.5)">${forma(pic("ltv") || {}, { v: vp })}</g><text x="246" y="27" font-size="13" font-weight="700" text-anchor="end" fill="var(--lt)">LTV</text>`;
   if (tramo?.revisar) s += `<rect x="14" y="12" width="96" height="20" rx="5" fill="none" stroke="var(--dn)" stroke-dasharray="3 2"/><text x="62" y="26" font-size="12" font-weight="800" text-anchor="middle" fill="var(--dn)">A REVISAR</text>`;
-  if (tramo?.por_cola) s += `<text x="154" y="52" font-size="13" font-weight="700" text-anchor="middle" fill="var(--gy)">HASTA QUE PASE LA COLA · ${dm((tramo.libera - d) * 1000)}</text>`;
+  const vista = ruta.vistaEn?.(d);
+  if (vista) s += `<rect x="14" y="38" width="280" height="24" rx="5" fill="#ffd200"/><text x="154" y="55" font-size="14" font-weight="800" text-anchor="middle" fill="#111">MARCHA A LA VISTA · TF ${vista.numero} · ${dm((vista.fin - d) * 1000)}</text>`;
+  else if (tramo?.por_cola) s += `<text x="154" y="52" font-size="13" font-weight="700" text-anchor="middle" fill="var(--gy)">HASTA QUE PASE LA COLA · ${dm((tramo.libera - d) * 1000)}</text>`;
   s += vp != null
     ? `<text x="154" y="176" font-size="158" font-weight="700" text-anchor="middle" fill="${lt ? "var(--lt)" : "var(--tx)"}">${vp}</text>`
     : `<text x="154" y="120" font-size="26" font-weight="700" text-anchor="middle" fill="var(--gy)">Sin V Max</text><text x="154" y="148" font-size="14" text-anchor="middle" fill="var(--gy)">${ruta.p.prueba ? "ruta de prueba: sin datos de ADIF" : "la hoja no la da en este tramo"}</text>`;
@@ -230,7 +232,9 @@ export function pintarMarchaMovil(ruta, pos, { desvio: conDesvio = false, residu
   const lt = tramo?.fuente === "ltv";
   const nx = ruta.siguiente(d);
   // Velocidad y siguiente cambio
-  let v = `<div class="mv-v${lt ? " ltv" : ""}">`;
+  const vista = ruta.vistaEn?.(d);
+  let v = vista ? `<div class="mv-vista">MARCHA A LA VISTA · TF ${vista.numero} · ${dm((vista.fin - d) * 1000)}</div>` : "";
+  v += `<div class="mv-v${lt ? " ltv" : ""}">`;
   if (vp != null) v += `<span class="mv-n">${vp}</span><span class="mv-u">km/h</span>`;
   else v += `<span class="mv-sin">Sin V Max<small>${ruta.p.prueba ? "ruta de prueba: sin datos de ADIF" : "la hoja no la da en este tramo"}</small></span>`;
   if (lt || tramo?.revisar)

@@ -41,6 +41,7 @@ export const SECCIONES = [
 <ul>
 <li>Las rutas generadas o cargadas, los DLTV leídos, las tablas de tramos que edites y los trazados de la vía.</li>
 <li>Las grabaciones de recorrido, si las activas: la posición del dispositivo con la hora, segundo a segundo.</li>
+<li>Los telefonemas que registres: número, hora, emisor, receptor, mensaje y firma (el apellido de quien lo da), y lo que prescriben. Solo salen del dispositivo si compartes el registro.</li>
 <li>Tus preferencias: tema, volumen, disposición de la pantalla, modo de posición, avisos, longitud del tren, pictogramas editados.</li>
 </ul>
 <p>Se guardan en el almacenamiento del navegador (IndexedDB y localStorage) de este dispositivo. Nadie más puede verlos, tampoco el autor. Se borran desde Ajustes → Tus datos, o al eliminar la app del dispositivo.</p>
@@ -57,6 +58,7 @@ export const SECCIONES = [
 <ul>
 <li>Grabaciones de recorrido: se borran solas a los 30 días, salvo las que marques «Conservar».</li>
 <li>Rutas y DLTV: hasta que los borres; pasados 30 días la app te avisa de que son antiguos y puedes borrarlos de una vez.</li>
+<li>Telefonemas: hasta que los borres (en la pantalla de telefonemas o en Ajustes → Tus datos).</li>
 </ul>
 <h3>Tus derechos</h3>
 <p>En Ajustes → Tus datos puedes descargar una copia de todo lo guardado y borrarlo todo. Si escribes al autor (por ejemplo, para enviarle una grabación o avisar de un error), lo que mandes se usa solo para responderte y mejorar la app, y se borra cuando ya no hace falta; puedes pedir su supresión en ${correo}. También puedes reclamar ante la <a href="https://www.aepd.es" target="_blank" rel="noopener">Agencia Española de Protección de Datos</a>.</p>`,

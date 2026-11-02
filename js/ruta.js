@@ -3,6 +3,7 @@
 // Sin DOM: se prueba con node --test.
 
 import { minutos } from "./util.js";
+import { efectos, superponer } from "./telefonemas.js";
 
 export const FORMATO = "railnav-ruta";
 export const VERSION = 1;
@@ -36,15 +37,39 @@ export class Ruta {
     this.id = p.id;
     this.tren = p.tren;
     this.fin = p.fin;
-    this.vmax = [...p.vmax].sort((a, b) => a.pk_acum_ini - b.pk_acum_ini);
-    this.base = [...p.eventos].sort((a, b) => a.pk_acum - b.pk_acum);
-    // LTV que solo afectan al vehículo de cabeza: no se mantienen hasta que pasa la cola.
-    this.soloCabeza = new Set(this.base.filter((e) => e.tipo === "ltv_fin" && e.datos?.solo_cabeza).map((e) => e.datos.ltv));
-    this.ponerLongitud(0);
+    this.vmax0 = [...p.vmax].sort((a, b) => a.pk_acum_ini - b.pk_acum_ini);
+    this.eventos0 = [...p.eventos].sort((a, b) => a.pk_acum - b.pk_acum);
+    this.cola = 0;
+    this.ponerTelefonemas([]);
     this.horario = (p.horario || []).map(([pk, h]) => [pk, minutos(h)]);
     // Horas que pasan de medianoche: se siguen contando (23:50 → 24:10).
     for (let i = 1; i < this.horario.length; i++)
       while (this.horario[i][1] < this.horario[i - 1][1] - 60) this.horario[i][1] += 1440;
+  }
+
+  /**
+   * Telefonemas registrados (js/telefonemas.js): sus LTV entran en la Vmax efectiva y sus
+   * avisos (LTV, marcha a la vista, incidencias) en la lista de eventos.
+   */
+  ponerTelefonemas(lista) {
+    const { eventos, limites, vistas } = efectos(lista, this.p);
+    this.vistas = vistas;
+    this.vmax = superponer(this.vmax0, limites);
+    for (const e of eventos)
+      if (e.tipo === "ltv_inicio") {
+        let t = null;
+        for (const x of this.vmax0) if (x.pk_acum_ini <= e.pk_acum + 1e-6) t = x;
+        e.datos.de = t?.v ?? null;
+      }
+    this.base = [...this.eventos0, ...eventos].sort((a, b) => a.pk_acum - b.pk_acum);
+    // LTV que solo afectan al vehículo de cabeza: no se mantienen hasta que pasa la cola.
+    this.soloCabeza = new Set(this.base.filter((e) => e.tipo === "ltv_fin" && e.datos?.solo_cabeza).map((e) => e.datos.ltv));
+    this.ponerLongitud(this.cola * 1000);
+  }
+
+  /** Marcha a la vista en d (por telefonema): { ini, fin, numero } o null. */
+  vistaEn(d) {
+    return this.vistas.find((x) => x.ini <= d + 1e-6 && d < x.fin - 1e-6) || null;
   }
 
   /**

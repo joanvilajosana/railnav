@@ -9,7 +9,7 @@
 import { partesVia } from "./util.js";
 
 export const SALTO_KM = 1.5;
-const ACCION = new Set(["ltv_inicio", "csv", "cambio_vmax_baja"]);
+const ACCION = new Set(["ltv_inicio", "csv", "cambio_vmax_baja", "tf_vista_inicio", "tf_incidencia"]);
 
 export class Avisador {
   /**

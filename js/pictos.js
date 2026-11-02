@@ -20,7 +20,7 @@ export const todos = () => D;
 export const deSerie = () => SERIE;
 export const pic = (id) => D.find((p) => p.id === id);
 /** Pictograma de un evento: el que indica el evento o, si se borró, el primero de su tipo. */
-export const picDe = (e) => pic(e.pictograma) || D.find((p) => (p.tipos || []).includes(e.tipo));
+export const picDe = (e) => e.picto || pic(e.pictograma) || D.find((p) => (p.tipos || []).includes(e.tipo));
 export const guardar = () => prefs.escribir("pictos", D);
 export const restaurar = () => {
   D = clonar(SERIE);

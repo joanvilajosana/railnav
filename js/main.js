@@ -4,7 +4,8 @@ import { VERSION_APP } from "./version.js";
 import { esc, fecha } from "./util.js";
 import { Ruta, validar } from "./ruta.js";
 import { MODOS, Posicion, metrosPorPixel } from "./posicion.js";
-import { datos, dltvs, firmaRuta, geos, obsoleta, persistir, prefs, recorridos, rutas, tramos } from "./almacen.js";
+import { datos, dltvs, firmaRuta, geos, obsoleta, persistir, prefs, recorridos, rutas, telefonemas, tramos } from "./almacen.js";
+import * as TF from "./telefonemas.js";
 import { caducados, dltvAntiguo, DIAS, rutaAntigua } from "./retencion.js";
 import { htmlLegal } from "./legal.js";
 import { cargarPictos, deSerie, picDe } from "./pictos.js";
@@ -147,8 +148,10 @@ function estado() {
 // ---------- vistas ----------
 function mostrar(v) {
   vista = v;
-  for (const k of ["marcha", "datos", "ajustes", "pictos", "legal"]) $("v-" + k).hidden = k !== v;
-  for (const k of ["marcha", "datos", "ajustes"]) $("m-" + k).classList.toggle("on", k === v || ((v === "pictos" || v === "legal") && k === "ajustes"));
+  for (const k of ["marcha", "datos", "ajustes", "pictos", "legal", "tf"]) $("v-" + k).hidden = k !== v;
+  for (const k of ["marcha", "datos", "ajustes"]) $("m-" + k).classList.toggle("on", k === v || ((v === "pictos" || v === "legal") && k === "ajustes") || (v === "tf" && k === "marcha"));
+  $("m-tf").classList.toggle("on", v === "tf");
+  if (v === "tf") pintarTf();
   if (v === "datos" && ruta) {
     pintarDatos(ruta, pos.d);
     requestAnimationFrame(() => irAqui(pos.d));
@@ -156,6 +159,176 @@ function mostrar(v) {
   if (v === "ajustes") pintarAjustes();
   if (v === "pictos") pintarEditor();
   sucio = true;
+}
+
+// ---------- telefonemas ----------
+// El registro de los telefonemas de la ruta abierta; los vigentes entran en la marcha.
+let tfs = [];
+const hhmm = (f = new Date()) => `${String(f.getHours()).padStart(2, "0")}:${String(f.getMinutes()).padStart(2, "0")}`;
+
+function pintarBotonTf() {
+  const n = tfs.filter((t) => !t.anulado).length;
+  $("tf-n").hidden = !n;
+  $("tf-n").textContent = n;
+}
+
+async function aplicarTf() {
+  tfs = await telefonemas.deRuta(ruta.id);
+  ruta.ponerTelefonemas(tfs);
+  pintarBotonTf();
+  pintarTf();
+  sucio = true;
+}
+
+function tipoTf() {
+  return document.querySelector("input[name=tf-tipo]:checked")?.value || "ltv";
+}
+
+function formTf() {
+  const t = tipoTf();
+  $("tf-form").dataset.tipo = t;
+  $("tf-l-desde").textContent = t === "incidencia" ? "Dónde" : "Desde";
+  $("tf-l-v").textContent = t === "vista" ? "Velocidad máx. (si la dice)" : "Velocidad";
+  for (const k of ["desde", "hasta"]) {
+    const r = TF.situar($("tf-" + k).value, ruta.p, pos.d), el = $("tf-r-" + k);
+    el.className = "tf-r" + (r?.error ? " mal" : "");
+    if (!r) el.textContent = "";
+    else if (r.error) el.textContent = r.error;
+    else {
+      const km = r.pka - pos.d, lejos = km < -0.05 ? `ya pasado (hace ${dmTf(-km)})` : `a ${dmTf(km)}`;
+      el.textContent = r.estacion
+        ? `${r.nombre}${r.pk != null ? " · PK " + String(r.pk).replace(".", ",") : ""} · ± 500 m · ${lejos}`
+        : `${r.entre?.length ? "entre " + r.entre.join(" y ") + " · " : ""}${lejos}`;
+    }
+  }
+}
+const dmTf = (km) => (km >= 1 ? `${km.toFixed(1).replace(".", ",")} km` : `${Math.round(km * 1000)} m`);
+
+function abrirFormTf(t = null) {
+  const hoy = tfs.filter((x) => x.fecha === new Date().toISOString().slice(0, 10));
+  const ult = tfs[tfs.length - 1];
+  $("tf-id").value = t?.id || "";
+  $("tf-num").value = t?.numero ?? Math.min(99, Math.max(0, ...hoy.map((x) => x.numero)) + 1);
+  $("tf-hora").value = t?.hora || hhmm();
+  $("tf-emisor").value = t?.emisor ?? ult?.emisor ?? prefs.leer("tf.emisor", "");
+  $("tf-receptor").value = t?.receptor ?? ult?.receptor ?? `Maquinista ${ruta.tren.numero}`;
+  $("tf-firma").value = t?.firma ?? ult?.firma ?? "";
+  for (const r of document.querySelectorAll("input[name=tf-tipo]")) r.checked = r.value === (t?.tipo || "ltv");
+  $("tf-desde").value = t?.desde?.texto || "";
+  $("tf-hasta").value = t?.hasta?.texto || "";
+  $("tf-v").value = t?.v || "";
+  $("tf-csv").checked = !!t?.csv;
+  $("tf-via").value = t?.via || "";
+  $("tf-texto").value = t?.texto || "";
+  $("tf-msg").value = t?.mensaje || "";
+  $("tf-err").textContent = "";
+  $("tf-guardar").textContent = t ? "Guardar cambios" : "Guardar";
+  $("tf-deps").innerHTML = TF.dependencias(ruta.p).map((n) => `<option value="${esc(n)}">`).join("");
+  telefonemas.listar().then((l) => {
+    $("tf-emisores").innerHTML = [...new Set(l.map((x) => x.emisor).filter(Boolean))].map((n) => `<option value="${esc(n)}">`).join("");
+  });
+  $("tf-form").hidden = false;
+  $("tf-nuevo").hidden = true;
+  formTf();
+  $("tf-form").scrollIntoView({ block: "start" });
+}
+
+function cerrarFormTf() {
+  $("tf-form").hidden = true;
+  $("tf-nuevo").hidden = false;
+}
+
+async function guardarTf(ev) {
+  ev.preventDefault();
+  const tipo = tipoTf(), punto = (k) => {
+    const texto = $("tf-" + k).value.trim();
+    const r = texto ? TF.situar(texto, ruta.p, pos.d) : null;
+    return texto ? { texto, ...(r && !r.error ? r : {}) } : null;
+  };
+  const viejo = tfs.find((x) => x.id === $("tf-id").value);
+  const t = {
+    id: viejo?.id || new Date().toISOString(),
+    ruta: ruta.id,
+    tren: ruta.tren.numero,
+    fecha: viejo?.fecha || new Date().toISOString().slice(0, 10),
+    numero: Number($("tf-num").value),
+    hora: $("tf-hora").value,
+    emisor: $("tf-emisor").value.trim(),
+    receptor: $("tf-receptor").value.trim(),
+    firma: $("tf-firma").value.trim(),
+    mensaje: $("tf-msg").value.trim(),
+    tipo,
+    desde: tipo === "registro" ? null : punto("desde"),
+    hasta: tipo === "ltv" || tipo === "vista" ? punto("hasta") : null,
+    v: tipo === "ltv" || tipo === "vista" ? Number($("tf-v").value) || null : null,
+    csv: tipo === "ltv" && $("tf-csv").checked,
+    via: tipo === "ltv" ? $("tf-via").value.trim() || null : null,
+    texto: tipo === "incidencia" ? $("tf-texto").value.trim() || null : null,
+    anulado: viejo?.anulado || null,
+  };
+  const e = TF.errores(t, ruta.p, pos.d);
+  if (e.length) {
+    $("tf-err").textContent = "Falta o no cuadra: " + e.join("; ") + ".";
+    return;
+  }
+  if (t.emisor) prefs.escribir("tf.emisor", t.emisor);
+  await telefonemas.guardar(t);
+  cerrarFormTf();
+  await aplicarTf();
+}
+
+function pintarTf() {
+  if (!ruta || vista !== "tf") return;
+  const tr = ruta.tren;
+  $("tf-tren").textContent = `Tren ${tr.numero}${tr.fecha ? " · " + fecha(tr.fecha) : ""}`;
+  const lista = [...tfs].sort((a, b) => a.fecha.localeCompare(b.fecha) || a.numero - b.numero);
+  $("tf-compartir").hidden = !lista.length;
+  $("tf-lista").innerHTML = lista.length
+    ? lista
+        .map((t) => {
+          const r = TF.rango(t.desde, t.hasta && t.hasta.pka != null ? t.hasta : null);
+          const ini = t.tipo === "incidencia" ? t.desde?.pka : r?.[0], fin = t.tipo === "incidencia" ? t.desde?.pka : r?.[1];
+          let est = "";
+          if (t.anulado) est = `<span class="tf-chip an">ANULADO ${esc(t.anulado.hora)}</span>`;
+          else if (ini != null && pos.d < ini) est = `<span class="tf-chip">a ${dmTf(ini - pos.d)}</span>`;
+          else if (fin != null && pos.d <= fin + 0.001 && t.tipo !== "incidencia") est = `<span class="tf-chip en">EN CURSO</span>`;
+          else if (ini != null) est = `<span class="tf-chip pas">pasado</span>`;
+          const presc = t.tipo === "registro" ? "" : `<div class="tf-presc">${esc(TF.resumen(t))}</div>`;
+          return `<article class="tf-it${t.anulado ? " anulado" : ""}" data-id="${esc(t.id)}">
+            <header><b>Nº ${t.numero}</b><span>${esc(t.hora)}</span>${est}</header>${presc}
+            <dl><dt>De</dt><dd>${esc(t.emisor || "—")}</dd><dt>A</dt><dd>${esc(t.receptor || "—")}</dd>${t.mensaje ? `<dt>Mensaje</dt><dd>${esc(t.mensaje)}</dd>` : ""}<dt>Firma</dt><dd>${esc(t.firma || "—")}</dd></dl>
+            <div class="tf-acc"><button data-tf="editar">Editar</button><button data-tf="anular">${t.anulado ? "Quitar anulación" : "Anular"}</button><button data-tf="borrar" class="peligro">Borrar</button></div>
+          </article>`;
+        })
+        .join("")
+    : `<div class="vac">Sin telefonemas en esta ruta. Pulsa «Nuevo telefonema» para registrar el primero.</div>`;
+}
+
+function iniciarTelefonemas() {
+  $("m-tf").onclick = () => mostrar(vista === "tf" ? "marcha" : "tf");
+  $("bk-tf").onclick = () => mostrar("marcha");
+  $("tf-nuevo").onclick = () => abrirFormTf();
+  $("tf-cancelar").onclick = cerrarFormTf;
+  $("tf-form").onsubmit = guardarTf;
+  $("tf-form").oninput = formTf;
+  $("tf-form").onchange = formTf;
+  $("tf-lista").onclick = async (e) => {
+    const b = e.target.closest("[data-tf]"), id = e.target.closest("[data-id]")?.dataset.id;
+    const t = tfs.find((x) => x.id === id);
+    if (!b || !t) return;
+    if (b.dataset.tf === "editar") return abrirFormTf(t);
+    if (b.dataset.tf === "anular") t.anulado = t.anulado ? null : { hora: hhmm() };
+    if (b.dataset.tf === "borrar") {
+      if (!confirm(`¿Borrar el telefonema nº ${t.numero}? No se puede deshacer.`)) return;
+      await telefonemas.borrar(t.id);
+    } else await telefonemas.guardar(t);
+    await aplicarTf();
+  };
+  $("tf-compartir").onclick = async () => {
+    const tr = ruta.tren, lista = [...tfs].sort((a, b) => a.fecha.localeCompare(b.fecha) || a.numero - b.numero);
+    const txt = TF.textoRegistro(lista, tr.numero, tr.fecha ? fecha(tr.fecha) : null);
+    await compartirArchivo(`telefonemas-${tr.numero}-${tr.fecha || "ruta"}.txt`, txt, "text/plain");
+  };
 }
 
 // ---------- rutas ----------
@@ -170,6 +343,9 @@ async function abrir(paquete, guardarla = true) {
   if (guardarla) await rutas.guardar(paquete);
   ruta = new Ruta(paquete);
   ruta.ponerLongitud(prefs.leer("longitud", 0));
+  tfs = await telefonemas.deRuta(ruta.id).catch(() => []);
+  ruta.ponerTelefonemas(tfs);
+  pintarBotonTf();
   $("aviso-ruta").hidden = !obsoleta(paquete);
   via = paquete.geo?.puntos?.length ? new Via(paquete.geo) : null;
   prefs.escribir("activa", guardarla ? ruta.id : null);
@@ -845,7 +1021,7 @@ async function pintarTusDatos() {
   const plural = (k, uno, varios) => `${k} ${k === 1 ? uno : varios}`;
   $("datos-res").textContent =
     `En este dispositivo: ${plural(n.rutas, "ruta", "rutas")}, ${plural(n.dltv, "DLTV", "DLTV")}, ` +
-    `${plural(n.recorridos, "grabación", "grabaciones")} y ${plural(n.tramos, "tabla de tramos propia", "tablas de tramos propias")}.`;
+    `${plural(n.recorridos, "grabación", "grabaciones")}, ${plural(n.telefonemas, "telefonema", "telefonemas")} y ${plural(n.tramos, "tabla de tramos propia", "tablas de tramos propias")}.`;
   const { r, d } = await antiguos();
   const k = r.length + d.length;
   $("b-antiguos").hidden = !k;
@@ -1248,6 +1424,7 @@ async function iniciar() {
   iniciarBordes();
   iniciarTusDatos();
   iniciarLegal();
+  iniciarTelefonemas();
   $("tabs").onclick = (e) => {
     const b = e.target.closest("button");
     if (!b) return;
