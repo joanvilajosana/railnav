@@ -180,12 +180,16 @@ async function aplicarTf() {
   sucio = true;
 }
 
+let tipoAnterior = null;
 function tipoTf() {
   return document.querySelector("input[name=tf-tipo]:checked")?.value || "ltv";
 }
 
 function formTf() {
   const t = tipoTf();
+  // Marcha a la vista: se propone 40 km/h (no es un tope; se puede cambiar o borrar).
+  if (t === "vista" && tipoAnterior && tipoAnterior !== "vista" && !$("tf-v").value) $("tf-v").value = TF.V_VISTA;
+  tipoAnterior = t;
   $("tf-form").dataset.tipo = t;
   $("tf-l-desde").textContent = t === "incidencia" ? "Dónde" : "Desde";
   $("tf-l-v").textContent = t === "vista" ? "Velocidad máx. (si la dice)" : "Velocidad";
@@ -220,6 +224,10 @@ function abrirFormTf(t = null) {
   $("tf-csv").checked = !!t?.csv;
   $("tf-via").value = t?.via || "";
   $("tf-texto").value = t?.texto || "";
+  const ltvs = TF.ltvsDeRuta(ruta.p);
+  $("tf-ltv").innerHTML = `<option value="">${ltvs.length ? "Elige la LTV…" : "Esta ruta no trae LTV del DLTV"}</option>` + ltvs.map((l) => `<option value="${esc(l.id)}">${esc(l.texto)}</option>`).join("");
+  $("tf-ltv").value = t?.ltv || "";
+  tipoAnterior = null;
   $("tf-msg").value = t?.mensaje || "";
   $("tf-err").textContent = "";
   $("tf-guardar").textContent = t ? "Guardar cambios" : "Guardar";
@@ -264,6 +272,8 @@ async function guardarTf(ev) {
     csv: tipo === "ltv" && $("tf-csv").checked,
     via: tipo === "ltv" ? $("tf-via").value.trim() || null : null,
     texto: tipo === "incidencia" ? $("tf-texto").value.trim() || null : null,
+    ltv: tipo === "suprime" ? $("tf-ltv").value || null : null,
+    ltv_txt: tipo === "suprime" ? TF.ltvsDeRuta(ruta.p).find((l) => l.id === $("tf-ltv").value)?.texto || null : null,
     anulado: viejo?.anulado || null,
   };
   const e = TF.errores(t, ruta.p, pos.d);
@@ -289,7 +299,8 @@ function pintarTf() {
           const r = TF.rango(t.desde, t.hasta && t.hasta.pka != null ? t.hasta : null);
           const ini = t.tipo === "incidencia" ? t.desde?.pka : r?.[0], fin = t.tipo === "incidencia" ? t.desde?.pka : r?.[1];
           let est = "";
-          if (t.anulado) est = `<span class="tf-chip an">ANULADO ${esc(t.anulado.hora)}</span>`;
+          if (t.anulado) est = `<span class="tf-chip an">ANULADO ${esc(t.anulado.hora)}${t.anulado.por ? " · nº " + esc(t.anulado.por) : ""}</span>`;
+          else if (t.tipo === "suprime") est = `<span class="tf-chip en">EN VIGOR</span>`;
           else if (ini != null && pos.d < ini) est = `<span class="tf-chip">a ${dmTf(ini - pos.d)}</span>`;
           else if (fin != null && pos.d <= fin + 0.001 && t.tipo !== "incidencia") est = `<span class="tf-chip en">EN CURSO</span>`;
           else if (ini != null) est = `<span class="tf-chip pas">pasado</span>`;
@@ -317,12 +328,26 @@ function iniciarTelefonemas() {
     const t = tfs.find((x) => x.id === id);
     if (!b || !t) return;
     if (b.dataset.tf === "editar") return abrirFormTf(t);
-    if (b.dataset.tf === "anular") t.anulado = t.anulado ? null : { hora: hhmm() };
+    if (b.dataset.tf === "anular") {
+      if (t.anulado) t.anulado = null;
+      else {
+        const r = prompt(`Anular el telefonema nº ${t.numero}.\n¿Lo anula otro telefonema? Escribe su número (o déjalo vacío).`, "");
+        if (r === null) return;
+        const por = parseInt(r, 10);
+        t.anulado = { hora: hhmm(), por: por >= 1 && por <= 99 ? por : null };
+      }
+    }
     if (b.dataset.tf === "borrar") {
       if (!confirm(`¿Borrar el telefonema nº ${t.numero}? No se puede deshacer.`)) return;
       await telefonemas.borrar(t.id);
     } else await telefonemas.guardar(t);
     await aplicarTf();
+  };
+  $("tf-csv-exp").onclick = async () => {
+    const todos = await telefonemas.listar();
+    if (!todos.length) return;
+    const hoy = new Date().toISOString().slice(0, 10).replace(/-/g, "");
+    await compartirArchivo(`telefonemas-RailNav-${hoy}.csv`, TF.csvTelefonemas(todos), "text/csv");
   };
   $("tf-compartir").onclick = async () => {
     const tr = ruta.tren, lista = [...tfs].sort((a, b) => a.fecha.localeCompare(b.fecha) || a.numero - b.numero);
@@ -1029,6 +1054,14 @@ async function pintarTusDatos() {
 }
 
 /** Al abrir la app: las grabaciones de más de 30 días sin «Conservar» se borran. */
+/** Al abrir la app: los telefonemas de hace más de 30 días se borran (antes, se exportan). */
+async function caducarTelefonemas() {
+  const ids = caducados((await telefonemas.listar()).map((t) => ({ id: t.id })), Date.now());
+  for (const id of ids) await telefonemas.borrar(id);
+  if (ids.length && ruta) await aplicarTf();
+  return ids.length;
+}
+
 async function caducarGrabaciones() {
   const ids = caducados(await recorridos.listar(), Date.now(), grabar.enCurso()?.id);
   for (const id of ids) await recorridos.borrar(id);
@@ -1443,6 +1476,7 @@ async function iniciar() {
   requestAnimationFrame(bucle);
   persistir();
   caducarGrabaciones().catch(() => {});
+  caducarTelefonemas().catch(() => {});
   if ("serviceWorker" in navigator && (location.protocol === "https:" || location.hostname === "localhost"))
     navigator.serviceWorker.register("sw.js").catch(() => {});
 }

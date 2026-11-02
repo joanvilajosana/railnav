@@ -213,6 +213,7 @@
     <label><input type="radio" name="tf-tipo" value="ltv" checked>LTV</label>
     <label><input type="radio" name="tf-tipo" value="vista">A la vista</label>
     <label><input type="radio" name="tf-tipo" value="incidencia">Incidencia</label>
+    <label><input type="radio" name="tf-tipo" value="suprime">Suprime LTV</label>
     <label><input type="radio" name="tf-tipo" value="registro">Otro</label>
    </div>
    <div class="tf-g2 tf-pt">
@@ -225,13 +226,15 @@
     <label class="tf-via">Vía<input id="tf-via" placeholder="opcional"></label>
    </div>
    <label class="tf-inc">Qué hay<input id="tf-texto" placeholder="p. ej. animales en la vía"></label>
+   <label class="tf-sup">LTV o CSV del DLTV que suprime<select id="tf-ltv"></select></label>
    <label>Mensaje<textarea id="tf-msg" rows="3" placeholder="El texto del telefonema"></textarea></label>
    <div id="tf-err" class="tf-err" role="alert"></div>
    <div class="tf-bot"><button type="submit" id="tf-guardar">Guardar</button><button type="button" id="tf-cancelar">Cancelar</button></div>
   </form>
   <datalist id="tf-deps"></datalist><datalist id="tf-emisores"></datalist>
   <div id="tf-lista"></div>
-  <button id="tf-compartir" class="tf-comp">Compartir el registro</button>
+  <div class="tf-exp"><button id="tf-csv-exp">Exportar CSV para la empresa</button><button id="tf-compartir">Compartir el registro (texto)</button></div>
+  <p class="tf-nota">Los telefonemas se guardan 30 días en este dispositivo y luego se borran solos. El CSV lleva todos los guardados, de todas las rutas.</p>
  </div>
  <!-- Información legal -->
  <div id="v-legal" hidden>

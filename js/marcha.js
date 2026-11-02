@@ -135,26 +135,29 @@ export function pintarMarcha(ruta, pos, { desvio: conDesvio = false, residuo = n
   // Velocidad
   if (lt) s += `<g transform="translate(252 10) scale(.5)">${forma(pic("ltv") || {}, { v: vp })}</g><text x="246" y="27" font-size="13" font-weight="700" text-anchor="end" fill="var(--lt)">LTV</text>`;
   if (tramo?.revisar) s += `<rect x="14" y="12" width="96" height="20" rx="5" fill="none" stroke="var(--dn)" stroke-dasharray="3 2"/><text x="62" y="26" font-size="12" font-weight="800" text-anchor="middle" fill="var(--dn)">A REVISAR</text>`;
-  const vista = ruta.vistaEn?.(d);
-  if (vista) s += `<rect x="14" y="38" width="280" height="24" rx="5" fill="#ffd200"/><text x="154" y="55" font-size="14" font-weight="800" text-anchor="middle" fill="#111">MARCHA A LA VISTA · TF ${vista.numero} · ${dm((vista.fin - d) * 1000)}</text>`;
-  else if (tramo?.por_cola) s += `<text x="154" y="52" font-size="13" font-weight="700" text-anchor="middle" fill="var(--gy)">HASTA QUE PASE LA COLA · ${dm((tramo.libera - d) * 1000)}</text>`;
   s += vp != null
     ? `<text x="154" y="176" font-size="158" font-weight="700" text-anchor="middle" fill="${lt ? "var(--lt)" : "var(--tx)"}">${vp}</text>`
     : `<text x="154" y="120" font-size="26" font-weight="700" text-anchor="middle" fill="var(--gy)">Sin V Max</text><text x="154" y="148" font-size="14" text-anchor="middle" fill="var(--gy)">${ruta.p.prueba ? "ruta de prueba: sin datos de ADIF" : "la hoja no la da en este tramo"}</text>`;
-  s += `${vp != null ? '<text x="154" y="198" font-size="13" text-anchor="middle" fill="var(--gy)">km/h</text>' : ""}<line x1="14" x2="294" y1="212" y2="212" stroke="var(--ln)"/>`;
+  s += vp != null ? '<text x="154" y="198" font-size="13" text-anchor="middle" fill="var(--gy)">km/h</text>' : "";
+  // Hueco fijo entre la velocidad y «Siguiente» para las franjas de texto (marcha a la vista,
+  // limitación que se mantiene por la cola): no tapan la velocidad ni mueven lo demás.
+  const vista = ruta.vistaEn?.(d);
+  if (vista) s += `<rect x="12" y="206" width="284" height="30" rx="6" fill="#ffd200"/><text x="154" y="226" font-size="15" font-weight="800" text-anchor="middle" fill="#111">MARCHA A LA VISTA · TF ${vista.numero} · ${dm((vista.fin - d) * 1000)}</text>`;
+  else if (tramo?.por_cola) s += `<rect x="12" y="206" width="284" height="30" rx="6" fill="none" stroke="var(--gy)" stroke-width="1.5"/><text x="154" y="226" font-size="14" font-weight="800" text-anchor="middle" fill="var(--tx)">HASTA QUE PASE LA COLA · ${dm((tramo.libera - d) * 1000)}</text>`;
+  s += `<line x1="14" x2="294" y1="244" y2="244" stroke="var(--ln)"/>`;
   const cola = tramo?.por_cola && nx && Math.abs(nx.pk - tramo.libera) < 1e-6;
-  s += `<text x="16" y="234" font-size="13" fill="var(--gy)">Siguiente${cola ? ' · <tspan font-weight="700" fill="var(--tx)">cuando pase la cola</tspan>' : ""}</text>`;
+  s += `<text x="16" y="266" font-size="13" fill="var(--gy)">Siguiente${cola ? ' · <tspan font-weight="700" fill="var(--tx)">cuando pase la cola</tspan>' : ""}</text>`;
   if (nx) {
     const m = (nx.pk - d) * 1000, baja = vp != null && nx.v < vp, c = baja ? "var(--dn)" : "var(--up)";
-    s += `<text x="16" y="274" font-size="40" font-weight="700" fill="${c}">${baja ? "▼ " : "▲ "}${nx.v}</text><text x="294" y="274" font-size="30" font-weight="700" text-anchor="end" fill="var(--tx)">${dm(m)}</text>`;
-    s += `<rect x="16" y="284" width="278" height="5" rx="2" fill="var(--blu2)"/><rect x="16" y="284" width="${278 * (1 - Math.min(m, 3000) / 3000)}" height="5" rx="2" fill="${c}"/>`;
-  } else s += `<text x="16" y="270" font-size="24" font-weight="700" fill="var(--gy)">Sin más cambios</text>`;
+    s += `<text x="16" y="306" font-size="40" font-weight="700" fill="${c}">${baja ? "▼ " : "▲ "}${nx.v}</text><text x="294" y="306" font-size="30" font-weight="700" text-anchor="end" fill="var(--tx)">${dm(m)}</text>`;
+    s += `<rect x="16" y="316" width="278" height="5" rx="2" fill="var(--blu2)"/><rect x="16" y="316" width="${278 * (1 - Math.min(m, 3000) / 3000)}" height="5" rx="2" fill="${c}"/>`;
+  } else s += `<text x="16" y="302" font-size="24" font-weight="700" fill="var(--gy)">Sin más cambios</text>`;
   // Avisos
   const ev = ruta.proximos(d, alcance);
-  if (!ev.length) s += `<text x="16" y="326" font-size="13" fill="var(--gy)">Sin avisos próximos</text>`;
+  if (!ev.length) s += `<text x="16" y="358" font-size="13" fill="var(--gy)">Sin avisos próximos</text>`;
   const reserva = residuo ? 64 : 0;
-  ev.slice(0, Math.max(residuo ? 1 : 2, Math.floor((H - 8 - 304 - reserva) / 58))).forEach((e, i) => {
-    const k = picDe(e) || {}, y = 304 + i * 58, [t, at] = ajustar(accion(e), 230, 26);
+  ev.slice(0, Math.max(residuo ? 1 : 2, Math.floor((H - 8 - 336 - reserva) / 58))).forEach((e, i) => {
+    const k = picDe(e) || {}, y = 336 + i * 58, [t, at] = ajustar(accion(e), 230, 26);
     s += `<rect x="10" y="${y}" width="288" height="50" rx="6" fill="none" stroke="${esc(k.borde || "var(--ln)")}" stroke-width="${i ? 1.5 : 2.5}"${e.estado === "revisar" ? ' stroke-dasharray="5 3"' : ""}/>`;
     s += `<g transform="translate(15 ${y + 7}) scale(.75)">${forma(k, e.datos)}</g><text x="58" y="${y + 21}" font-size="14" font-weight="700" fill="var(--tx)"${at}>${t}</text>`;
     s += linea2(e, 58, y + 41, 14, "a ", dm((e.pk_acum - d) * 1000), 294);
@@ -233,8 +236,7 @@ export function pintarMarchaMovil(ruta, pos, { desvio: conDesvio = false, residu
   const nx = ruta.siguiente(d);
   // Velocidad y siguiente cambio
   const vista = ruta.vistaEn?.(d);
-  let v = vista ? `<div class="mv-vista">MARCHA A LA VISTA · TF ${vista.numero} · ${dm((vista.fin - d) * 1000)}</div>` : "";
-  v += `<div class="mv-v${lt ? " ltv" : ""}">`;
+  let v = `<div class="mv-v${lt ? " ltv" : ""}">`;
   if (vp != null) v += `<span class="mv-n">${vp}</span><span class="mv-u">km/h</span>`;
   else v += `<span class="mv-sin">Sin V Max<small>${ruta.p.prueba ? "ruta de prueba: sin datos de ADIF" : "la hoja no la da en este tramo"}</small></span>`;
   if (lt || tramo?.revisar)
@@ -250,14 +252,15 @@ export function pintarMarchaMovil(ruta, pos, { desvio: conDesvio = false, residu
   $("mv-vel").innerHTML = v;
   // Próximos avisos
   const ev = ruta.proximos(d, alcance);
-  $("mv-prox").innerHTML = ev.length
+  // Franjas de texto (marcha a la vista): entre la velocidad y los avisos, sin tapar nada.
+  $("mv-prox").innerHTML = (vista ? `<div class="mv-vista">MARCHA A LA VISTA · TF ${vista.numero} · ${dm((vista.fin - d) * 1000)}</div>` : "") + (ev.length
     ? ev
         .map((e, i) => {
           const k = picDe(e) || {};
           return `<div class="px${i ? "" : " pri"}${e.estado === "revisar" ? " rv" : ""}" style="--bc:${esc(k.borde || "var(--ln)")}">${icono(k, 40, e.datos)}<div><b>${esc(accion(e))}</b><small>a <strong>${dm((e.pk_acum - d) * 1000)}</strong>${chipsLinea2(e)}</small></div></div>`;
         })
         .join("")
-    : `<div class="vac">Sin avisos en los próximos 3 km</div>`;
+    : `<div class="vac">Sin avisos en los próximos 3 km</div>`);
   // Línea de tiempo
   const el = $("mv-linea"), W = el.clientWidth, Ht = el.clientHeight;
   if (W && Ht) {

@@ -6,7 +6,9 @@
 // dependencia de la hoja («Tarragona»). El PK se sitúa en la ruta con los PK de la hoja; una
 // estación ocupa su eje ± 500 m (de señal de entrada a señal de entrada, criterio de Joan).
 
-export const TIPOS = { ltv: "LTV", vista: "Marcha a la vista", incidencia: "Incidencia", registro: "Solo registro" };
+export const TIPOS = { ltv: "LTV", vista: "Marcha a la vista", incidencia: "Incidencia", suprime: "Suprime una LTV del DLTV", registro: "Solo registro" };
+/** Velocidad que se propone para una marcha a la vista (no es un tope: en algunos casos se limita a 40). */
+export const V_VISTA = 40;
 export const MARGEN_ESTACION_KM = 0.5;
 
 // Pictogramas propios (no se editan en el editor: van con el evento).
@@ -21,6 +23,11 @@ export const PICTOS = {
     id: "tf_vista", nombre: "Marcha a la vista", forma: "cuadrado", fondo: "#ffd200", borde: "#111111", color: "#111111",
     glifo: "", svg: OJO, aviso: 3, accion: "Marcha a la vista · {nombre} · TF {tf}", marca: "", prioridad: "urgente",
     tipos: ["tf_vista_inicio"],
+  },
+  tf_suprimida: {
+    id: "tf_suprimida", nombre: "LTV suprimida (telefonema)", forma: "rombo", fondo: "#1c1c1e", borde: "#8e8e93",
+    color: "#8e8e93", glifo: "{v}", svg: "",
+    aviso: 3, accion: "LTV {v} km/h suprimida · {nombre} · TF {tf}", marca: "", prioridad: "informativo", tipos: ["ltv_suprimida"],
   },
   tf_vista_fin: {
     id: "tf_vista_fin", nombre: "Fin de marcha a la vista", forma: "cuadrado", fondo: "#1c1c1e", borde: "#ffd200",
@@ -50,6 +57,25 @@ function filas(p) {
     if (r.pk == null && (r.pkl != null || cuadra(r, fs[i - 1]) || cuadra(r, fs[i + 1]))) r.pk = 0;
   });
   return fs;
+}
+
+/** LTV del DLTV de la ruta que se pueden suprimir: [{ id, texto }]. */
+export const ltvsDeRuta = (p) =>
+  (p.dltv?.ltv || [])
+    .filter((l) => l.res === "APLICA" && l.pkai != null)
+    .map((l) => ({
+      id: "ltv-" + l.cod,
+      texto: `LTV ${l.vel ?? l.v} km/h${l.csv ? " CSV" : ""} · ${(l.tray || []).join(" – ")} · PK ${fmtPk(l.pki)}–${fmtPk(l.pkf)}${l.va ? " · " + l.va : ""}`,
+    }));
+
+/** Vmax de la hoja sola (sin LTV), en tramos: entre dos filas rige la de la fila que lo cierra. */
+export function vmaxHoja(p) {
+  const fs = filas(p), out = [];
+  for (let i = 0; i + 1 < fs.length; i++) {
+    const a = fs[i].pka, b = fs[i + 1].pka;
+    if (b > a) out.push({ pk_acum_ini: a, pk_acum_fin: b, v: fs[i + 1].v ?? null, fuente: "hoja", ltv: null, revisar: false });
+  }
+  return out;
 }
 
 /** Dependencias de la ruta (para la lista de sugerencias). */
@@ -124,6 +150,7 @@ export function resumen(t) {
   if (t.tipo === "ltv") return `LTV ${t.v} km/h${t.csv ? " (CSV)" : ""} · ${lugar}${t.via ? " · " + t.via : ""}`;
   if (t.tipo === "vista") return `Marcha a la vista · ${lugar}${t.v ? ` · máx. ${t.v} km/h` : ""}`;
   if (t.tipo === "incidencia") return `Incidencia · ${lugar}${t.texto ? " · " + t.texto : ""}`;
+  if (t.tipo === "suprime") return `Suprime ${t.ltv_txt || t.ltv || "una LTV"}`;
   return "Solo registro";
 }
 
@@ -133,7 +160,8 @@ export function errores(t, p, d = 0) {
   if (!(Number.isInteger(t.numero) && t.numero >= 1 && t.numero <= 99)) e.push("el número va del 1 al 99");
   if (!/^\d{1,2}:\d{2}$/.test(t.hora || "")) e.push("falta la hora");
   if (t.tipo === "ltv" && !(t.v > 0 && t.v <= 400)) e.push("falta la velocidad");
-  if (t.tipo !== "registro") {
+  if (t.tipo === "suprime" && !t.ltv) e.push("elige la LTV que suprime");
+  if (t.tipo !== "registro" && t.tipo !== "suprime") {
     const a = situar(t.desde?.texto, p, d), b = situar(t.hasta?.texto, p, d);
     if (!a) e.push(t.tipo === "incidencia" ? "falta el punto" : "falta desde dónde");
     else if (a.error) e.push(a.error);
@@ -148,9 +176,13 @@ export function errores(t, p, d = 0) {
  * { eventos, limites: [{ini, fin, v, id, numero}], vistas: [{ini, fin, numero}] }.
  */
 export function efectos(lista, p) {
-  const eventos = [], limites = [], vistas = [];
+  const eventos = [], limites = [], vistas = [], suprimidas = new Map();
   for (const t of lista || []) {
     if (t.ruta !== p.id || t.anulado || t.tipo === "registro") continue;
+    if (t.tipo === "suprime") {
+      if (t.ltv) suprimidas.set(t.ltv, t.numero);
+      continue;
+    }
     const a = t.desde ? { ...t.desde } : null, b = t.hasta ? { ...t.hasta } : null;
     if (!a || a.pka == null) continue;
     const id = `tf-${t.id}`, tf = String(t.numero), ev = (sufijo, tipo, pk, datos, pictograma, picto, fase, aviso) =>
@@ -174,7 +206,7 @@ export function efectos(lista, p) {
       ev("b", "tf_vista_fin", fin, { nombre }, "tf_vista_fin", PICTOS.tf_vista_fin, "restablecer", 1);
     }
   }
-  return { eventos, limites, vistas };
+  return { eventos, limites, vistas, suprimidas };
 }
 
 /**
@@ -201,11 +233,31 @@ export function superponer(base, limites) {
   return out;
 }
 
+const anulacion = (t) => (t.anulado ? `${t.anulado.hora}${t.anulado.por ? " por el nº " + t.anulado.por : ""}` : "");
+
+/**
+ * Exportación para la empresa: CSV (separado por «;», UTF-8 con BOM: se abre bien en Excel),
+ * un telefonema por fila.
+ */
+export function csvTelefonemas(lista) {
+  const cols = [
+    ["Fecha", (t) => t.fecha], ["Tren", (t) => t.tren], ["Nº", (t) => t.numero], ["Hora", (t) => t.hora],
+    ["Emisor", (t) => t.emisor], ["Receptor", (t) => t.receptor], ["Tipo", (t) => TIPOS[t.tipo] || t.tipo],
+    ["Prescribe", (t) => (t.tipo === "registro" ? "" : resumen(t))], ["Desde", (t) => t.desde?.texto],
+    ["Hasta", (t) => t.hasta?.texto], ["Velocidad", (t) => t.v], ["CSV", (t) => (t.tipo === "ltv" ? (t.csv ? "sí" : "no") : "")],
+    ["Vía", (t) => t.via], ["Mensaje", (t) => t.mensaje], ["Firma", (t) => t.firma],
+    ["Anulado", (t) => anulacion(t)],
+  ];
+  const celda = (v) => `"${String(v ?? "").replace(/"/g, '""').replace(/\r?\n/g, " ")}"`;
+  const filas = [...lista].sort((a, b) => (a.fecha + a.hora + String(a.numero).padStart(2, "0")).localeCompare(b.fecha + b.hora + String(b.numero).padStart(2, "0")));
+  return "\ufeff" + [cols.map(([n]) => celda(n)).join(";"), ...filas.map((t) => cols.map(([, f]) => celda(f(t))).join(";"))].join("\r\n") + "\r\n";
+}
+
 /** El registro en texto, para compartirlo o imprimirlo. */
 export function textoRegistro(lista, tren, fecha) {
   const l = [`Telefonemas · Tren ${tren}${fecha ? " · " + fecha : ""}`, ""];
   for (const t of lista) {
-    l.push(`Nº ${t.numero} · ${t.hora}${t.anulado ? `  [ANULADO ${t.anulado.hora}${t.anulado.por ? " por el nº " + t.anulado.por : ""}]` : ""}`);
+    l.push(`Nº ${t.numero} · ${t.hora}${t.anulado ? `  [ANULADO ${anulacion(t)}]` : ""}`);
     l.push(`De: ${t.emisor || "—"}`);
     l.push(`A: ${t.receptor || "—"}`);
     if (t.tipo !== "registro") l.push(`Prescribe: ${resumen(t)}`);

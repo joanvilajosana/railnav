@@ -599,7 +599,7 @@ code{font:12px ui-monospace,Menlo,monospace;background:var(--in);padding:0 4px;b
 .aviso-ruta{flex:none;margin:0 0 8px;padding:10px 14px;border:2px solid var(--dn);border-radius:12px;color:var(--tx);background:color-mix(in srgb,var(--dn) 14%,transparent);font-size:15px;line-height:1.35}
 
 /* ===================================================================== telefonemas */
-.mv-vista{grid-column:1/-1;font-size:14px;font-weight:800;color:#111;background:#ffd200;border-radius:7px;padding:4px 8px;text-align:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.mv-vista{margin:0 0 6px;font-size:14px;font-weight:800;color:#111;background:#ffd200;border-radius:7px;padding:4px 8px;text-align:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 :root[data-disp="telefono"] .mb .tf-sep{display:none}
 .m-tf{position:relative}
 .menu .mb .m-tf svg{display:block}
@@ -630,7 +630,7 @@ code{font:12px ui-monospace,Menlo,monospace;background:var(--in);padding:0 4px;b
 #v-tf .seg label:has(input:checked){background:var(--ac);color:var(--sobre-ac)}
 .tf-r{font-size:13px;font-weight:600;color:var(--up);min-height:1em}
 .tf-r.mal{color:var(--dn)}
-.tf-form[data-tipo="registro"] .tf-pt,.tf-form[data-tipo="registro"] .tf-vel,.tf-form:not([data-tipo="incidencia"]) .tf-inc,.tf-form[data-tipo="incidencia"] .tf-vel,.tf-form[data-tipo="incidencia"] .tf-hasta{display:none}
+.tf-form:not([data-tipo="suprime"]) .tf-sup,.tf-form[data-tipo="suprime"] .tf-pt,.tf-form[data-tipo="suprime"] .tf-vel,.tf-form[data-tipo="registro"] .tf-pt,.tf-form[data-tipo="registro"] .tf-vel,.tf-form:not([data-tipo="incidencia"]) .tf-inc,.tf-form[data-tipo="incidencia"] .tf-vel,.tf-form[data-tipo="incidencia"] .tf-hasta{display:none}
 .tf-form[data-tipo="vista"] .tf-csv,.tf-form[data-tipo="vista"] .tf-via{visibility:hidden}
 .tf-form[data-tipo="incidencia"] .tf-pt{grid-template-columns:1fr}
 .tf-err{color:var(--dn);font-weight:700;font-size:14px}
@@ -652,6 +652,11 @@ code{font:12px ui-monospace,Menlo,monospace;background:var(--in);padding:0 4px;b
 .tf-it.anulado .tf-presc,.tf-it.anulado dd{text-decoration:line-through;opacity:.6}
 .tf-acc{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}
 .tf-acc button{margin:0;min-height:40px}
-#v-tf .tf-comp{display:block;width:100%;margin:6px 0 0;min-height:48px;font-size:16px}
-@media (max-width:520px){.tf-g2{grid-template-columns:1fr}.tf-g3{grid-template-columns:76px 110px minmax(0,1fr)}.tf-vel{grid-template-columns:140px auto}.tf-vel .tf-via{grid-column:1/-1}}
+.tf-exp{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:6px 0 0}
+.tf-exp button{margin:0;min-height:48px;font-size:16px}
+.tf-nota{color:var(--gy);font-size:13px;margin:8px 2px 0}
+.tf-form select{margin:0;font-size:16px;font-weight:600;min-height:46px;border-radius:10px}
+#v-tf .seg{flex-wrap:wrap}
+#v-tf .seg label{flex:1 1 30%}
+@media (max-width:520px){.tf-exp{grid-template-columns:1fr}.tf-g2{grid-template-columns:1fr}.tf-g3{grid-template-columns:76px 110px minmax(0,1fr)}.tf-vel{grid-template-columns:140px auto}.tf-vel .tf-via{grid-column:1/-1}}
 #v-tf button.peligro{color:var(--lt);border-color:var(--lt);background:transparent;font-weight:700}

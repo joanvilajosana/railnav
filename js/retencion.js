@@ -2,6 +2,7 @@
 //
 // - Grabaciones de recorrido: se borran solas a los DIAS días, salvo las marcadas «Conservar»
 //   y la que está en curso. Son la posición del dispositivo segundo a segundo, con la hora.
+// - Telefonemas: se borran solos a los DIAS días (se exportan antes en CSV para la empresa).
 // - Rutas y DLTV: no se borran solos (pueden hacer falta), pero a los DIAS días se avisa de que
 //   son antiguos y se pueden borrar de una vez.
 

@@ -3,7 +3,7 @@
 // Sin DOM: se prueba con node --test.
 
 import { minutos } from "./util.js";
-import { efectos, superponer } from "./telefonemas.js";
+import { PICTOS, efectos, superponer, vmaxHoja } from "./telefonemas.js";
 
 export const FORMATO = "railnav-ruta";
 export const VERSION = 1;
@@ -52,16 +52,44 @@ export class Ruta {
    * avisos (LTV, marcha a la vista, incidencias) en la lista de eventos.
    */
   ponerTelefonemas(lista) {
-    const { eventos, limites, vistas } = efectos(lista, this.p);
+    const { eventos, limites, vistas, suprimidas } = efectos(lista, this.p);
     this.vistas = vistas;
-    this.vmax = superponer(this.vmax0, limites);
+    // LTV del DLTV suprimidas por telefonema: donde mandaban, vuelve la de la hoja (o la de otra
+    // LTV que siga en vigor).
+    let base = this.vmax0;
+    if (suprimidas.size) {
+      const hoja = vmaxHoja(this.p);
+      const otras = (this.p.dltv?.ltv || [])
+        .filter((l) => l.res === "APLICA" && l.v != null && l.pkai != null && !suprimidas.has("ltv-" + l.cod))
+        .map((l) => ({ ini: l.pkai, fin: l.pkaf, v: l.v, id: "ltv-" + l.cod }));
+      base = [];
+      for (const t of this.vmax0) {
+        if (t.fuente !== "ltv" || !suprimidas.has(t.ltv)) {
+          base.push(t);
+          continue;
+        }
+        const recorte = (x) => ({ ...x, pk_acum_ini: Math.max(x.pk_acum_ini, t.pk_acum_ini), pk_acum_fin: Math.min(x.pk_acum_fin, t.pk_acum_fin) });
+        const h = hoja.filter((x) => x.pk_acum_fin > t.pk_acum_ini && x.pk_acum_ini < t.pk_acum_fin).map(recorte);
+        const lims = otras.filter((l) => l.fin > t.pk_acum_ini && l.ini < t.pk_acum_fin).map((l) => ({ ...l, ini: Math.max(l.ini, t.pk_acum_ini), fin: Math.min(l.fin, t.pk_acum_fin) }));
+        base.push(...(lims.length ? superponer(h, lims).map((x) => (x.telefonema ? { ...x, telefonema: undefined } : x)) : h));
+      }
+    }
+    this.vmax = superponer(base, limites);
+    const sup = (e) => e.datos?.ltv && suprimidas.has(e.datos.ltv);
+    const propios = this.eventos0
+      .filter((e) => !(sup(e) && e.tipo === "ltv_fin"))
+      .map((e) =>
+        sup(e) && e.tipo === "ltv_inicio"
+          ? { ...e, tipo: "ltv_suprimida", pictograma: "tf_suprimida", picto: PICTOS.tf_suprimida, fase: null, datos: { ...e.datos, tf: String(suprimidas.get(e.datos.ltv)) } }
+          : e,
+      );
     for (const e of eventos)
       if (e.tipo === "ltv_inicio") {
         let t = null;
         for (const x of this.vmax0) if (x.pk_acum_ini <= e.pk_acum + 1e-6) t = x;
         e.datos.de = t?.v ?? null;
       }
-    this.base = [...this.eventos0, ...eventos].sort((a, b) => a.pk_acum - b.pk_acum);
+    this.base = [...propios, ...eventos].sort((a, b) => a.pk_acum - b.pk_acum);
     // LTV que solo afectan al vehículo de cabeza: no se mantienen hasta que pasa la cola.
     this.soloCabeza = new Set(this.base.filter((e) => e.tipo === "ltv_fin" && e.datos?.solo_cabeza).map((e) => e.datos.ltv));
     this.ponerLongitud(this.cola * 1000);

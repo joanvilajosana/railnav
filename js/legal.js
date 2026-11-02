@@ -58,7 +58,7 @@ export const SECCIONES = [
 <ul>
 <li>Grabaciones de recorrido: se borran solas a los 30 días, salvo las que marques «Conservar».</li>
 <li>Rutas y DLTV: hasta que los borres; pasados 30 días la app te avisa de que son antiguos y puedes borrarlos de una vez.</li>
-<li>Telefonemas: hasta que los borres (en la pantalla de telefonemas o en Ajustes → Tus datos).</li>
+<li>Telefonemas: se borran solos a los 30 días (antes puedes exportarlos en CSV para tu empresa).</li>
 </ul>
 <h3>Tus derechos</h3>
 <p>En Ajustes → Tus datos puedes descargar una copia de todo lo guardado y borrarlo todo. Si escribes al autor (por ejemplo, para enviarle una grabación o avisar de un error), lo que mandes se usa solo para responderte y mejorar la app, y se borra cuando ya no hace falta; puedes pedir su supresión en ${correo}. También puedes reclamar ante la <a href="https://www.aepd.es" target="_blank" rel="noopener">Agencia Española de Protección de Datos</a>.</p>`,
