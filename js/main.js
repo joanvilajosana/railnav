@@ -1379,9 +1379,35 @@ function iniciarBordes() {
   };
 }
 
+// Con el teclado del iPhone abierto, iOS desplaza toda la página hacia arriba para enseñar el
+// campo y, en la app instalada, a veces no la devuelve: la barra de arriba queda bajo la Dynamic
+// Island. La página nunca debe tener scroll propio (lo tienen las vistas): se devuelve a 0 al
+// cerrar el teclado. Y mientras el teclado está abierto no se recalcula el alto.
+const escribiendo = () => document.activeElement?.matches?.("input:not([type=checkbox]):not([type=radio]),textarea,select");
+function devolverPagina() {
+  if (escribiendo()) return;
+  if (scrollX || scrollY) scrollTo(0, 0);
+  const se = document.scrollingElement;
+  if (se && (se.scrollTop || se.scrollLeft)) se.scrollTop = se.scrollLeft = 0;
+  document.body.scrollTop = document.body.scrollLeft = 0;
+}
+function iniciarTeclado() {
+  addEventListener("focusout", () => setTimeout(() => {
+    devolverPagina();
+    corregirAlto();
+  }, 120));
+  addEventListener("scroll", () => devolverPagina(), { passive: true });
+  visualViewport?.addEventListener("resize", () => {
+    if (!escribiendo()) setTimeout(devolverPagina, 50);
+  });
+}
+
 function iniciarTamano() {
   corregirAlto();
-  addEventListener("resize", corregirAlto);
+  iniciarTeclado();
+  addEventListener("resize", () => {
+    if (!escribiendo()) corregirAlto();
+  });
   addEventListener("orientationchange", () => setTimeout(corregirAlto, 300));
   const scr = document.querySelector(".scr");
   const medir = () => {

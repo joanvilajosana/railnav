@@ -666,4 +666,8 @@ code{font:12px ui-monospace,Menlo,monospace;background:var(--in);padding:0 4px;b
 :root[data-disp="telefono"] .mv-v .mv-u{margin-top:2px}
 :root[data-disp="telefono"] .mv-sin{text-align:center}
 /* Teléfono: más aire bajo la barra de vistas (en el iPhone instalado se cortaba) */
-@media (min-height:501px){:root[data-disp="telefono"] .nav{padding-bottom:calc(20px + env(safe-area-inset-bottom,0px))}}
+@media (min-height:501px){:root[data-disp="telefono"] .nav{padding-bottom:calc(10px + env(safe-area-inset-bottom,0px))}}
+/* Sin scroll horizontal en ninguna vista (Ajustes se movía de lado en el iPhone) */
+html,body{overflow-x:hidden;max-width:100%}
+#v-ajustes,#v-tf,#v-legal{overflow-x:hidden;touch-action:pan-y;overflow-wrap:anywhere}
+#v-ajustes img,#v-ajustes table,#v-ajustes pre,#v-ajustes select,#v-ajustes input{max-width:100%}
