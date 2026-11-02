@@ -353,6 +353,14 @@ code{font:12px ui-monospace,Menlo,monospace;background:var(--in);padding:0 4px;b
 .odo-d{font-size:17px;font-weight:800}
 .odo-m{margin-left:auto;font-size:11px;font-weight:800;letter-spacing:.05em;color:var(--gy);text-align:right}
 .odo-m.mal{color:var(--lt)}
+.mv-odo .odo-km,.mv-odo .odo-h{white-space:nowrap;flex:none}
+.mv-odo .odo-res{flex:none;white-space:nowrap;margin:0 0 0 auto;height:40px;width:auto;padding:0 12px;border-radius:10px;border:1.5px solid var(--ln);background:transparent;color:var(--gy);font-size:13px;font-weight:800;letter-spacing:.04em;text-transform:uppercase}
+.mv-odo .odo-res b{color:var(--tx);font-size:16px;margin-left:4px;text-transform:none;font-variant-numeric:tabular-nums}
+.mv-odo .odo-res.on{border:2.5px solid var(--tx);background:var(--pn);color:var(--tx)}
+.mv-odo .odo-res.on b{font-size:19px}
+.mv-odo .odo-res.libre b{color:var(--up)}
+.mv-odo:has(.odo-res){flex-wrap:wrap;row-gap:4px}
+.mv-odo:has(.odo-res) .odo-m{flex-basis:100%;text-align:right;margin:0}
 :root[data-disp="telefono"] .hr{padding:.55em .6em}
 :root[data-disp="telefono"] .pie{margin-top:6px;flex-wrap:wrap}
 :root[data-disp="telefono"] .pie-t{font-size:10px;text-align:center;margin:0 auto}

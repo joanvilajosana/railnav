@@ -108,7 +108,22 @@ function cuadroDesvio(ruta, pos, eta) {
   return `<text x="886" y="${H - 15}" font-size="15" font-weight="800" text-anchor="end" fill="${color}">${txt}</text>`;
 }
 
-export function pintarMarcha(ruta, pos, { desvio: conDesvio = false } = {}) {
+// Botón «Residuo» de la tablet, abajo a la izquierda (x, y, ancho, alto en el SVG).
+function botonResiduo(res, x, y, w, h) {
+  const act = res.restante != null;
+  let s = `<g data-residuo="1" style="cursor:pointer">`;
+  s += `<rect x="${x}" y="${y}" width="${w}" height="${h}" rx="8" fill="${act ? "var(--pn)" : "transparent"}" stroke="${act || res.libre ? "var(--tx)" : "var(--ln)"}" stroke-width="${act ? 2.5 : 1.5}"/>`;
+  if (act) {
+    const hecho = 1 - res.restante / res.metros;
+    s += `<rect x="${x + 2}" y="${y + h - 7}" width="${(w - 4) * hecho}" height="5" rx="2" fill="var(--up)"/>`;
+  }
+  s += `<text x="${x + 14}" y="${y + h / 2 + 6}" font-size="16" font-weight="800" letter-spacing=".04em" fill="var(--tx)">RESIDUO</text>`;
+  const txt = act ? `${miles(res.restante)} m` : res.libre ? "COLA LIBRE" : `${miles(res.metros)} m`;
+  s += `<text x="${x + w - 14}" y="${y + h / 2 + (act ? 9 : 6)}" font-size="${act ? 26 : 16}" font-weight="700" text-anchor="end" fill="${act ? "var(--tx)" : res.libre ? "var(--up)" : "var(--gy)"}">${txt}</text>`;
+  return s + "</g>";
+}
+
+export function pintarMarcha(ruta, pos, { desvio: conDesvio = false, residuo = null } = {}) {
   const d = pos.d;
   const tramo = ruta.tramo(d);
   const vp = tramo?.v ?? null;
@@ -135,12 +150,14 @@ export function pintarMarcha(ruta, pos, { desvio: conDesvio = false } = {}) {
   // Avisos
   const ev = ruta.proximos(d, alcance);
   if (!ev.length) s += `<text x="16" y="326" font-size="13" fill="var(--gy)">Sin avisos próximos</text>`;
-  ev.slice(0, Math.max(2, Math.floor((H - 8 - 304) / 58))).forEach((e, i) => {
+  const reserva = residuo ? 64 : 0;
+  ev.slice(0, Math.max(residuo ? 1 : 2, Math.floor((H - 8 - 304 - reserva) / 58))).forEach((e, i) => {
     const k = picDe(e) || {}, y = 304 + i * 58, [t, at] = ajustar(accion(e), 230, 26);
     s += `<rect x="10" y="${y}" width="288" height="50" rx="6" fill="none" stroke="${esc(k.borde || "var(--ln)")}" stroke-width="${i ? 1.5 : 2.5}"${e.estado === "revisar" ? ' stroke-dasharray="5 3"' : ""}/>`;
     s += `<g transform="translate(15 ${y + 7}) scale(.75)">${forma(k, e.datos)}</g><text x="58" y="${y + 21}" font-size="14" font-weight="700" fill="var(--tx)"${at}>${t}</text>`;
     s += linea2(e, 58, y + 41, 14, "a ", dm((e.pk_acum - d) * 1000), 294);
   });
+  if (residuo) s += botonResiduo(residuo, 10, H - 66, 288, 54);
   // Línea de tiempo
   for (const m of [0, 500, 1000, 2000, 3000])
     s += `<line x1="630" x2="890" y1="${Y(m)}" y2="${Y(m)}" stroke="var(--gy)" opacity=".35" stroke-dasharray="3 4"/><text x="625" y="${Y(m) + 4}" font-size="10" text-anchor="end" fill="var(--gy)">${m}</text>`;
@@ -206,7 +223,7 @@ const yMovil = (m, arriba, abajo) => {
 const chipsLinea2 = (e) =>
   (e.datos?.via ? " · " + cuadroViaHtml(e.datos.via) : "") + (e.estado === "revisar" ? ' · <span class="rvchip">A REVISAR</span>' : "");
 
-export function pintarMarchaMovil(ruta, pos, { desvio: conDesvio = false } = {}) {
+export function pintarMarchaMovil(ruta, pos, { desvio: conDesvio = false, residuo = null } = {}) {
   const d = pos.d;
   const tramo = ruta.tramo(d);
   const vp = tramo?.v ?? null;
@@ -267,6 +284,9 @@ export function pintarMarchaMovil(ruta, pos, { desvio: conDesvio = false } = {})
   $("mv-odo").innerHTML =
     `<span class="odo-km">${miles(d * 1000)} m</span><span class="odo-h">${eta == null ? "--:--:--" : hms(eta)}</span>` +
     (dsv ? `<span class="odo-d" style="color:${dsv[1]}">${dsv[0]}</span>` : "") +
+    (residuo
+      ? `<button class="odo-res${residuo.restante != null ? " on" : residuo.libre ? " libre" : ""}" data-residuo="1" aria-label="Residuo: cuenta atrás de la longitud del tren">Residuo <b>${residuo.restante != null ? miles(residuo.restante) + " m" : residuo.libre ? "libre" : miles(residuo.metros) + " m"}</b></button>`
+      : "") +
     `<span class="odo-m${pos.fiable ? "" : " mal"}">${esc(modo)}</span>`;
   pintarHistorial(ruta, d);
 }

@@ -14,6 +14,7 @@ import { iniciarEditor, pintarEditor } from "./editor.js";
 import { LOGO, linea } from "./iconos.js";
 import { desbloquear, ponerSilencio, ponerVolumen, probar, silenciado, tono, volumen } from "./sonido.js";
 import { Avisador } from "./avisos.js";
+import { Residuo } from "./residuo.js";
 import * as despierto from "./despierto.js";
 import { Seguidor, Via } from "./geo/seguimiento.js";
 import { ahora as ahoraGps, disponible as hayUbicacion, escuchar as escucharUbicacion, esSimulado, simular } from "./geo/ubicacion.js";
@@ -24,6 +25,9 @@ import { trazadoIncluido } from "./geo/firma.js";
 
 const $ = (id) => document.getElementById(id);
 let ruta = null, pos = null, vista = "marcha", sucio = true;
+// Residuo (como en las 253): cuenta atrás de la longitud del tren desde que se pulsa.
+const residuo = new Residuo();
+let resRestante = null, resLibre = 0;
 
 // ---------- barra superior ----------
 function barra() {
@@ -583,7 +587,7 @@ function iniciarAjustes() {
   const longitud = () => {
     const m = Math.min(2000, Math.max(0, Math.round(Number($("op-longitud").value) || 0)));
     $("desc-longitud").textContent = m
-      ? `Las limitaciones se mantienen hasta que pasan los ${m} m del tren (salvo LTV «solo vehículo cabeza»)`
+      ? `Las limitaciones se mantienen hasta que pasan los ${m} m del tren (salvo LTV «solo vehículo cabeza»). En la marcha, el botón «Residuo» cuenta atrás los ${m} m`
       : "Sin longitud: las limitaciones acaban en la cabeza. Mírala en la hoja o en el documento de admisión";
     return m;
   };
@@ -1028,6 +1032,18 @@ const FRENADA = 0.4; // s: cuánto dura la inercia (constante de tiempo)
 let inercia = 0; // km/s
 
 function iniciarArrastre() {
+  // Botón «Residuo» (se pinta con la pantalla de marcha: se escucha en el contenedor).
+  for (const id of ["sa", "sc", "mv-odo"])
+    $(id).addEventListener("pointerdown", (e) => {
+      if (!e.target.closest?.("[data-residuo]") || !pos) return;
+      e.preventDefault();
+      e.stopPropagation();
+      residuo.pulsar(pos.d, prefs.leer("longitud", 0));
+      resRestante = residuo.activo ? residuo.metros : null;
+      resLibre = 0;
+      navigator.vibrate?.(30);
+      sucio = true;
+    });
   arrastrable($("sc"), () => ($("sc").getBoundingClientRect().height * altoLinea()) / (altoDibujo() - 6.5));
   // Teléfono: línea de tiempo estrecha, dibujada en píxeles
   arrastrable($("mv-linea"), () => {
@@ -1186,6 +1202,19 @@ function bucle(t) {
   if (pasoInercia(dt)) sucio = true;
   if (pasoGps()) sucio = true;
   if (pos && ruta) sonarAvisos();
+  if (residuo.activo && pos) {
+    const r = residuo.restante(pos.d);
+    if (r !== resRestante) sucio = true;
+    resRestante = residuo.activo ? r : null;
+    if (r === 0) {
+      resLibre = t;
+      tono("paso");
+    }
+  }
+  if (resLibre && t - resLibre > 3000) {
+    resLibre = 0;
+    sucio = true;
+  }
   // el adelanto o retraso depende del reloj: se repinta cada segundo
   if (t - ultimoSegundo > 1000) {
     ultimoSegundo = t;
@@ -1194,7 +1223,9 @@ function bucle(t) {
   if (sucio && ruta) {
     sucio = false;
     estado();
-    if (vista === "marcha") (movil() ? pintarMarchaMovil : pintarMarcha)(ruta, pos, { desvio: prefs.leer("desvio", true) });
+    const lon = prefs.leer("longitud", 0);
+    const res = lon ? { metros: lon, restante: resRestante, libre: !!resLibre } : null;
+    if (vista === "marcha") (movil() ? pintarMarchaMovil : pintarMarcha)(ruta, pos, { desvio: prefs.leer("desvio", true), residuo: res });
   }
   requestAnimationFrame(bucle);
 }
