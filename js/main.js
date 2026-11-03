@@ -541,17 +541,18 @@ function revisarTramos(g, ruta, ltv, propuesta) {
   mensaje(`Ruta nueva: <b>${esc(propuesta.ruta)}</b>. Confirma la línea de cada tramo para cruzar la hoja con el DLTV.`);
   const caja = $("gen-tramos");
   caja.innerHTML =
-    `<table class="tr-t"><thead><tr><th>Tramo</th><th>Línea</th><th>De dónde sale la propuesta</th></tr></thead><tbody>` +
-    propuesta.tramos
-      .map(
-        (t, i) =>
-          `<tr><td>${esc(t.desde)} → ${esc(t.hasta)}</td><td><input data-i="${i}" value="${esc(t.linea)}" inputmode="numeric" aria-label="Línea del tramo ${i + 1}"${t.linea === "?" ? ' class="duda"' : ""}></td><td class="nota">${esc(t.nota ?? "")}</td></tr>`,
-      )
-      .join("") +
-    `</tbody></table><div class="note">Pon el número de línea de ADIF de cada tramo. Si dejas «?», las LTV de ese tramo saldrán «a revisar». La tabla se guarda en este dispositivo para las próximas hojas de esta ruta.</div>` +
+    `<div class="tr-l">` +
+    propuesta.tramos.map((t, i) => tramoHtml(t, i, `data-i="${i}"`)).join("") +
+    `</div><div class="note">Pon el número de línea de ADIF de cada tramo. Si dejas «?», las LTV de ese tramo saldrán «a revisar». La tabla se guarda en este dispositivo para las próximas hojas de esta ruta.</div>` +
     `<button id="tr-ok" class="pri">Confirmar y generar</button><button id="tr-no">Cancelar</button>`;
   caja.hidden = false;
-  caja.querySelectorAll("input").forEach((inp) => inp.addEventListener("input", () => inp.classList.toggle("duda", inp.value.trim() === "?" || !inp.value.trim())));
+  caja.querySelectorAll("input").forEach((inp) =>
+    inp.addEventListener("input", () => {
+      const duda = inp.value.trim() === "?" || !inp.value.trim();
+      inp.classList.toggle("duda", duda);
+      inp.closest(".tr-it")?.classList.toggle("sin", duda);
+    }),
+  );
   $("tr-no").onclick = () => {
     caja.hidden = true;
     mensaje("Generación cancelada.");
@@ -628,28 +629,36 @@ async function pintarTablas() {
     : '<div class="note">Todavía no hay tablas de tramos.</div>';
 }
 
+/** Un tramo de una tabla, como tarjeta (sin tabla ni scroll lateral): de → a, línea y nota. */
+function tramoHtml(x, i, attrs, conCheck = false) {
+  const duda = !x.linea || x.linea === "?";
+  return (
+    `<div class="tr-it${duda ? " sin" : ""}"><div class="tr-d"><span class="tr-i">${i + 1}</span><b>${esc(x.desde)}</b><b class="tr-a">→ ${esc(x.hasta)}</b>` +
+    (x.nota ? `<small>${esc(x.nota)}</small>` : "") +
+    `</div><label class="tr-lin">Línea<input ${attrs} value="${esc(x.linea === "?" ? "" : x.linea)}" placeholder="?" inputmode="numeric" maxlength="4" aria-label="Línea del tramo ${i + 1}"${duda ? ' class="duda"' : ""}></label>` +
+    (conCheck ? `<label class="tr-ok"><input type="checkbox" data-v="${i}"${x.verificado ? " checked" : ""}> Comprobada</label>` : "") +
+    `</div>`
+  );
+}
+
 function editarTabla(tabla) {
   const caja = $("tabla-ed");
   const t = JSON.parse(JSON.stringify(tabla));
   caja.innerHTML =
     `<div class="pop-t">Editar tabla de tramos</div>` +
     `<label>Nombre de la ruta<input id="te-ruta" value="${esc(t.ruta)}"></label>` +
-    `<table class="tr-t"><thead><tr><th>Tramo</th><th>Línea</th><th>Comprobada</th><th>Nota</th></tr></thead><tbody>` +
-    t.tramos
-      .map(
-        (x, i) =>
-          `<tr><td>${esc(x.desde)} → ${esc(x.hasta)}</td><td><input data-l="${i}" value="${esc(x.linea)}" inputmode="numeric"${!x.linea || x.linea === "?" ? ' class="duda"' : ""}></td>` +
-          `<td><input type="checkbox" data-v="${i}"${x.verificado ? " checked" : ""} aria-label="Línea comprobada"></td><td class="nota">${esc(x.nota ?? "")}</td></tr>`,
-      )
-      .join("") +
-    `</tbody></table><div class="note">Al cambiar una línea se marca como comprobada. Para que una ruta ya generada use la tabla corregida, vuelve a generarla desde sus PDF.</div>` +
+    `<div class="tr-l">` +
+    t.tramos.map((x, i) => tramoHtml(x, i, `data-l="${i}"`, true)).join("") +
+    `</div><div class="note">Al cambiar una línea se marca como comprobada. Para que una ruta ya generada use la tabla corregida, vuelve a generarla desde sus PDF.</div>` +
     `<button id="te-ok" class="pri">Guardar en este dispositivo</button><button id="te-no">Cancelar</button>`;
   caja.hidden = false;
   caja.scrollIntoView({ block: "nearest", behavior: "smooth" });
   caja.querySelectorAll("input[data-l]").forEach((inp) =>
     inp.addEventListener("input", () => {
-      inp.classList.toggle("duda", !inp.value.trim() || inp.value.trim() === "?");
-      caja.querySelector(`input[data-v="${inp.dataset.l}"]`).checked = !!inp.value.trim() && inp.value.trim() !== "?";
+      const duda = !inp.value.trim() || inp.value.trim() === "?";
+      inp.classList.toggle("duda", duda);
+      inp.closest(".tr-it")?.classList.toggle("sin", duda);
+      caja.querySelector(`input[data-v="${inp.dataset.l}"]`).checked = !duda;
     }),
   );
   $("te-no").onclick = () => (caja.hidden = true);
