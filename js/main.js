@@ -180,31 +180,79 @@ async function aplicarTf() {
   sucio = true;
 }
 
-let tipoAnterior = null;
+const radio = (n) => document.querySelector(`input[name=${n}]:checked`)?.value;
+const ponerRadio = (n, v) => {
+  for (const r of document.querySelectorAll(`input[name=${n}]`)) r.checked = r.value === v;
+};
 function tipoTf() {
-  return document.querySelector("input[name=tf-tipo]:checked")?.value || "ltv";
+  return radio("tf-tipo") || "ltv";
 }
 
-function formTf() {
-  const t = tipoTf();
-  // Marcha a la vista: se propone 40 km/h (no es un tope; se puede cambiar o borrar).
-  if (t === "vista" && tipoAnterior && tipoAnterior !== "vista" && !$("tf-v").value) $("tf-v").value = TF.V_VISTA;
-  tipoAnterior = t;
-  $("tf-form").dataset.tipo = t;
-  $("tf-l-desde").textContent = t === "incidencia" ? "Dónde" : "Desde";
-  $("tf-l-v").textContent = t === "vista" ? "Velocidad máx. (si la dice)" : "Velocidad";
-  for (const k of ["desde", "hasta"]) {
-    const r = TF.situar($("tf-" + k).value, ruta.p, pos.d), el = $("tf-r-" + k);
-    el.className = "tf-r" + (r?.error ? " mal" : "");
-    if (!r) el.textContent = "";
-    else if (r.error) el.textContent = r.error;
-    else {
-      const km = r.pka - pos.d, lejos = km < -0.05 ? `ya pasado (hace ${dmTf(-km)})` : `a ${dmTf(km)}`;
-      el.textContent = r.estacion
-        ? `${r.nombre}${r.pk != null ? " · PK " + String(r.pk).replace(".", ",") : ""} · ± 500 m · ${lejos}`
-        : `${r.entre?.length ? "entre " + r.entre.join(" y ") + " · " : ""}${lejos}`;
-    }
+/** Los campos tal como están en el formulario. */
+function camposTf() {
+  const tipo = tipoTf(), lugar = tipo === "ltv" || tipo === "suprime";
+  return {
+    tipo,
+    numero: Number($("tf-num").value),
+    hora: $("tf-hora").value,
+    emisor: $("tf-emisor").value.trim(),
+    receptor: $("tf-receptor").value.trim(),
+    firma: $("tf-firma").value.trim(),
+    v: lugar ? Number($("tf-v").value) || null : null,
+    via: lugar ? $("tf-via").value.trim() || null : null,
+    pk_ini: lugar ? $("tf-pki").value.trim() || null : null,
+    pk_fin: lugar ? $("tf-pkf").value.trim() || null : null,
+    est_ini: lugar ? $("tf-esti").value || null : null,
+    est_fin: lugar ? $("tf-estf").value || null : null,
+    causa: tipo === "ltv" ? $("tf-causa").value.trim() || null : null,
+    senalizada: tipo === "ltv" ? radio("tf-sen") !== "no" : null,
+    csv: tipo === "ltv" && radio("tf-csvr") === "si",
+    mensaje: tipo === "registro" ? $("tf-msg").value.trim() : "",
+  };
+}
+
+/** Estación final: solo las que van después de la inicial. */
+function estacionesFinTf() {
+  const est = TF.estaciones(ruta.p), ini = $("tf-esti").value, actual = $("tf-estf").value;
+  const k = ini ? est.findIndex((e) => e.nom === ini) : -1;
+  const lista = k >= 0 ? est.slice(k + 1) : est;
+  $("tf-estf").innerHTML = `<option value="">—</option>` + lista.map((e) => `<option value="${esc(e.nom)}">${esc(e.nom)}</option>`).join("");
+  $("tf-estf").value = lista.some((e) => e.nom === actual) ? actual : "";
+}
+
+function formTf(ev) {
+  const t = camposTf();
+  $("tf-form").dataset.tipo = t.tipo;
+  if (ev?.target?.id === "tf-esti") estacionesFinTf();
+  const el = $("tf-donde");
+  el.className = "tf-r";
+  el.textContent = "";
+  if (t.tipo !== "ltv" && t.tipo !== "suprime") return;
+  if (!t.pk_ini && !t.pk_fin && !t.est_ini) return;
+  const l = TF.lugar(t, ruta.p, pos.d);
+  if (l.error) {
+    el.className = "tf-r mal";
+    el.textContent = l.error;
+    return;
   }
+  const r = TF.rango(l.desde, l.hasta);
+  if (!r) {
+    el.className = "tf-r mal";
+    el.textContent = "el inicio y el final son el mismo punto";
+    return;
+  }
+  const km = r[0] - pos.d, lejos = km < -0.05 ? (r[1] > pos.d ? "estás dentro" : "ya pasado") : `empieza a ${dmTf(km)}`;
+  let txt = `Tramo de ${dmTf(r[1] - r[0])} · ${lejos}`;
+  if (t.tipo === "suprime") {
+    const c = TF.coincidentes(r[0], r[1], ruta.p, t.v);
+    if (!c.length) {
+      el.className = "tf-r mal";
+      el.textContent = "En ese tramo no hay ninguna LTV del DLTV que suprimir";
+      return;
+    }
+    txt += ` · Suprime: ${c.map((x) => x.texto).join(" / ")}`;
+  }
+  el.textContent = txt;
 }
 const dmTf = (km) => (km >= 1 ? `${km.toFixed(1).replace(".", ",")} km` : `${Math.round(km * 1000)} m`);
 
@@ -217,69 +265,66 @@ function abrirFormTf(t = null) {
   $("tf-emisor").value = t?.emisor ?? ult?.emisor ?? prefs.leer("tf.emisor", "");
   $("tf-receptor").value = t?.receptor ?? ult?.receptor ?? `Maquinista ${ruta.tren.numero}`;
   $("tf-firma").value = t?.firma ?? ult?.firma ?? "";
-  for (const r of document.querySelectorAll("input[name=tf-tipo]")) r.checked = r.value === (t?.tipo || "ltv");
-  $("tf-desde").value = t?.desde?.texto || "";
-  $("tf-hasta").value = t?.hasta?.texto || "";
+  ponerRadio("tf-tipo", t && TF.TIPOS[t.tipo] && ["ltv", "suprime", "registro"].includes(t.tipo) ? t.tipo : t ? "registro" : "ltv");
   $("tf-v").value = t?.v || "";
-  $("tf-csv").checked = !!t?.csv;
   $("tf-via").value = t?.via || "";
-  $("tf-texto").value = t?.texto || "";
-  const ltvs = TF.ltvsDeRuta(ruta.p);
-  $("tf-ltv").innerHTML = `<option value="">${ltvs.length ? "Elige la LTV…" : "Esta ruta no trae LTV del DLTV"}</option>` + ltvs.map((l) => `<option value="${esc(l.id)}">${esc(l.texto)}</option>`).join("");
-  $("tf-ltv").value = t?.ltv || "";
-  tipoAnterior = null;
+  $("tf-pki").value = t?.pk_ini || "";
+  $("tf-pkf").value = t?.pk_fin || "";
+  const est = TF.estaciones(ruta.p);
+  $("tf-esti").innerHTML = `<option value="">—</option>` + est.map((e) => `<option value="${esc(e.nom)}">${esc(e.nom)}</option>`).join("");
+  $("tf-esti").value = t?.est_ini || "";
+  $("tf-estf").innerHTML = `<option value="${esc(t?.est_fin || "")}"></option>`;
+  $("tf-estf").value = t?.est_fin || "";
+  estacionesFinTf();
+  $("tf-causa").value = t?.causa || "";
+  ponerRadio("tf-sen", t?.senalizada === false ? "no" : "si");
+  ponerRadio("tf-csvr", t?.csv ? "si" : "no");
   $("tf-msg").value = t?.mensaje || "";
   $("tf-err").textContent = "";
   $("tf-guardar").textContent = t ? "Guardar cambios" : "Guardar";
-  $("tf-deps").innerHTML = TF.dependencias(ruta.p).map((n) => `<option value="${esc(n)}">`).join("");
   telefonemas.listar().then((l) => {
     $("tf-emisores").innerHTML = [...new Set(l.map((x) => x.emisor).filter(Boolean))].map((n) => `<option value="${esc(n)}">`).join("");
   });
   $("tf-form").hidden = false;
   $("tf-nuevo").hidden = true;
   formTf();
-  $("tf-form").scrollIntoView({ block: "start" });
+  $("v-tf").scrollTop = 0;
 }
 
 function cerrarFormTf() {
   $("tf-form").hidden = true;
   $("tf-nuevo").hidden = false;
+  document.activeElement?.blur?.();
 }
 
 async function guardarTf(ev) {
   ev.preventDefault();
-  const tipo = tipoTf(), punto = (k) => {
-    const texto = $("tf-" + k).value.trim();
-    const r = texto ? TF.situar(texto, ruta.p, pos.d) : null;
-    return texto ? { texto, ...(r && !r.error ? r : {}) } : null;
-  };
+  const c = camposTf();
   const viejo = tfs.find((x) => x.id === $("tf-id").value);
   const t = {
     id: viejo?.id || new Date().toISOString(),
     ruta: ruta.id,
     tren: ruta.tren.numero,
     fecha: viejo?.fecha || new Date().toISOString().slice(0, 10),
-    numero: Number($("tf-num").value),
-    hora: $("tf-hora").value,
-    emisor: $("tf-emisor").value.trim(),
-    receptor: $("tf-receptor").value.trim(),
-    firma: $("tf-firma").value.trim(),
-    mensaje: $("tf-msg").value.trim(),
-    tipo,
-    desde: tipo === "registro" ? null : punto("desde"),
-    hasta: tipo === "ltv" || tipo === "vista" ? punto("hasta") : null,
-    v: tipo === "ltv" || tipo === "vista" ? Number($("tf-v").value) || null : null,
-    csv: tipo === "ltv" && $("tf-csv").checked,
-    via: tipo === "ltv" ? $("tf-via").value.trim() || null : null,
-    texto: tipo === "incidencia" ? $("tf-texto").value.trim() || null : null,
-    ltv: tipo === "suprime" ? $("tf-ltv").value || null : null,
-    ltv_txt: tipo === "suprime" ? TF.ltvsDeRuta(ruta.p).find((l) => l.id === $("tf-ltv").value)?.texto || null : null,
+    ...c,
+    desde: null,
+    hasta: null,
     anulado: viejo?.anulado || null,
   };
   const e = TF.errores(t, ruta.p, pos.d);
   if (e.length) {
     $("tf-err").textContent = "Falta o no cuadra: " + e.join("; ") + ".";
     return;
+  }
+  if (t.tipo === "ltv" || t.tipo === "suprime") {
+    const l = TF.lugar(t, ruta.p, pos.d);
+    t.desde = l.desde;
+    t.hasta = l.hasta;
+    if (t.tipo === "suprime") {
+      const [ini, fin] = TF.rango(l.desde, l.hasta), co = TF.coincidentes(ini, fin, ruta.p, t.v);
+      t.ltvs = co.map((x) => x.id);
+      t.ltv_txt = co.map((x) => x.texto).join(" / ");
+    }
   }
   if (t.emisor) prefs.escribir("tf.emisor", t.emisor);
   await telefonemas.guardar(t);
@@ -675,7 +720,7 @@ async function pintarAjustes() {
         .map(
           (r) =>
             `<div class="ru${ruta && r.id === ruta.id ? " on" : ""}"><div><b>${esc(r.tren)}</b> · ${esc(r.origen || "?")} → ${esc(r.destino || "?")}<small>${r.tren === "PRUEBA" ? "ruta de prueba del GPS (sin datos de ADIF)" : fecha(r.fecha) + (r.ltv ? " · DLTV nº " + esc(r.ltv) : " · sin DLTV")}${r.obsoleta ? '<br><span class="aviso">Generada con una versión anterior: vuelve a generarla</span>' : ""}</small></div>` +
-            `<div>${ruta && r.id === ruta.id ? '<span class="act">En uso</span>' : `<button data-abrir="${esc(r.id)}">Abrir</button>`}<button data-comp="${esc(r.id)}" title="Enviar la ruta (AirDrop, Mensajes, Correo…)">Compartir</button><button data-borrar="${esc(r.id)}" title="Borrar del dispositivo">Borrar</button></div></div>`,
+            `<div>${ruta && r.id === ruta.id ? "" : `<button data-abrir="${esc(r.id)}">Abrir</button>`}<button data-comp="${esc(r.id)}" title="Enviar la ruta (AirDrop, Mensajes, Correo…)">Compartir</button><button data-borrar="${esc(r.id)}" title="Borrar del dispositivo">Borrar</button></div></div>`,
         )
         .join("")
     : '<div class="note">Todavía no hay rutas guardadas en este dispositivo.</div>';
@@ -690,9 +735,9 @@ async function pintarAjustes() {
   pintarGrabacion();
   pintarRecorridos();
   $("op-despierto").checked = despierto.activado();
-  const ed = { wakelock: ["activa", "ok"], video: ["activa (modo de reserva)", "ok"], apagado: ["", ""], "no disponible": ["este navegador no lo permite", ""] }[despierto.estado()];
-  $("est-despierto").textContent = despierto.activado() ? ed[0] : "";
-  $("est-despierto").className = "estado " + ed[1];
+  // Solo se explica si no se puede: si está activa ya lo dice el interruptor.
+  $("est-despierto").textContent = despierto.activado() && despierto.estado() === "no disponible" ? "este navegador no lo permite" : "";
+  $("est-despierto").className = "estado";
   for (const r of document.querySelectorAll("input[name=sonar]")) r.checked = r.value === prefs.leer("sonar", "urgentes");
   pintarBordes();
   pintarTusDatos();
@@ -1035,10 +1080,19 @@ async function pintarPruebas() {
 const fechaCorta = (t) => new Date(t).toLocaleDateString("es-ES", { day: "2-digit", month: "2-digit" });
 
 async function antiguos() {
-  const activa = ruta?.id;
+  const activa = ruta?.id ?? prefs.leer("activa", null);
   const r = (await rutas.listar()).filter((x) => x.id !== activa && rutaAntigua(x));
   const d = (await dltvs.listar()).filter((x) => dltvAntiguo(x));
   return { r, d };
+}
+
+/** Al abrir la app: las rutas y los DLTV guardados hace más de 30 días se borran (la ruta abierta no). */
+async function caducarArchivos() {
+  const { r, d } = await antiguos();
+  for (const x of r) await rutas.borrar(x.id);
+  for (const x of d) await dltvs.borrar(x.id);
+  if (r.length || d.length) pintarDltvs();
+  return r.length + d.length;
 }
 
 async function pintarTusDatos() {
@@ -1047,10 +1101,7 @@ async function pintarTusDatos() {
   $("datos-res").textContent =
     `En este dispositivo: ${plural(n.rutas, "ruta", "rutas")}, ${plural(n.dltv, "DLTV", "DLTV")}, ` +
     `${plural(n.recorridos, "grabación", "grabaciones")}, ${plural(n.telefonemas, "telefonema", "telefonemas")} y ${plural(n.tramos, "tabla de tramos propia", "tablas de tramos propias")}.`;
-  const { r, d } = await antiguos();
-  const k = r.length + d.length;
-  $("b-antiguos").hidden = !k;
-  $("b-antiguos").textContent = `Borrar ${[r.length ? plural(r.length, "ruta", "rutas") : "", d.length ? plural(d.length, "DLTV", "DLTV") : ""].filter(Boolean).join(" y ")} de hace más de ${DIAS} días`;
+  $("datos-res").textContent += ` Rutas, DLTV, grabaciones y telefonemas se borran solos a los ${DIAS} días.`;
 }
 
 /** Al abrir la app: las grabaciones de más de 30 días sin «Conservar» se borran. */
@@ -1089,15 +1140,6 @@ function iniciarTusDatos() {
     } catch (err) {
       msg(`✗ No se ha podido restaurar: ${err.message}`, "mal");
     }
-  };
-  $("b-antiguos").onclick = async () => {
-    const { r, d } = await antiguos();
-    if (!confirm(`¿Borrar ${r.length} rutas y ${d.length} DLTV de hace más de ${DIAS} días?`)) return;
-    for (const x of r) await rutas.borrar(x.id);
-    for (const x of d) await dltvs.borrar(x.id);
-    msg("✓ Borrados.", "ok");
-    pintarAjustes();
-    pintarDltvs();
   };
   $("b-borrar-todo").onclick = async () => {
     if (!confirm("¿Borrar TODOS los datos de RailNav en este dispositivo (rutas, DLTV, tablas, trazados, grabaciones y preferencias)? No se puede deshacer. Si quieres conservarlos, descarga antes una copia de seguridad.")) return;
@@ -1337,7 +1379,7 @@ function corregirAlto() {
   }
   r.style.setProperty("--extra", extra + "px");
   r.style.setProperty("--aj-sup", prefs.leer("aj.sup", 0) + "px");
-  r.style.setProperty("--aj-inf", prefs.leer("aj.inf", 0) + "px");
+  r.style.setProperty("--aj-inf", ajInf() + "px");
 }
 
 /** Alto en píxeles de una medida CSS (100vh, 100lvh, env(...)…). */
@@ -1350,21 +1392,27 @@ function medir(alto) {
   return h;
 }
 
+// Panel inferior: en el iPhone con la app instalada hacen falta 44 px (comprobado por Joan).
+const IPHONE_INSTALADA = () => /iPhone/.test(navigator.userAgent) && document.documentElement.classList.contains("instalada");
+const ajInfDefecto = () => (IPHONE_INSTALADA() ? 44 : 0);
+function ajInf() {
+  // Una vez: los que ya tenían un valor guardado en el iPhone pasan a 44 px.
+  if (IPHONE_INSTALADA() && !prefs.leer("aj.v44", false)) {
+    prefs.escribir("aj.inf", 44);
+    prefs.escribir("aj.v44", true);
+  }
+  return prefs.leer("aj.inf", ajInfDefecto());
+}
+
 function pintarBordes() {
   $("aj-sup").textContent = `${prefs.leer("aj.sup", 0)} px`;
-  $("aj-inf").textContent = `${prefs.leer("aj.inf", 0)} px`;
-  const r = document.documentElement;
-  $("medidas").textContent =
-    `Medidas (para revisar el ajuste): pantalla ${screen.width}×${screen.height} · ventana ${innerWidth}×${innerHeight} · ` +
-    `100vh ${medir("100vh")} · 100lvh ${medir("100lvh")} · 100dvh ${medir("100dvh")} · ` +
-    `zona segura arriba ${medir("env(safe-area-inset-top,0px)")}, abajo ${medir("env(safe-area-inset-bottom,0px)")} · ` +
-    `corrección ${getComputedStyle(r).getPropertyValue("--extra").trim() || "0px"} · ${r.classList.contains("instalada") ? "instalada" : "en Safari"} · v${VERSION_APP}`;
+  $("aj-inf").textContent = `${ajInf()} px`;
 }
 
 function iniciarBordes() {
   document.querySelectorAll("button[data-aj]").forEach((b) =>
     b.addEventListener("click", () => {
-      const k = "aj." + b.dataset.aj, v = Math.max(-40, Math.min(120, prefs.leer(k, 0) + +b.dataset.d));
+      const k = "aj." + b.dataset.aj, v = Math.max(-40, Math.min(120, (k === "aj.inf" ? ajInf() : prefs.leer(k, 0)) + +b.dataset.d));
       prefs.escribir(k, v);
       corregirAlto();
       pintarBordes();
@@ -1373,7 +1421,7 @@ function iniciarBordes() {
   );
   $("aj-rest").onclick = () => {
     prefs.escribir("aj.sup", 0);
-    prefs.escribir("aj.inf", 0);
+    prefs.escribir("aj.inf", ajInfDefecto());
     corregirAlto();
     pintarBordes();
   };
@@ -1503,6 +1551,7 @@ async function iniciar() {
   persistir();
   caducarGrabaciones().catch(() => {});
   caducarTelefonemas().catch(() => {});
+  caducarArchivos().catch(() => {});
   if ("serviceWorker" in navigator && (location.protocol === "https:" || location.hostname === "localhost"))
     navigator.serviceWorker.register("sw.js").catch(() => {});
 }

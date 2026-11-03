@@ -3,8 +3,9 @@
 // - Grabaciones de recorrido: se borran solas a los DIAS días, salvo las marcadas «Conservar»
 //   y la que está en curso. Son la posición del dispositivo segundo a segundo, con la hora.
 // - Telefonemas: se borran solos a los DIAS días (se exportan antes en CSV para la empresa).
-// - Rutas y DLTV: no se borran solos (pueden hacer falta), pero a los DIAS días se avisa de que
-//   son antiguos y se pueden borrar de una vez.
+// - Rutas y DLTV (lo que sube el usuario): se borran solos a los DIAS días de guardarlos (una
+//   ruta se vuelve a guardar cada vez que se abre: cuenta desde el último uso). La ruta abierta,
+//   no.
 
 export const DIAS = 30;
 const DIA_MS = 864e5;
@@ -16,14 +17,14 @@ export function caducados(lista, ahora = Date.now(), enCurso = null, dias = DIAS
     .map((r) => r.id);
 }
 
-/** ¿Es antigua una ruta? Por la fecha de la hoja; si no tiene (rutas de prueba), por cuándo se guardó. */
+/** ¿Es antigua una ruta? Por cuándo se guardó o se abrió por última vez (no por la fecha de la hoja). */
 export function rutaAntigua(r, ahora = Date.now(), dias = DIAS) {
-  const t = Date.parse(r.fecha || r.guardado || "");
+  const t = Date.parse(r.guardado || "");
   return Number.isFinite(t) && ahora - t > dias * DIA_MS;
 }
 
-/** ¿Es antiguo un DLTV? Cuando su semana terminó hace más de `dias` días. */
+/** ¿Es antiguo un DLTV? Cuando se subió hace más de `dias` días. */
 export function dltvAntiguo(d, ahora = Date.now(), dias = DIAS) {
-  const t = Date.parse(d.hasta || d.guardado || "");
+  const t = Date.parse(d.guardado || "");
   return Number.isFinite(t) && ahora - t > dias * DIA_MS;
 }

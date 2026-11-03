@@ -57,7 +57,7 @@ export const SECCIONES = [
 <h3>Cuánto tiempo se guardan</h3>
 <ul>
 <li>Grabaciones de recorrido: se borran solas a los 30 días, salvo las que marques «Conservar».</li>
-<li>Rutas y DLTV: hasta que los borres; pasados 30 días la app te avisa de que son antiguos y puedes borrarlos de una vez.</li>
+<li>Rutas y DLTV: se borran solos a los 30 días de guardarlos (una ruta cuenta desde la última vez que la abres; la que tienes abierta no se borra).</li>
 <li>Telefonemas: se borran solos a los 30 días (antes puedes exportarlos en CSV para tu empresa).</li>
 </ul>
 <h3>Tus derechos</h3>

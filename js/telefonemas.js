@@ -6,7 +6,8 @@
 // dependencia de la hoja («Tarragona»). El PK se sitúa en la ruta con los PK de la hoja; una
 // estación ocupa su eje ± 500 m (de señal de entrada a señal de entrada, criterio de Joan).
 
-export const TIPOS = { ltv: "LTV", vista: "Marcha a la vista", incidencia: "Incidencia", suprime: "Suprime una LTV del DLTV", registro: "Solo registro" };
+// Tipos en uso: ltv, suprime, registro. «vista» e «incidencia» quedan para los guardados antes.
+export const TIPOS = { ltv: "Establece LTV/CSV", suprime: "Suprime LTV/CSV", registro: "Otro", vista: "Marcha a la vista", incidencia: "Incidencia" };
 /** Velocidad que se propone para una marcha a la vista (no es un tope: en algunos casos se limita a 40). */
 export const V_VISTA = 40;
 export const MARGEN_ESTACION_KM = 0.5;
@@ -86,7 +87,7 @@ export const dependencias = (p) => [...new Set(filas(p).map((r) => r.nom).filter
  * si el PK se repite (dos líneas), el primero que queda por delante.
  * Devuelve { pka, pk, nombre?, estacion, entre? } o { error }.
  */
-export function situar(texto, p, d = 0) {
+export function situar(texto, p, d = 0, limites = null) {
   const t = String(texto || "").trim();
   if (!t) return null;
   const fs = filas(p);
@@ -105,7 +106,10 @@ export function situar(texto, p, d = 0) {
     const u = fs[fs.length - 1];
     if (u && u.pk != null && Math.abs(u.pk - x) < 1e-6) cand.push({ pka: u.pka, a: u, b: u });
     if (!cand.length) return { error: `el PK ${fmtPk(x)} no está en esta ruta` };
-    const c = cand.find((c) => c.pka >= d - 0.05) || cand[0];
+    // Entre las estaciones del telefonema, si las da (un PK puede repetirse en dos líneas).
+    const dentro = limites ? cand.filter((c) => c.pka >= limites.min - 0.6 && c.pka <= limites.max + 0.6) : cand;
+    if (limites && !dentro.length) return { error: `el PK ${fmtPk(x)} no está entre esas estaciones` };
+    const c = dentro.find((c) => c.pka >= d - 0.05) || dentro[0];
     const entre = [c.a.nom, c.b.nom].filter(Boolean);
     return { pka: Math.round(c.pka * 1000) / 1000, pk: x, estacion: false, entre: [...new Set(entre)] };
   }
@@ -116,6 +120,46 @@ export function situar(texto, p, d = 0) {
   if (!parecidas.length) return { error: `«${t}» no está en esta ruta` };
   const r = parecidas.find((r) => r.pka >= d - 0.6) || parecidas[0];
   return { pka: r.pka, pk: r.pk ?? null, nombre: r.nom, estacion: true };
+}
+
+/** Estaciones (dependencias) de la hoja, en el orden de la ruta: [{ nom, pka, pk }]. */
+export function estaciones(p) {
+  const out = [];
+  for (const r of filas(p)) if (r.nom && out[out.length - 1]?.nom !== r.nom) out.push({ nom: r.nom, pka: r.pka, pk: r.pk ?? null });
+  return out;
+}
+
+/**
+ * Dónde rige un telefonema de LTV o de supresión, con sus campos: PK inicio y final (mandan si
+ * están) y estación inicio y final (si no hay PK, el tramo es de estación a estación, cada una
+ * entera: eje ± 500 m; si hay PK, sirven para situarlos). → { desde, hasta } o { error }.
+ */
+export function lugar(t, p, d = 0) {
+  const est = estaciones(p);
+  const ea = t.est_ini ? est.find((e) => e.nom === t.est_ini) : null;
+  const eb = t.est_fin ? est.find((e) => e.nom === t.est_fin) : null;
+  if (t.est_ini && !ea) return { error: `la estación ${t.est_ini} no está en esta ruta` };
+  if (t.est_fin && !eb) return { error: `la estación ${t.est_fin} no está en esta ruta` };
+  const pki = String(t.pk_ini ?? "").trim(), pkf = String(t.pk_fin ?? "").trim();
+  if (pki || pkf) {
+    if (!pki || !pkf) return { error: pki ? "falta el PK final" : "falta el PK inicio" };
+    const lim = ea && eb ? { min: Math.min(ea.pka, eb.pka), max: Math.max(ea.pka, eb.pka) } : ea ? { min: ea.pka, max: Infinity } : null;
+    const a = situar(pki, p, d, lim), b = situar(pkf, p, d, lim);
+    if (a?.error) return { error: a.error };
+    if (b?.error) return { error: b.error };
+    return { desde: { texto: `PK ${pki}`, ...a }, hasta: { texto: `PK ${pkf}`, ...b } };
+  }
+  const punto = (e) => ({ texto: e.nom, pka: e.pka, pk: e.pk, nombre: e.nom, estacion: true });
+  if (ea) return { desde: punto(ea), hasta: eb ? punto(eb) : null };
+  return { error: "falta el PK o la estación" };
+}
+
+/** LTV del DLTV de la ruta que coinciden con un tramo (para suprimirlas): [{ id, texto }]. */
+export function coincidentes(ini, fin, p, v = null) {
+  const solapan = (p.dltv?.ltv || []).filter((l) => l.res === "APLICA" && l.pkai != null && Math.min(fin, l.pkaf) - Math.max(ini, l.pkai) > 0.001);
+  const igual = v ? solapan.filter((l) => l.v === v) : [];
+  const ids = new Set((igual.length ? igual : solapan).map((l) => "ltv-" + l.cod));
+  return ltvsDeRuta(p).filter((l) => ids.has(l.id));
 }
 
 /** Tramo de la ruta [ini, fin] (km) entre dos puntos situados; una estación ocupa su eje ± 500 m. */
@@ -137,6 +181,11 @@ const nombrePunto = (x) => (x.nombre ? x.nombre : `PK ${fmtPk(x.pk)}`);
 const esPk = (x) => /^(PK|KM)?\.?\s*\d+([.,]\d+)?$/i.test(String(x || "").trim());
 const limpioPk = (x) => String(x).trim().replace(/^(PK|KM)\.?\s*/i, "");
 const nombreRango = (t) => {
+  if (t.pk_ini || t.est_ini) {
+    const pk = t.pk_ini ? `PK ${t.pk_ini} – ${t.pk_fin}` : "";
+    const est = t.est_ini ? (t.est_fin ? `${t.est_ini} – ${t.est_fin}` : t.est_ini) : "";
+    return pk && est ? `${pk} (${est})` : pk || est;
+  }
   const a = t.desde?.texto, b = t.hasta?.texto;
   if (!a) return "";
   if (!b) return esPk(a) ? `PK ${limpioPk(a)}` : a;
@@ -147,10 +196,15 @@ const nombreRango = (t) => {
 /** Una línea con lo que prescribe el telefonema. */
 export function resumen(t) {
   const lugar = nombreRango(t);
-  if (t.tipo === "ltv") return `LTV ${t.v} km/h${t.csv ? " (CSV)" : ""} · ${lugar}${t.via ? " · " + t.via : ""}`;
+  const via = t.via ? ` · vía ${t.via.replace(/^v[ií]as?\s*/i, "")}` : "";
+  if (t.tipo === "ltv")
+    return `LTV ${t.v} km/h${t.csv ? " (CSV)" : ""} · ${lugar}${via}${t.senalizada === false ? " · sin señalizar" : ""}${t.causa ? " · " + t.causa : ""}`;
   if (t.tipo === "vista") return `Marcha a la vista · ${lugar}${t.v ? ` · máx. ${t.v} km/h` : ""}`;
   if (t.tipo === "incidencia") return `Incidencia · ${lugar}${t.texto ? " · " + t.texto : ""}`;
-  if (t.tipo === "suprime") return `Suprime ${t.ltv_txt || t.ltv || "una LTV"}`;
+  if (t.tipo === "suprime") {
+    if (!t.pk_ini && !t.est_ini) return `Suprime ${t.ltv_txt || t.ltv || "una LTV"}`; // guardados antes
+    return `Suprime LTV${t.v ? " " + t.v + " km/h" : ""} · ${lugar}${via}`;
+  }
   return "Solo registro";
 }
 
@@ -160,8 +214,15 @@ export function errores(t, p, d = 0) {
   if (!(Number.isInteger(t.numero) && t.numero >= 1 && t.numero <= 99)) e.push("el número va del 1 al 99");
   if (!/^\d{1,2}:\d{2}$/.test(t.hora || "")) e.push("falta la hora");
   if (t.tipo === "ltv" && !(t.v > 0 && t.v <= 400)) e.push("falta la velocidad");
-  if (t.tipo === "suprime" && !t.ltv) e.push("elige la LTV que suprime");
-  if (t.tipo !== "registro" && t.tipo !== "suprime") {
+  if (t.tipo === "ltv" || t.tipo === "suprime") {
+    const l = lugar(t, p, d);
+    if (l.error) e.push(l.error);
+    else if (!rango(l.desde, l.hasta)) e.push("el inicio y el final son el mismo punto");
+    else if (t.tipo === "suprime") {
+      const [ini, fin] = rango(l.desde, l.hasta);
+      if (!coincidentes(ini, fin, p, t.v).length) e.push("en ese tramo no hay ninguna LTV del DLTV que suprimir");
+    }
+  } else if (t.tipo !== "registro") {
     const a = situar(t.desde?.texto, p, d), b = situar(t.hasta?.texto, p, d);
     if (!a) e.push(t.tipo === "incidencia" ? "falta el punto" : "falta desde dónde");
     else if (a.error) e.push(a.error);
@@ -180,7 +241,7 @@ export function efectos(lista, p) {
   for (const t of lista || []) {
     if (t.ruta !== p.id || t.anulado || t.tipo === "registro") continue;
     if (t.tipo === "suprime") {
-      if (t.ltv) suprimidas.set(t.ltv, t.numero);
+      for (const id of t.ltvs || (t.ltv ? [t.ltv] : [])) suprimidas.set(id, t.numero);
       continue;
     }
     const a = t.desde ? { ...t.desde } : null, b = t.hasta ? { ...t.hasta } : null;
@@ -196,7 +257,7 @@ export function efectos(lista, p) {
     const [ini, fin] = r, nombre = nombreRango(t);
     if (t.tipo === "ltv") {
       limites.push({ ini, fin, v: t.v, id, numero: t.numero });
-      const motivo = `Telefonema nº ${t.numero}`;
+      const motivo = `Telefonema nº ${t.numero}${t.causa ? " · " + t.causa : ""}${t.senalizada === false ? " · SIN SEÑALIZAR" : ""}`;
       ev("a", "ltv_inicio", ini, { v: t.v, de: null, motivo, nombre, ltv: id, csv: !!t.csv, via: t.via || null }, t.csv ? "ltv_csv" : "ltv", null, "accion", 3);
       ev("b", "ltv_fin", fin, { v: t.v, motivo, nombre, ltv: id, solo_cabeza: false, via: t.via || null }, "fin_ltv", null, "restablecer", 1);
     } else if (t.tipo === "vista") {
@@ -243,10 +304,15 @@ export function csvTelefonemas(lista) {
   const cols = [
     ["Fecha", (t) => t.fecha], ["Tren", (t) => t.tren], ["Nº", (t) => t.numero], ["Hora", (t) => t.hora],
     ["Emisor", (t) => t.emisor], ["Receptor", (t) => t.receptor], ["Tipo", (t) => TIPOS[t.tipo] || t.tipo],
-    ["Prescribe", (t) => (t.tipo === "registro" ? "" : resumen(t))], ["Desde", (t) => t.desde?.texto],
-    ["Hasta", (t) => t.hasta?.texto], ["Velocidad", (t) => t.v], ["CSV", (t) => (t.tipo === "ltv" ? (t.csv ? "sí" : "no") : "")],
-    ["Vía", (t) => t.via], ["Mensaje", (t) => t.mensaje], ["Firma", (t) => t.firma],
-    ["Anulado", (t) => anulacion(t)],
+    ["Velocidad", (t) => t.v], ["Vía(s)", (t) => t.via],
+    ["PK inicio", (t) => t.pk_ini ?? (t.pk_ini === undefined && t.desde && !t.desde.estacion ? t.desde.texto : "")],
+    ["PK final", (t) => t.pk_fin ?? (t.pk_fin === undefined && t.hasta && !t.hasta.estacion ? t.hasta.texto : "")],
+    ["Estación inicio", (t) => t.est_ini], ["Estación final", (t) => t.est_fin], ["Causa", (t) => t.causa],
+    ["Señalizada", (t) => (t.tipo === "ltv" ? (t.senalizada === false ? "no" : "sí") : "")],
+    ["CSV", (t) => (t.tipo === "ltv" ? (t.csv ? "sí" : "no") : "")],
+    ["LTV suprimidas", (t) => (t.tipo === "suprime" ? t.ltv_txt || "" : "")],
+    ["Mensaje", (t) => t.mensaje], ["Firma", (t) => t.firma], ["Anulado", (t) => anulacion(t)],
+    ["Resumen", (t) => (t.tipo === "registro" ? "" : resumen(t))],
   ];
   const celda = (v) => `"${String(v ?? "").replace(/"/g, '""').replace(/\r?\n/g, " ")}"`;
   const filas = [...lista].sort((a, b) => (a.fecha + a.hora + String(a.numero).padStart(2, "0")).localeCompare(b.fecha + b.hora + String(b.numero).padStart(2, "0")));

@@ -94,7 +94,6 @@
    <button id="b-generar" class="pri ancho" disabled>Generar ruta</button>
    <div id="gen-msg" class="gen-msg" aria-live="polite"></div>
    <div id="gen-tramos" class="tr-rev" hidden></div>
-   <div class="note">Los PDF se leen en este dispositivo y no salen de él. El DLTV queda guardado para toda la semana.</div>
   </section>
   <section class="pn aj">
    <h2 data-i="rutas">Rutas guardadas</h2>
@@ -153,11 +152,9 @@
    </div>
    <div id="est-pantalla" class="seg-desc"></div>
    <details class="mas"><summary>Bordes de la pantalla</summary>
-    <div class="sec-ley">Si con la app instalada queda un hueco abajo, o la parte de arriba queda bajo la hora y la batería.</div>
-    <div class="ajb"><span>Bajar la parte de arriba</span><button data-aj="sup" data-d="-4" aria-label="Menos">−</button><b id="aj-sup"></b><button data-aj="sup" data-d="4" aria-label="Más">+</button></div>
-    <div class="ajb"><span>Alargar hasta abajo</span><button data-aj="inf" data-d="-4" aria-label="Menos">−</button><b id="aj-inf"></b><button data-aj="inf" data-d="4" aria-label="Más">+</button></div>
+    <div class="ajb"><span>Panel superior</span><button data-aj="sup" data-d="-4" aria-label="Menos">−</button><b id="aj-sup"></b><button data-aj="sup" data-d="4" aria-label="Más">+</button></div>
+    <div class="ajb"><span>Panel inferior</span><button data-aj="inf" data-d="-4" aria-label="Menos">−</button><b id="aj-inf"></b><button data-aj="inf" data-d="4" aria-label="Más">+</button></div>
     <button id="aj-rest">Restablecer</button>
-    <div id="medidas" class="note"></div>
    </details>
   </section>
   <section class="pn aj">
@@ -180,7 +177,6 @@
     <button id="b-copia">Descargar copia de seguridad</button>
     <label class="boton"><input id="f-copia" type="file" accept=".json,application/json">Restaurar una copia</label>
    </div>
-   <button id="b-antiguos" class="ancho" hidden></button>
    <button id="b-borrar-todo" class="peligro ancho">Borrar todos los datos</button>
    <div id="msg-datos" class="gen-msg" aria-live="polite"></div>
    <div class="note">Todo se guarda solo en este dispositivo. Las grabaciones de recorrido se borran solas a los 30 días, salvo las que marques «Conservar».</div>
@@ -201,37 +197,50 @@
   <button id="tf-nuevo" class="tf-nuevo">+ Nuevo telefonema</button>
   <form id="tf-form" class="pn tf-form" hidden autocomplete="off">
    <input type="hidden" id="tf-id">
-   <div class="tf-g3">
-    <label>Nº<input id="tf-num" type="number" inputmode="numeric" min="1" max="99" required></label>
+   <div class="tf-2">
+    <label>Número<input id="tf-num" type="number" inputmode="numeric" min="1" max="99" required></label>
     <label>Hora<input id="tf-hora" type="time" required></label>
-    <label class="tf-firma">Firma<input id="tf-firma" placeholder="Apellido del emisor" autocapitalize="words"></label>
    </div>
    <label>Emisor<input id="tf-emisor" list="tf-emisores" placeholder="p. ej. RC CTC de Zaragoza"></label>
    <label>Receptor<input id="tf-receptor" placeholder="Maquinista …"></label>
-   <div class="tf-t">Prescribe</div>
-   <div class="seg" role="radiogroup" aria-label="Qué prescribe">
-    <label><input type="radio" name="tf-tipo" value="ltv" checked>LTV</label>
-    <label><input type="radio" name="tf-tipo" value="vista">A la vista</label>
-    <label><input type="radio" name="tf-tipo" value="incidencia">Incidencia</label>
-    <label><input type="radio" name="tf-tipo" value="suprime">Suprime LTV</label>
+   <div class="tf-t">Telefonema</div>
+   <div class="seg" role="radiogroup" aria-label="Tipo de telefonema">
+    <label><input type="radio" name="tf-tipo" value="ltv" checked>Establece LTV/CSV</label>
+    <label><input type="radio" name="tf-tipo" value="suprime">Suprime LTV/CSV</label>
     <label><input type="radio" name="tf-tipo" value="registro">Otro</label>
    </div>
-   <div class="tf-g2 tf-pt">
-    <label><span id="tf-l-desde">Desde</span><input id="tf-desde" list="tf-deps" placeholder="PK o estación"><small id="tf-r-desde" class="tf-r"></small></label>
-    <label class="tf-hasta">Hasta<input id="tf-hasta" list="tf-deps" placeholder="PK o estación (vacío: solo la estación)"><small id="tf-r-hasta" class="tf-r"></small></label>
+   <div class="tf-lugar">
+    <div class="tf-2">
+     <label><span>Velocidad</span><span class="tf-u"><input id="tf-v" type="number" inputmode="numeric" min="1" max="400" placeholder="km/h"><b>km/h</b></span></label>
+     <label>Vía(s)<input id="tf-via" placeholder="p. ej. I, II"></label>
+    </div>
+    <div class="tf-2">
+     <label>PK inicio<input id="tf-pki" inputmode="decimal" placeholder="p. ej. 45,3"></label>
+     <label>PK final<input id="tf-pkf" inputmode="decimal" placeholder="p. ej. 46,1"></label>
+    </div>
+    <label>Estación inicio<select id="tf-esti"></select></label>
+    <label>Estación final<select id="tf-estf"></select></label>
+    <div id="tf-donde" class="tf-r"></div>
    </div>
-   <div class="tf-g3 tf-vel">
-    <label><span id="tf-l-v">Velocidad</span><span class="tf-u"><input id="tf-v" type="number" inputmode="numeric" min="1" max="400"><b>km/h</b></span></label>
-    <label class="tf-csv"><input id="tf-csv" type="checkbox"> Es CSV</label>
-    <label class="tf-via">Vía<input id="tf-via" placeholder="opcional"></label>
+   <div class="tf-ltv">
+    <label>Causa<input id="tf-causa" placeholder="p. ej. estado de la vía"></label>
+    <div class="tf-t">Señalización</div>
+    <div class="seg" role="radiogroup" aria-label="Señalización">
+     <label><input type="radio" name="tf-sen" value="si" checked>Señalizada</label>
+     <label><input type="radio" name="tf-sen" value="no">Sin señalizar</label>
+    </div>
+    <div class="tf-t">¿Supone CSV?</div>
+    <div class="seg" role="radiogroup" aria-label="Supone CSV">
+     <label><input type="radio" name="tf-csvr" value="no" checked>No</label>
+     <label><input type="radio" name="tf-csvr" value="si">Sí, es CSV</label>
+    </div>
    </div>
-   <label class="tf-inc">Qué hay<input id="tf-texto" placeholder="p. ej. animales en la vía"></label>
-   <label class="tf-sup">LTV o CSV del DLTV que suprime<select id="tf-ltv"></select></label>
-   <label>Mensaje<textarea id="tf-msg" rows="3" placeholder="El texto del telefonema"></textarea></label>
+   <label class="tf-otro">Mensaje<textarea id="tf-msg" rows="4" placeholder="El texto del telefonema"></textarea></label>
+   <label>Firma<input id="tf-firma" placeholder="Apellido del emisor" autocapitalize="words"></label>
    <div id="tf-err" class="tf-err" role="alert"></div>
    <div class="tf-bot"><button type="submit" id="tf-guardar">Guardar</button><button type="button" id="tf-cancelar">Cancelar</button></div>
   </form>
-  <datalist id="tf-deps"></datalist><datalist id="tf-emisores"></datalist>
+  <datalist id="tf-emisores"></datalist>
   <div id="tf-lista"></div>
   <div class="tf-exp"><button id="tf-csv-exp">Exportar CSV para la empresa</button><button id="tf-compartir">Compartir el registro (texto)</button></div>
   <p class="tf-nota">Los telefonemas se guardan 30 días en este dispositivo y luego se borran solos. El CSV lleva todos los guardados, de todas las rutas.</p>

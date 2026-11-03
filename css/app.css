@@ -671,3 +671,16 @@ code{font:12px ui-monospace,Menlo,monospace;background:var(--in);padding:0 4px;b
 html,body{overflow-x:hidden;max-width:100%}
 #v-ajustes,#v-tf,#v-legal{overflow-x:hidden;touch-action:pan-y;overflow-wrap:anywhere}
 #v-ajustes img,#v-ajustes table,#v-ajustes pre,#v-ajustes select,#v-ajustes input{max-width:100%}
+/* Telefonemas v0.15: en el orden del telefonema, un campo por fila (o dos, bien separados) */
+.tf-form{gap:14px}
+.tf-form label{min-width:0}
+.tf-form input,.tf-form select,.tf-form textarea{width:100%;min-width:0;max-width:100%;box-sizing:border-box}
+.tf-form input[type=time]{-webkit-appearance:none;appearance:none;display:block;text-align:left}
+.tf-form input[type=time]::-webkit-date-and-time-value{text-align:left}
+.tf-2{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:14px}
+.tf-lugar,.tf-ltv{display:flex;flex-direction:column;gap:14px}
+.tf-form .tf-u input{width:auto;flex:1}
+.tf-form[data-tipo="registro"] .tf-lugar,.tf-form:not([data-tipo="ltv"]) .tf-ltv,.tf-form:not([data-tipo="registro"]) .tf-otro{display:none}
+#tf-donde:empty{display:none}
+#tf-donde{font-size:14px;line-height:1.35;padding:8px 10px;border-radius:10px;background:var(--in)}
+#v-tf .seg label{flex:1 1 0;min-width:0;font-size:14px;line-height:1.2;padding:6px 6px}
