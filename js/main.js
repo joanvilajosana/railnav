@@ -1387,8 +1387,9 @@ function corregirAlto() {
     if (lvh > innerHeight + 10 && lvh - innerHeight <= 90) extra = Math.max(extra, lvh - innerHeight);
   }
   r.style.setProperty("--extra", extra + "px");
+  const inf = ajInf();
   r.style.setProperty("--aj-sup", prefs.leer("aj.sup", 0) + "px");
-  r.style.setProperty("--aj-inf", ajInf() + "px");
+  r.style.setProperty("--aj-inf", inf + "px");
 }
 
 /** Alto en píxeles de una medida CSS (100vh, 100lvh, env(...)…). */
@@ -1401,14 +1402,15 @@ function medir(alto) {
   return h;
 }
 
-// Panel inferior: en el iPhone con la app instalada hacen falta 44 px (comprobado por Joan).
-const IPHONE_INSTALADA = () => /iPhone/.test(navigator.userAgent) && document.documentElement.classList.contains("instalada");
-const ajInfDefecto = () => (IPHONE_INSTALADA() ? 44 : 0);
+// Panel inferior y superior: desde la v0.15.2 la app ocupa la ventana sin cálculos de alto,
+// así que no hace falta ningún ajuste (0 px). Los ajustes de antes (40, 44 px…) compensaban el
+// cálculo viejo y ahora la sacarían de la pantalla: se ponen a 0 una vez.
+const ajInfDefecto = () => 0;
 function ajInf() {
-  // Una vez: los que ya tenían un valor guardado en el iPhone pasan a 44 px.
-  if (IPHONE_INSTALADA() && !prefs.leer("aj.v44", false)) {
-    prefs.escribir("aj.inf", 44);
-    prefs.escribir("aj.v44", true);
+  if (!prefs.leer("aj.fijo", false)) {
+    prefs.escribir("aj.inf", 0);
+    prefs.escribir("aj.sup", 0);
+    prefs.escribir("aj.fijo", true);
   }
   return prefs.leer("aj.inf", ajInfDefecto());
 }

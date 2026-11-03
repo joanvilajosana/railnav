@@ -199,7 +199,13 @@ body{-webkit-user-select:none;user-select:none;-webkit-tap-highlight-color:trans
 :root{padding:0}
 /* --extra: lo que iOS resta de más al alto de la pantalla en la app instalada (main.js). */
 /* --aj-sup / --aj-inf: ajuste a mano (Ajustes → Pantalla → Bordes). */
-.w{height:calc(100vh + var(--extra,0px) + var(--aj-inf,0px) - var(--aj-sup,0px) - var(--sup) - var(--inf));height:calc(100dvh + var(--extra,0px) + var(--aj-inf,0px) - var(--aj-sup,0px) - var(--sup) - var(--inf))}
+/* La app ocupa exactamente la ventana: el cuerpo está fijo de borde a borde (top/bottom 0) y
+   todo va dentro. Sin cálculos con 100vh/100dvh, que en el iPhone con la app instalada no
+   coinciden con la pantalla (de ahí los huecos y la barra cortada). «Panel inferior» alarga el
+   cuerpo hacia abajo (o lo sube, en negativo) si un iPhone concreto lo necesita. */
+html:has(body.app){height:100%;overflow:hidden}
+body.app{position:fixed;top:0;left:0;right:0;bottom:calc(0px - var(--aj-inf,0px));overflow:hidden}
+body.app .w{height:100%}
 button,input,select{touch-action:manipulation}
 input,textarea,select,.hj td,.hj th{-webkit-user-select:text;user-select:text}
 #sc{touch-action:none;cursor:ns-resize}
@@ -666,7 +672,7 @@ code{font:12px ui-monospace,Menlo,monospace;background:var(--in);padding:0 4px;b
 :root[data-disp="telefono"] .mv-v .mv-u{margin-top:2px}
 :root[data-disp="telefono"] .mv-sin{text-align:center}
 /* Teléfono: más aire bajo la barra de vistas (en el iPhone instalado se cortaba) */
-@media (min-height:501px){:root[data-disp="telefono"] .nav{padding-bottom:calc(10px + env(safe-area-inset-bottom,0px))}}
+@media (min-height:501px){:root[data-disp="telefono"] .nav{padding-bottom:calc(8px + env(safe-area-inset-bottom,0px))}}
 /* Sin scroll horizontal en ninguna vista (Ajustes se movía de lado en el iPhone) */
 html,body{overflow-x:hidden;max-width:100%}
 #v-ajustes,#v-tf,#v-legal{overflow-x:hidden;touch-action:pan-y;overflow-wrap:anywhere}
