@@ -1563,8 +1563,32 @@ async function iniciar() {
   caducarGrabaciones().catch(() => {});
   caducarTelefonemas().catch(() => {});
   caducarArchivos().catch(() => {});
-  if ("serviceWorker" in navigator && (location.protocol === "https:" || location.hostname === "localhost"))
-    navigator.serviceWorker.register("sw.js").catch(() => {});
+  if ("serviceWorker" in navigator && (location.protocol === "https:" || location.hostname === "localhost")) actualizaciones();
+}
+
+// Versiones nuevas: se buscan al abrir la app y cada vez que vuelve a primer plano (el iPhone
+// no la recarga al volver a ella), y en cuanto la nueva toma el control se recarga sola, para
+// que una corrección llegue sin tener que cerrar y abrir la app varias veces. No se recarga
+// con el teclado abierto ni con un telefonema a medio escribir.
+function actualizaciones() {
+  const habia = !!navigator.serviceWorker.controller;
+  let recargada = false;
+  const recargar = () => {
+    if (recargada || !habia) return;
+    if (escribiendo() || !$("tf-form").hidden) return setTimeout(recargar, 3000);
+    recargada = true;
+    location.reload();
+  };
+  navigator.serviceWorker.addEventListener("controllerchange", recargar);
+  navigator.serviceWorker
+    .register("sw.js", { updateViaCache: "none" })
+    .then((reg) => {
+      reg.update().catch(() => {});
+      document.addEventListener("visibilitychange", () => {
+        if (document.visibilityState === "visible") reg.update().catch(() => {});
+      });
+    })
+    .catch(() => {});
 }
 
 iniciar();
