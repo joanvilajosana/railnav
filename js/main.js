@@ -559,13 +559,9 @@ async function generarRuta() {
     const idDltv = $("sel-dltv").value;
     const ltv = idDltv ? await dltvs.cargar(idDltv) : null;
     if (!ltv) return terminar(g, ruta, null, null);
-    // Hoja de otro día que el DLTV (pruebas con hojas antiguas): las LTV no valdrían ninguna.
-    ignorarFechasGen = false;
-    if (g.dltvCubre(ruta, ltv) === false)
-      ignorarFechasGen = confirm(
-        `La hoja es del ${fecha(ruta.tren.fecha)} y el DLTV es de la semana del ${fecha(ltv.semana?.desde)} al ${fecha(ltv.semana?.hasta)}. ` +
-          `Las LTV solo valen en su semana: con estas fechas no se aplicaría ninguna.\n\n¿Cruzar igualmente sin mirar las fechas? (solo para pruebas)`,
-      );
+    // Hay maquinistas que usan hojas antiguas con el DLTV de la semana: la fecha de la hoja no
+    // descarta LTV (decisión de Joan, 04-11-2026; se revisará cuando haya DLTV periódicos).
+    ignorarFechasGen = true;
     const tabla = g.elegirTabla(ruta, await tablasConocidas());
     if (tabla) return terminar(g, ruta, ltv, tabla);
     // Ruta nueva: se propone la línea de cada tramo y el maquinista la confirma.

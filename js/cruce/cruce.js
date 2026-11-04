@@ -13,6 +13,9 @@ import { fmtG, palabras, redondear, str } from "../pdf/py.js";
 const VIAS_SEGURAS = new Set(["U", "A"]); // única y ambas: afectan a cualquier tren de la línea
 const RE_HORARIO = /(\d{1,2})[.:](\d{2})\s*-\s*(\d{1,2})[.:](\d{2})/;
 const RE_CONDICION = /\b(PAR|PARES|IMPAR|IMPARES|SENTIDO|ERTMS|ANCHO)\b/i;
+// «Señalizada en lado izquierdo para trenes impares» dice dónde está la señal, no a qué trenes
+// afecta la LTV: no es una condición (confirmado por Joan).
+const RE_SENAL = /SE[ÑN]ALIZAD[AO]S?\s+(EN\s+)?(EL\s+)?LADO\s+(IZQUIERDO|DERECHO)(\s+PARA\s+(LOS\s+)?TRENES\s+(PARES|IMPARES))?/gi;
 const SUFIJO_CLASE = { viajeros: "V", mercancias: "M" }; // confirmado por el usuario
 
 const fmt = (v) => (v === null || v === undefined ? "?" : fmtG(v));
@@ -208,7 +211,7 @@ export function cruzarLtv(ltv, r, ruta, segs, ignorarFechas = false) {
   evidencia.push(...evV);
   dudas.push(...dudasV);
   // Condiciones
-  if (r.observaciones && RE_CONDICION.test(r.observaciones) && !(r.velocidad.compuesta || []).some((p) => p.sufijo === "*"))
+  if (r.observaciones && RE_CONDICION.test(r.observaciones.replace(RE_SENAL, "")) && !(r.velocidad.compuesta || []).some((p) => p.sufijo === "*"))
     dudas.push(`condición en observaciones: «${r.observaciones}»`);
   if (fecha === null && !ignorarFechas) dudas.push("la hoja no tiene fecha: no se comprueba la vigencia");
   // Posición en la ruta

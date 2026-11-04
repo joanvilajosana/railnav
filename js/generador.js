@@ -76,9 +76,9 @@ export function generarPaquete(ruta, ltv, tabla, pictos, { ignorarFechas = false
     const [c, av] = cruzar(ruta, ltv, tabla, ignorarFechas);
     cruce = c;
     avisos.push(...av.map((a) => a.mensaje));
-    if (ignorarFechas)
-      avisos.push(`Cruzado sin mirar las fechas (la hoja es del ${fecha(ruta.tren.fecha)} y el DLTV de la semana del ${fecha(ltv.semana?.desde)}): solo para pruebas.`);
-    else if (dltvCubre(ruta, ltv) === false)
+    if (ignorarFechas && dltvCubre(ruta, ltv) === false)
+      avisos.push(`La hoja es del ${fecha(ruta.tren.fecha)} y el DLTV de la semana del ${fecha(ltv.semana?.desde)}: se han cruzado sin mirar las fechas.`);
+    else if (!ignorarFechas && dltvCubre(ruta, ltv) === false)
       avisos.push(`El DLTV nº ${ltv.numero ?? "?"} es de la semana del ${fecha(ltv.semana.desde)} al ${fecha(ltv.semana.hasta)} y la hoja es del ${fecha(ruta.tren.fecha)}: sus LTV no se aplican ese día.`);
   }
   for (const a of ruta.avisos) avisos.push(a.mensaje);
