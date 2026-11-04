@@ -186,9 +186,9 @@ function pintarDltv(ruta, d) {
   }
   const ap = DL.ltv.filter((x) => x.res === "APLICA").length, rv = DL.ltv.length - ap;
   $("dl-cab").innerHTML =
-    `<span><b style="color:var(--tx)">DLTV nº ${esc(DL.numero || "?")}</b> · semana ${fecha(DL.desde)} – ${fecha(DL.hasta)}</span>` +
-    `<span><span class="dl-res ap">Aplica</span> ${ap}</span><span><span class="dl-res rv">A revisar</span> ${rv}</span>` +
-    `<span>${cuadroViaHtml("vía II", false)} LTV de una sola vía: aparece siempre, indicando a qué vía afecta</span><span>Ordenadas por su posición en la ruta</span>`;
+    `<div class="dlc-1"><b>DLTV nº ${esc(DL.numero || "?")}</b><span>semana ${fecha(DL.desde)} – ${fecha(DL.hasta)}</span></div>` +
+    `<div class="dlc-2"><span class="dlc-n"><span class="dl-res ap">Aplica</span><b>${ap}</b></span><span class="dlc-n"><span class="dl-res rv">A revisar</span><b>${rv}</b></span></div>` +
+    `<div class="dlc-3">${cuadroViaHtml("vía II", false)}<span>LTV de una sola vía: aparece siempre, indicando a qué vía afecta</span></div>`;
   if (movil()) return void ($("dl").innerHTML = dltvMovil(DL, d));
   const cols = ["Estado", "Km ruta", "Línea", "Vía", "PK inicio → fin", "Veloc.", "Trayecto", "Motivo", "Vigencia", "CSV", "Horario", "Observaciones"];
   let h = "<thead><tr>" + cols.map((c) => `<th>${c}</th>`).join("") + "</tr></thead><tbody>";

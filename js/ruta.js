@@ -3,7 +3,7 @@
 // Sin DOM: se prueba con node --test.
 
 import { minutos } from "./util.js";
-import { PICTOS, efectos, superponer, vmaxHoja } from "./telefonemas.js";
+import { PICTOS, efectos, pkEn, superponer, vmaxHoja } from "./telefonemas.js";
 
 export const FORMATO = "railnav-ruta";
 export const VERSION = 1;
@@ -94,6 +94,14 @@ export class Ruta {
     // LTV que solo afectan al vehículo de cabeza: no se mantienen hasta que pasa la cola.
     this.soloCabeza = new Set(this.base.filter((e) => e.tipo === "ltv_fin" && e.datos?.solo_cabeza).map((e) => e.datos.ltv));
     this.ponerLongitud(this.cola * 1000);
+  }
+
+  /** PK de la línea en el punto d de la ruta (null si la hoja no lo permite saber). */
+  pkEn(d) {
+    this._pk ??= new Map();
+    const k = Math.round(d * 1000);
+    if (!this._pk.has(k)) this._pk.set(k, pkEn(this.p, d));
+    return this._pk.get(k);
   }
 
   /** Marcha a la vista en d (por telefonema): { ini, fin, numero } o null. */

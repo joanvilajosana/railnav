@@ -43,7 +43,20 @@ export const alcance = (e) => {
   const p = picDe(e);
   return Math.min(3, p?.aviso ?? e.aviso_km ?? 3);
 };
-const accion = (e) => texto((picDe(e) || {}).accion || picDe(e)?.nombre || e.tipo, e.datos);
+const accion = (e) => (e.tipo === "cambio_radio" ? "Cambio canal radio" : texto((picDe(e) || {}).accion || picDe(e)?.nombre || e.tipo, e.datos));
+
+// El PK de cada aviso: el que trae el propio texto («… PASO A NIVEL KM 78.975»), que se quita del
+// título, o el de la hoja en ese punto. Se enseña en vez de la hora (pedido por Joan).
+const RE_KM = /\s*(?:·\s*)?\b(?:KM|PK)\.?\s*(\d+(?:[.,]\d+)?)/i;
+const fmtPk = (x) => (Math.round(x * 10) / 10).toFixed(1).replace(".", ",");
+function tituloPk(ruta, e) {
+  const t = accion(e), m = t.match(RE_KM);
+  if (m) return [t.replace(RE_KM, "").replace(/\s*·\s*$/, "").trim(), "PK " + m[1].replace(".", ",")];
+  const pk = ruta.pkEn?.(e.pk_acum);
+  return [t, pk == null ? "" : "PK " + fmtPk(pk)];
+}
+/** Número grande a la derecha del aviso (el canal, en los cambios de radio). */
+const numeroGrande = (e) => (e.tipo === "cambio_radio" && e.datos?.canal != null ? String(e.datos.canal) : "");
 
 /** Cuadro «VÍA X» en SVG. */
 function cuadroVia(x, y, codigo, fs) {
@@ -118,7 +131,7 @@ function botonResiduo(res, x, y, w, h) {
     s += `<rect x="${x + 2}" y="${y + h - 7}" width="${(w - 4) * hecho}" height="5" rx="2" fill="var(--up)"/>`;
   }
   s += `<text x="${x + 14}" y="${y + h / 2 + 6}" font-size="16" font-weight="800" letter-spacing=".04em" fill="var(--tx)">RESIDUO</text>`;
-  const txt = act ? `${miles(res.restante)} m` : res.libre ? "COLA LIBRE" : `${miles(res.metros)} m`;
+  const txt = act ? `${miles(res.restante)} m` : res.libre ? "LIBRE" : `${miles(res.metros)} m`;
   s += `<text x="${x + w - 14}" y="${y + h / 2 + (act ? 9 : 6)}" font-size="${act ? 26 : 16}" font-weight="700" text-anchor="end" fill="${act ? "var(--tx)" : res.libre ? "var(--up)" : "var(--gy)"}">${txt}</text>`;
   return s + "</g>";
 }
@@ -157,10 +170,11 @@ export function pintarMarcha(ruta, pos, { desvio: conDesvio = false, residuo = n
   if (!ev.length) s += `<text x="16" y="358" font-size="13" fill="var(--gy)">Sin avisos próximos</text>`;
   const reserva = residuo ? 64 : 0;
   ev.slice(0, Math.max(residuo ? 1 : 2, Math.floor((H - 8 - 336 - reserva) / 58))).forEach((e, i) => {
-    const k = picDe(e) || {}, y = 336 + i * 58, [t, at] = ajustar(accion(e), 230, 26);
+    const k = picDe(e) || {}, y = 336 + i * 58, [tit, pk] = tituloPk(ruta, e), num = numeroGrande(e), [t, at] = ajustar(tit, num ? 180 : 230, 26);
     s += `<rect x="10" y="${y}" width="288" height="50" rx="6" fill="none" stroke="${esc(k.borde || "var(--ln)")}" stroke-width="${i ? 1.5 : 2.5}"${e.estado === "revisar" ? ' stroke-dasharray="5 3"' : ""}/>`;
     s += `<g transform="translate(15 ${y + 7}) scale(.75)">${forma(k, e.datos)}</g><text x="58" y="${y + 21}" font-size="14" font-weight="700" fill="var(--tx)"${at}>${t}</text>`;
-    s += linea2(e, 58, y + 41, 14, "a ", dm((e.pk_acum - d) * 1000), 294);
+    s += linea2(e, 58, y + 41, 14, `${pk ? pk + " · " : ""}a `, dm((e.pk_acum - d) * 1000), 294);
+    if (num) s += `<text x="290" y="${y + 36}" font-size="30" font-weight="800" text-anchor="end" fill="${esc(k.color || "var(--tx)")}">${esc(num)}</text>`;
   });
   if (residuo) s += botonResiduo(residuo, 10, H - 66, 288, 54);
   // Línea de tiempo
@@ -170,12 +184,12 @@ export function pintarMarcha(ruta, pos, { desvio: conDesvio = false, residuo = n
   s += `<line x1="644" x2="644" y1="40" y2="${H - 60}" stroke="var(--gy)" stroke-width="3" stroke-linecap="round"/>`;
   let pv = 999, fondo = "", frente = "";
   for (const e of ev) {
-    const k = picDe(e) || {}, [t, at] = ajustar(accion(e), 221, 30), m = (e.pk_acum - d) * 1000, y = Y(m), ty = Math.min(y, pv - 38);
+    const k = picDe(e) || {}, [tit, pk] = tituloPk(ruta, e), num = numeroGrande(e), [t, at] = ajustar(num ? `${tit} ${num}` : tit, 221, 30), m = (e.pk_acum - d) * 1000, y = Y(m), ty = Math.min(y, pv - 38);
     pv = ty;
     if (ty < 48) continue;
     fondo += `<circle cx="644" cy="${y}" r="3.5" fill="${esc(k.borde || "var(--gy)")}"/><line x1="644" x2="644" y1="${y}" y2="${ty}" stroke="${esc(k.borde || "var(--gy)")}" stroke-width="2"/>`;
     frente += `<g transform="translate(629 ${ty - 15}) scale(.625)">${forma(k, e.datos)}</g><text x="667" y="${ty - 1}" font-size="12" font-weight="700" fill="var(--tx)"${at}>${t}</text>`;
-    frente += linea2(e, 667, ty + 14, 12, "", dm(m), 890);
+    frente += linea2(e, 667, ty + 14, 12, pk ? pk + " · " : "", dm(m), 890);
   }
   s += fondo + frente;
   s += `<polygon points="644,${H - 72} 634,${H - 52} 654,${H - 52}" fill="var(--yl)"/>`;
@@ -203,8 +217,8 @@ function pintarHistorial(ruta, d) {
   hRuta = ruta;
   $("hist").innerHTML = H.length
     ? H.map((e) => {
-        const k = picDe(e), eta = ruta.eta(e.pk_acum);
-        return `<div class="hr${e.estado === "revisar" ? " rv" : ""}">${icono(k, 26, e.datos)}<div><b>${esc(accion(e))}</b><small>${eta == null ? "" : hm(eta) + " · "}hace ${dm((d - e.pk_acum) * 1000)}${e.datos?.via ? " · " + cuadroViaHtml(e.datos.via) : ""}${e.estado === "revisar" ? ' · <span class="rvchip">A REVISAR</span>' : ""}</small></div></div>`;
+        const k = picDe(e), [tit, pk] = tituloPk(ruta, e), num = numeroGrande(e);
+        return `<div class="hr${e.estado === "revisar" ? " rv" : ""}">${icono(k, 26, e.datos)}<div><b>${esc(tit)}</b><small>${pk ? pk + " · " : ""}hace ${dm((d - e.pk_acum) * 1000)}${e.datos?.via ? " · " + cuadroViaHtml(e.datos.via) : ""}${e.estado === "revisar" ? ' · <span class="rvchip">A REVISAR</span>' : ""}</small></div>${num ? `<span class="hr-n" style="color:${esc(k?.color || "var(--tx)")}">${esc(num)}</span>` : ""}</div>`;
       }).join("")
     : `<div class="vac">Todavía no ha pasado nada</div>`;
 }
@@ -267,8 +281,8 @@ export function pintarMarchaMovil(ruta, pos, { desvio: conDesvio = false, residu
   poner("mv-prox", (vista ? `<div class="mv-vista">MARCHA A LA VISTA · TF ${vista.numero} · ${dm((vista.fin - d) * 1000)}</div>` : "") + (ev.length
     ? ev
         .map((e, i) => {
-          const k = picDe(e) || {};
-          return `<div class="px${i ? "" : " pri"}${e.estado === "revisar" ? " rv" : ""}" style="--bc:${esc(k.borde || "var(--ln)")}">${icono(k, 40, e.datos)}<div><b>${esc(accion(e))}</b><small>a <strong>${dm((e.pk_acum - d) * 1000)}</strong>${chipsLinea2(e)}</small></div></div>`;
+          const k = picDe(e) || {}, [tit, pk] = tituloPk(ruta, e), num = numeroGrande(e);
+          return `<div class="px${i ? "" : " pri"}${e.estado === "revisar" ? " rv" : ""}" style="--bc:${esc(k.borde || "var(--ln)")}">${icono(k, 40, e.datos)}<div><b>${esc(tit)}</b><small>${pk ? pk + " · " : ""}a <strong>${dm((e.pk_acum - d) * 1000)}</strong>${chipsLinea2(e)}</small></div>${num ? `<span class="px-n" style="color:${esc(k.color || "var(--tx)")}">${esc(num)}</span>` : ""}</div>`;
         })
         .join("")
     : `<div class="vac">Sin avisos en los próximos 3 km</div>`));
@@ -318,7 +332,7 @@ export function pintarMarchaMovil(ruta, pos, { desvio: conDesvio = false, residu
   br.hidden = !residuo;
   if (residuo) {
     br.className = "odo-res" + (residuo.restante != null ? " on" : residuo.libre ? " libre" : "");
-    texto_(br.querySelector("b"), residuo.restante != null ? miles(residuo.restante) + " m" : residuo.libre ? "libre" : miles(residuo.metros) + " m");
+    texto_(br.querySelector("b"), residuo.restante != null ? miles(residuo.restante) + " m" : residuo.libre ? "LIBRE" : miles(residuo.metros) + " m");
   }
   const om = o.querySelector(".odo-m");
   om.className = "odo-m" + (pos.fiable ? "" : " mal");

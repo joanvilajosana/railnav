@@ -143,6 +143,7 @@ function estado() {
   $("in-ruta").title = $("in-ruta").textContent;
   poner("in-bq", bq || null);
   poner("in-rd", rd != null ? `Canal ${rd}` : null);
+  if (rd != null) $("in-rd").innerHTML = `<span class="larga">Canal </span>${esc(rd)}`;
 }
 
 // ---------- vistas ----------

@@ -740,3 +740,32 @@ html,body{overflow-x:hidden;max-width:100%}
 #v-tf:has(.tf-form[data-manual="1"]:not([hidden])) :is(#tf-lista,.tf-exp,.tf-nota,.tf-cab h2,.tf-cab .tf-tren){display:none}
 .ltvm-1{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
 .ltvm-1 .vm{margin-left:auto;font-weight:800;font-size:18px}
+
+/* v0.17: cabecera del teléfono 3/5 · 1/5 · 1/5 (el tren y su ruta se leen mejor) */
+:root[data-disp="telefono"] .info{grid-template-columns:minmax(0,3fr) minmax(0,1fr) minmax(0,1fr)}
+:root[data-disp="telefono"] .ic{padding:5px 8px}
+:root[data-disp="telefono"] .ic:first-child b{font-size:22px}
+:root[data-disp="telefono"] .ic-r{white-space:normal;overflow:visible;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;font-size:11px;line-height:1.2}
+:root[data-disp="telefono"] .ic:not(:first-child) b{font-size:16px;white-space:normal;line-height:1.1;overflow-wrap:anywhere}
+:root[data-disp="telefono"] #in-rd .larga{display:none}
+:root[data-disp="telefono"] #in-rd{font-size:24px}
+/* Avisos del teléfono: hueco fijo para dos próximos (con su marco), mismas medidas que los pasados */
+:root[data-disp="telefono"] .mv-prox{height:158px;max-height:none;flex:none}
+:root[data-disp="telefono"] .mv-prox .px{flex:none;height:76px;overflow:hidden}
+:root[data-disp="telefono"] .mv-prox .px b{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;font-size:15px}
+.px b{font-size:16px;font-weight:700}
+.px small{font-size:14px}
+.px>div{min-width:0;flex:1}
+.px-n,.hr-n{flex:none;margin-left:auto;font-size:30px;font-weight:800;line-height:1;font-variant-numeric:tabular-nums}
+.hr-n{font-size:22px;padding-right:4px}
+:root[data-disp="telefono"] .hr{min-height:62px}
+/* Datos → DLTV: cabecera en tres filas */
+#dl-cab{display:flex;flex-direction:column;gap:8px;margin:0 0 10px}
+.dlc-1{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap}
+.dlc-1 b{font-size:18px;color:var(--tx)}
+.dlc-1 span{font-size:14px;color:var(--gy)}
+.dlc-2{display:flex;gap:12px;flex-wrap:wrap}
+.dlc-n{display:inline-flex;align-items:center;gap:8px;padding:4px 10px 4px 4px;border:1px solid var(--ln);border-radius:10px;background:var(--pn)}
+.dlc-n b{font-size:18px;color:var(--tx)}
+.dlc-3{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--gy)}
+.dlc-3>:first-child{flex:none}

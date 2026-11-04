@@ -79,6 +79,22 @@ export function vmaxHoja(p) {
   return out;
 }
 
+/** PK de la línea en un punto de la ruta (km acumulados), con los PK de la hoja; null si no se sabe. */
+export function pkEn(p, acum) {
+  const fs = filas(p);
+  for (let i = 0; i + 1 < fs.length; i++) {
+    const a = fs[i], b = fs[i + 1];
+    if (acum < a.pka - 1e-6 || acum > b.pka + 1e-6) continue;
+    if (Math.abs(acum - a.pka) < 1e-6 && a.pk != null) return a.pk;
+    if (Math.abs(acum - b.pka) < 1e-6 && b.pk != null) return b.pk; // tras un cambio de línea, el PK nuevo
+    const pa = a.pk, pb = b.pkl ?? b.pk;
+    if (pa == null || pb == null || b.pka <= a.pka) return null;
+    return pa + ((acum - a.pka) / (b.pka - a.pka)) * (pb - pa);
+  }
+  const u = fs[fs.length - 1];
+  return u && Math.abs(acum - u.pka) < 1e-6 ? (u.pk ?? null) : null;
+}
+
 /** Dependencias de la ruta (para la lista de sugerencias). */
 export const dependencias = (p) => [...new Set(filas(p).map((r) => r.nom).filter(Boolean))];
 
