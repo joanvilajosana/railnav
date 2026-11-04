@@ -52,6 +52,7 @@ export class Ruta {
    * avisos (LTV, marcha a la vista, incidencias) en la lista de eventos.
    */
   ponerTelefonemas(lista) {
+    this.telefonemas = lista || [];
     const { eventos, limites, vistas, suprimidas } = efectos(lista, this.p);
     this.vistas = vistas;
     // LTV del DLTV suprimidas por telefonema: donde mandaban, vuelve la de la hoja (o la de otra

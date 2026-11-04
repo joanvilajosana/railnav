@@ -125,17 +125,25 @@ export function cruzarLtv(ltv, r, ruta, segs, ignorarFechas = false) {
   // PK dentro de algún tramo de esa línea
   if (r.pk_ini === null || r.pk_fin === null) return resultado(r.id, "INCIERTA", ["la LTV no tiene los dos PK"]);
   const lo = Math.min(r.pk_ini, r.pk_fin), hi = Math.max(r.pk_ini, r.pk_fin);
-  let seg = null;
+  const candidatos = [];
   for (const s of deLinea) {
     const rango = s.rangoPk;
     if (!rango) continue;
     const solapa = lo < rango[1] && hi > rango[0];
     const puntual = lo === hi && rango[0] <= lo && lo <= rango[1];
-    if (solapa || puntual) {
-      seg = s;
-      break;
-    }
+    if (solapa || puntual) candidatos.push(s);
   }
+  let seg = candidatos[0] ?? null;
+  // Dos tramos de la misma línea con PK que se repiten (la 200 vuelve a empezar en Lleida): el
+  // que tiene en la hoja alguna dependencia del trayecto de la LTV.
+  if (candidatos.length > 1 && r.trayecto.length)
+    for (const s of candidatos) {
+      const nombresS = ruta.puntos.slice(s.iIni, s.iFin + 1).filter((p) => p.nombre).map((p) => p.nombre);
+      if (r.trayecto.some((t) => nombresS.some((n) => mismaDependencia(t, n)))) {
+        seg = s;
+        break;
+      }
+    }
   if (seg === null) {
     const rangos = deLinea.map((s) => `${s.nombre} PK ${fmt((s.rangoPk || [null, null])[0])}–${fmt((s.rangoPk || [null, null])[1])}`).join(", ");
     return resultado(r.id, "NO_APLICA", [`línea ${r.linea}: PK ${fmtG(lo)}–${fmtG(hi)} fuera de la ruta (${rangos})`]);

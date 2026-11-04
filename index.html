@@ -77,6 +77,7 @@
     <div class="hj-w" id="hj-w"><table id="tb" class="hj"></table></div>
    </div>
    <div id="t-dltv" hidden>
+    <div id="dl-man"></div>
     <div class="hj-ley" id="dl-cab"></div>
     <div class="hj-w" id="dl-w"><table id="dl" class="hj dlc"></table></div>
    </div>
@@ -197,14 +198,15 @@
   <button id="tf-nuevo" class="tf-nuevo">+ Nuevo telefonema</button>
   <form id="tf-form" class="pn tf-form" hidden autocomplete="off">
    <input type="hidden" id="tf-id">
-   <div class="tf-2">
+   <div id="tf-titulo" class="tf-titulo"></div>
+   <div class="tf-2 tf-meta">
     <label>Número<input id="tf-num" type="number" inputmode="numeric" min="1" max="99" required></label>
     <label>Hora<input id="tf-hora" type="time" required></label>
    </div>
-   <label>Emisor<input id="tf-emisor" list="tf-emisores" placeholder="p. ej. RC CTC de Zaragoza"></label>
-   <label>Receptor<input id="tf-receptor" placeholder="Maquinista …"></label>
-   <div class="tf-t">Telefonema</div>
-   <div class="seg" role="radiogroup" aria-label="Tipo de telefonema">
+   <label class="tf-meta">Emisor<input id="tf-emisor" list="tf-emisores" placeholder="p.e. RC CTC"></label>
+   <label class="tf-meta">Receptor<input id="tf-receptor" placeholder="Maquinista …"></label>
+   <div class="tf-t tf-meta">Telefonema</div>
+   <div class="seg tf-meta" role="radiogroup" aria-label="Tipo de telefonema">
     <label><input type="radio" name="tf-tipo" value="ltv" checked>Establece LTV/CSV</label>
     <label><input type="radio" name="tf-tipo" value="suprime">Suprime LTV/CSV</label>
     <label><input type="radio" name="tf-tipo" value="registro">Otro</label>
@@ -236,7 +238,7 @@
     </div>
    </div>
    <label class="tf-otro">Mensaje<textarea id="tf-msg" rows="4" placeholder="El texto del telefonema"></textarea></label>
-   <label>Firma<input id="tf-firma" placeholder="Apellido del emisor" autocapitalize="words"></label>
+   <label class="tf-meta">Firma<input id="tf-firma" placeholder="Apellido del emisor" autocapitalize="words"></label>
    <div id="tf-err" class="tf-err" role="alert"></div>
    <div class="tf-bot"><button type="submit" id="tf-guardar">Guardar</button><button type="button" id="tf-cancelar">Cancelar</button></div>
   </form>

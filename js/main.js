@@ -167,7 +167,7 @@ let tfs = [];
 const hhmm = (f = new Date()) => `${String(f.getHours()).padStart(2, "0")}:${String(f.getMinutes()).padStart(2, "0")}`;
 
 function pintarBotonTf() {
-  const n = tfs.filter((t) => !t.anulado).length;
+  const n = tfs.filter((t) => !t.anulado && !t.manual).length;
   $("tf-n").hidden = !n;
   $("tf-n").textContent = n;
 }
@@ -256,8 +256,12 @@ function formTf(ev) {
 }
 const dmTf = (km) => (km >= 1 ? `${km.toFixed(1).replace(".", ",")} km` : `${Math.round(km * 1000)} m`);
 
-function abrirFormTf(t = null) {
-  const hoy = tfs.filter((x) => x.fecha === new Date().toISOString().slice(0, 10));
+function abrirFormTf(t = null, { manual = false } = {}) {
+  manual = manual || !!t?.manual;
+  $("tf-form").dataset.manual = manual ? "1" : "";
+  $("tf-titulo").textContent = manual ? (t ? "Editar LTV añadida a mano" : "Añadir una LTV a mano") : "";
+  $("tf-titulo").hidden = !manual;
+  const hoy = tfs.filter((x) => !x.manual && x.fecha === new Date().toISOString().slice(0, 10));
   const ult = tfs[tfs.length - 1];
   $("tf-id").value = t?.id || "";
   $("tf-num").value = t?.numero ?? Math.min(99, Math.max(0, ...hoy.map((x) => x.numero)) + 1);
@@ -265,7 +269,7 @@ function abrirFormTf(t = null) {
   $("tf-emisor").value = t?.emisor ?? ult?.emisor ?? prefs.leer("tf.emisor", "");
   $("tf-receptor").value = t?.receptor ?? ult?.receptor ?? `Maquinista ${ruta.tren.numero}`;
   $("tf-firma").value = t?.firma ?? ult?.firma ?? "";
-  ponerRadio("tf-tipo", t && TF.TIPOS[t.tipo] && ["ltv", "suprime", "registro"].includes(t.tipo) ? t.tipo : t ? "registro" : "ltv");
+  ponerRadio("tf-tipo", manual ? "ltv" : t && TF.TIPOS[t.tipo] && ["ltv", "suprime", "registro"].includes(t.tipo) ? t.tipo : t ? "registro" : "ltv");
   $("tf-v").value = t?.v || "";
   $("tf-via").value = t?.via || "";
   $("tf-pki").value = t?.pk_ini || "";
@@ -292,17 +296,23 @@ function abrirFormTf(t = null) {
 }
 
 function cerrarFormTf() {
+  const manual = $("tf-form").dataset.manual === "1";
   $("tf-form").hidden = true;
   $("tf-nuevo").hidden = false;
+  $("tf-form").dataset.manual = "";
   document.activeElement?.blur?.();
+  if (manual) mostrar("datos");
 }
 
 async function guardarTf(ev) {
   ev.preventDefault();
   const c = camposTf();
   const viejo = tfs.find((x) => x.id === $("tf-id").value);
+  const manual = $("tf-form").dataset.manual === "1";
+  if (manual) Object.assign(c, { tipo: "ltv", numero: null, hora: null, emisor: "", receptor: "", firma: "" });
   const t = {
     id: viejo?.id || new Date().toISOString(),
+    manual,
     ruta: ruta.id,
     tren: ruta.tren.numero,
     fecha: viejo?.fecha || new Date().toISOString().slice(0, 10),
@@ -328,15 +338,15 @@ async function guardarTf(ev) {
   }
   if (t.emisor) prefs.escribir("tf.emisor", t.emisor);
   await telefonemas.guardar(t);
-  cerrarFormTf();
   await aplicarTf();
+  cerrarFormTf();
 }
 
 function pintarTf() {
   if (!ruta || vista !== "tf") return;
   const tr = ruta.tren;
   $("tf-tren").textContent = `Tren ${tr.numero}${tr.fecha ? " · " + fecha(tr.fecha) : ""}`;
-  const lista = [...tfs].sort((a, b) => a.fecha.localeCompare(b.fecha) || a.numero - b.numero);
+  const lista = tfs.filter((t) => !t.manual).sort((a, b) => a.fecha.localeCompare(b.fecha) || a.numero - b.numero);
   $("tf-compartir").hidden = !lista.length;
   $("tf-lista").innerHTML = lista.length
     ? lista
@@ -360,7 +370,31 @@ function pintarTf() {
     : `<div class="vac">Sin telefonemas en esta ruta. Pulsa «Nuevo telefonema» para registrar el primero.</div>`;
 }
 
+/** Datos → DLTV: «+ Añadir LTV» y borrar/editar las añadidas a mano. */
+function iniciarLtvManual() {
+  $("v-datos").addEventListener("click", async (e) => {
+    const b = e.target.closest("[data-ltvman]");
+    if (!b || !ruta) return;
+    const id = b.dataset.ltvman, t = tfs.find((x) => x.id === id);
+    if (id === "nueva") {
+      mostrar("tf");
+      return abrirFormTf(null, { manual: true });
+    }
+    if (!t) return;
+    if (b.dataset.acc === "editar") {
+      mostrar("tf");
+      return abrirFormTf(t, { manual: true });
+    }
+    if (b.dataset.acc === "borrar" && confirm("¿Borrar esta LTV añadida a mano?")) {
+      await telefonemas.borrar(t.id);
+      await aplicarTf();
+      if (vista === "datos") pintarDatos(ruta, pos.d);
+    }
+  });
+}
+
 function iniciarTelefonemas() {
+  iniciarLtvManual();
   $("m-tf").onclick = () => mostrar(vista === "tf" ? "marcha" : "tf");
   $("bk-tf").onclick = () => mostrar("marcha");
   $("tf-nuevo").onclick = () => abrirFormTf();
@@ -389,13 +423,13 @@ function iniciarTelefonemas() {
     await aplicarTf();
   };
   $("tf-csv-exp").onclick = async () => {
-    const todos = await telefonemas.listar();
+    const todos = (await telefonemas.listar()).filter((t) => !t.manual);
     if (!todos.length) return;
     const hoy = new Date().toISOString().slice(0, 10).replace(/-/g, "");
     await compartirArchivo(`telefonemas-RailNav-${hoy}.csv`, TF.csvTelefonemas(todos), "text/csv");
   };
   $("tf-compartir").onclick = async () => {
-    const tr = ruta.tren, lista = [...tfs].sort((a, b) => a.fecha.localeCompare(b.fecha) || a.numero - b.numero);
+    const tr = ruta.tren, lista = tfs.filter((t) => !t.manual).sort((a, b) => a.fecha.localeCompare(b.fecha) || a.numero - b.numero);
     const txt = TF.textoRegistro(lista, tr.numero, tr.fecha ? fecha(tr.fecha) : null);
     await compartirArchivo(`telefonemas-${tr.numero}-${tr.fecha || "ruta"}.txt`, txt, "text/plain");
   };
@@ -525,6 +559,13 @@ async function generarRuta() {
     const idDltv = $("sel-dltv").value;
     const ltv = idDltv ? await dltvs.cargar(idDltv) : null;
     if (!ltv) return terminar(g, ruta, null, null);
+    // Hoja de otro día que el DLTV (pruebas con hojas antiguas): las LTV no valdrían ninguna.
+    ignorarFechasGen = false;
+    if (g.dltvCubre(ruta, ltv) === false)
+      ignorarFechasGen = confirm(
+        `La hoja es del ${fecha(ruta.tren.fecha)} y el DLTV es de la semana del ${fecha(ltv.semana?.desde)} al ${fecha(ltv.semana?.hasta)}. ` +
+          `Las LTV solo valen en su semana: con estas fechas no se aplicaría ninguna.\n\n¿Cruzar igualmente sin mirar las fechas? (solo para pruebas)`,
+      );
     const tabla = g.elegirTabla(ruta, await tablasConocidas());
     if (tabla) return terminar(g, ruta, ltv, tabla);
     // Ruta nueva: se propone la línea de cada tramo y el maquinista la confirma.
@@ -571,10 +612,11 @@ function revisarTramos(g, ruta, ltv, propuesta) {
   };
 }
 
+let ignorarFechasGen = false;
 async function terminar(g, ruta, ltv, tabla) {
   mensaje(ltv ? "Cruzando la hoja con el DLTV…" : "Preparando la ruta…");
   await new Promise((r) => setTimeout(r, 0));
-  const { paquete, cruce, avisos } = g.generarPaquete(ruta, ltv, tabla, { version: 1, pictogramas: deSerie() });
+  const { paquete, cruce, avisos } = g.generarPaquete(ruta, ltv, tabla, { version: 1, pictogramas: deSerie() }, { ignorarFechas: !!ltv && ignorarFechasGen });
   await abrir(paquete);
   if (!paquete.geo && navigator.onLine) prepararGps(); // en segundo plano; si falla, se avisa abajo
   const n = g.recuento(cruce);

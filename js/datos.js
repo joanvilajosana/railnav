@@ -1,6 +1,7 @@
 // Vista Datos: ficha del tren y pestañas «Hoja de ruta» (original completa) y «DLTV».
 
 import { esc, fecha, nf } from "./util.js";
+import { rango, resumen } from "./telefonemas.js";
 import { icono, pic } from "./pictos.js";
 import { cuadroViaHtml } from "./marcha.js";
 import { prefs } from "./almacen.js";
@@ -157,8 +158,27 @@ function dltvMovil(DL, d) {
   return h + "</tbody>";
 }
 
+/** LTV añadidas a mano en esta ruta (se guardan con los telefonemas, con `manual`). */
+function ltvManuales(ruta, d) {
+  const lista = (ruta.telefonemas || []).filter((t) => t.manual);
+  const boton = `<button class="ltvm-mas" data-ltvman="nueva">+ Añadir LTV</button>`;
+  if (!lista.length) return `<div class="ltvm">${boton}</div>`;
+  const filas = lista
+    .map((t) => {
+      const r = rango(t.desde, t.hasta), aq = r && d >= r[0] && d <= r[1];
+      return (
+        `<div class="ltvm-it${aq ? " aqui" : ""}"><div><div class="ltvm-1"><span class="dl-res ap">A mano</span>${t.csv ? ' <span class="cs">CSV</span>' : ""}<span class="vm">${esc(t.v)} km/h</span></div>` +
+        `<b>${esc(resumen(t).replace(/^LTV \d+ km\/h( \(CSV\))? · /, ""))}</b>${r ? `<small>Km ruta ${nf(r[0])} → ${nf(r[1])}</small>` : ""}</div>` +
+        `<div class="ltvm-acc"><button data-ltvman="${esc(t.id)}" data-acc="editar">Editar</button><button data-ltvman="${esc(t.id)}" data-acc="borrar" class="peligro">Borrar</button></div></div>`
+      );
+    })
+    .join("");
+  return `<div class="ltvm">${boton}${filas}</div>`;
+}
+
 function pintarDltv(ruta, d) {
   const DL = ruta.p.dltv;
+  $("dl-man").innerHTML = ltvManuales(ruta, d);
   if (!DL) {
     $("dl-cab").innerHTML = "";
     $("dl").innerHTML = '<tbody><tr><td style="padding:14px">Esta ruta no tiene documento de LTV cruzado.</td></tr></tbody>';

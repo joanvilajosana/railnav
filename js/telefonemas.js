@@ -211,8 +211,11 @@ export function resumen(t) {
 /** Errores de un telefonema antes de guardarlo (lista vacía si está bien). */
 export function errores(t, p, d = 0) {
   const e = [];
-  if (!(Number.isInteger(t.numero) && t.numero >= 1 && t.numero <= 99)) e.push("el número va del 1 al 99");
-  if (!/^\d{1,2}:\d{2}$/.test(t.hora || "")) e.push("falta la hora");
+  // Una LTV añadida a mano (Datos → DLTV) no es un telefonema: no lleva número ni hora.
+  if (!t.manual) {
+    if (!(Number.isInteger(t.numero) && t.numero >= 1 && t.numero <= 99)) e.push("el número va del 1 al 99");
+    if (!/^\d{1,2}:\d{2}$/.test(t.hora || "")) e.push("falta la hora");
+  }
   if (t.tipo === "ltv" && !(t.v > 0 && t.v <= 400)) e.push("falta la velocidad");
   if (t.tipo === "ltv" || t.tipo === "suprime") {
     const l = lugar(t, p, d);
@@ -257,7 +260,7 @@ export function efectos(lista, p) {
     const [ini, fin] = r, nombre = nombreRango(t);
     if (t.tipo === "ltv") {
       limites.push({ ini, fin, v: t.v, id, numero: t.numero });
-      const motivo = `Telefonema nº ${t.numero}${t.causa ? " · " + t.causa : ""}${t.senalizada === false ? " · SIN SEÑALIZAR" : ""}`;
+      const motivo = `${t.manual ? "LTV añadida a mano" : "Telefonema nº " + t.numero}${t.causa ? " · " + t.causa : ""}${t.senalizada === false ? " · SIN SEÑALIZAR" : ""}`;
       ev("a", "ltv_inicio", ini, { v: t.v, de: null, motivo, nombre, ltv: id, csv: !!t.csv, via: t.via || null }, t.csv ? "ltv_csv" : "ltv", null, "accion", 3);
       ev("b", "ltv_fin", fin, { v: t.v, motivo, nombre, ltv: id, solo_cabeza: false, via: t.via || null }, "fin_ltv", null, "restablecer", 1);
     } else if (t.tipo === "vista") {

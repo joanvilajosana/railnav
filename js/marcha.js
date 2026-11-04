@@ -228,6 +228,17 @@ const yMovil = (m, arriba, abajo) => {
 const chipsLinea2 = (e) =>
   (e.datos?.via ? " · " + cuadroViaHtml(e.datos.via) : "") + (e.estado === "revisar" ? ' · <span class="rvchip">A REVISAR</span>' : "");
 
+/** innerHTML solo si cambia (evita rehacer el DOM en cada fotograma). */
+const hecho = new Map();
+function poner(id, html) {
+  if (hecho.get(id) === html) return;
+  hecho.set(id, html);
+  $(id).innerHTML = html;
+}
+const texto_ = (el, t) => {
+  if (el.textContent !== t) el.textContent = t;
+};
+
 export function pintarMarchaMovil(ruta, pos, { desvio: conDesvio = false, residuo = null } = {}) {
   const d = pos.d;
   const tramo = ruta.tramo(d);
@@ -249,18 +260,18 @@ export function pintarMarchaMovil(ruta, pos, { desvio: conDesvio = false, residu
     v += `<i class="mv-bar"><i class="${baja ? "baja" : "sube"}" style="width:${(100 * (1 - Math.min(m, 3000) / 3000)).toFixed(1)}%"></i></i>`;
   } else v += `<b class="mv-nada">Sin más cambios</b>`;
   v += `</div>`;
-  $("mv-vel").innerHTML = v;
+  poner("mv-vel", v);
   // Próximos avisos
   const ev = ruta.proximos(d, alcance);
   // Franjas de texto (marcha a la vista): entre la velocidad y los avisos, sin tapar nada.
-  $("mv-prox").innerHTML = (vista ? `<div class="mv-vista">MARCHA A LA VISTA · TF ${vista.numero} · ${dm((vista.fin - d) * 1000)}</div>` : "") + (ev.length
+  poner("mv-prox", (vista ? `<div class="mv-vista">MARCHA A LA VISTA · TF ${vista.numero} · ${dm((vista.fin - d) * 1000)}</div>` : "") + (ev.length
     ? ev
         .map((e, i) => {
           const k = picDe(e) || {};
           return `<div class="px${i ? "" : " pri"}${e.estado === "revisar" ? " rv" : ""}" style="--bc:${esc(k.borde || "var(--ln)")}">${icono(k, 40, e.datos)}<div><b>${esc(accion(e))}</b><small>a <strong>${dm((e.pk_acum - d) * 1000)}</strong>${chipsLinea2(e)}</small></div></div>`;
         })
         .join("")
-    : `<div class="vac">Sin avisos en los próximos 3 km</div>`);
+    : `<div class="vac">Sin avisos en los próximos 3 km</div>`));
   // Línea de tiempo
   const el = $("mv-linea"), W = el.clientWidth, Ht = el.clientHeight;
   if (W && Ht) {
@@ -288,12 +299,29 @@ export function pintarMarchaMovil(ruta, pos, { desvio: conDesvio = false, residu
   // Odómetro, hora prevista, adelanto o retraso y de dónde sale la posición
   const eta = ruta.eta(d), dsv = conDesvio ? valorDesvio(ruta, pos, eta) : null;
   const modo = pos.etiqueta || (pos.fiable ? MODO_TXT[pos.modo] || "" : "POSICIÓN NO FIABLE");
-  $("mv-odo").innerHTML =
-    `<span class="odo-km">${miles(d * 1000)} m</span><span class="odo-h">${eta == null ? "--:--:--" : hms(eta)}</span>` +
-    (dsv ? `<span class="odo-d" style="color:${dsv[1]}">${dsv[0]}</span>` : "") +
-    (residuo
-      ? `<button class="odo-res${residuo.restante != null ? " on" : residuo.libre ? " libre" : ""}" data-residuo="1" aria-label="Residuo: cuenta atrás de la longitud del tren">Residuo <b>${residuo.restante != null ? miles(residuo.restante) + " m" : residuo.libre ? "libre" : miles(residuo.metros) + " m"}</b></button>`
-      : "") +
-    `<span class="odo-m${pos.fiable ? "" : " mal"}">${esc(modo)}</span>`;
+  // Las piezas de la fila se crean una vez y luego solo se cambia su texto: si se rehiciera la
+  // fila en cada fotograma, el botón «Residuo» desaparecería bajo el dedo y el iPhone se atasca.
+  const o = $("mv-odo");
+  if (!o.querySelector(".odo-km"))
+    o.innerHTML =
+      `<span class="odo-km"></span><span class="odo-h"></span><span class="odo-d"></span>` +
+      `<button class="odo-res" data-residuo="1" aria-label="Residuo: cuenta atrás de la longitud del tren">Residuo <b></b></button><span class="odo-m"></span>`;
+  texto_(o.querySelector(".odo-km"), `${miles(d * 1000)} m`);
+  texto_(o.querySelector(".odo-h"), eta == null ? "--:--:--" : hms(eta));
+  const od = o.querySelector(".odo-d");
+  od.hidden = !dsv;
+  if (dsv) {
+    texto_(od, dsv[0]);
+    od.style.color = dsv[1];
+  }
+  const br = o.querySelector(".odo-res");
+  br.hidden = !residuo;
+  if (residuo) {
+    br.className = "odo-res" + (residuo.restante != null ? " on" : residuo.libre ? " libre" : "");
+    texto_(br.querySelector("b"), residuo.restante != null ? miles(residuo.restante) + " m" : residuo.libre ? "libre" : miles(residuo.metros) + " m");
+  }
+  const om = o.querySelector(".odo-m");
+  om.className = "odo-m" + (pos.fiable ? "" : " mal");
+  texto_(om, modo);
   pintarHistorial(ruta, d);
 }

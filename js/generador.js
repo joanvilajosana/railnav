@@ -68,15 +68,17 @@ export function dltvCubre(ruta, ltv) {
  * Paquete de ruta. Sin DLTV, solo la hoja. Con DLTV hace falta la tabla de tramos.
  * @returns {{paquete, cruce, avisos: string[]}}
  */
-export function generarPaquete(ruta, ltv, tabla, pictos) {
+export function generarPaquete(ruta, ltv, tabla, pictos, { ignorarFechas = false } = {}) {
   const avisos = [];
   let cruce = null;
   if (ltv) {
     if (!tabla) throw new Error("para cruzar con el DLTV hace falta la tabla de tramos");
-    const [c, av] = cruzar(ruta, ltv, tabla);
+    const [c, av] = cruzar(ruta, ltv, tabla, ignorarFechas);
     cruce = c;
     avisos.push(...av.map((a) => a.mensaje));
-    if (dltvCubre(ruta, ltv) === false)
+    if (ignorarFechas)
+      avisos.push(`Cruzado sin mirar las fechas (la hoja es del ${fecha(ruta.tren.fecha)} y el DLTV de la semana del ${fecha(ltv.semana?.desde)}): solo para pruebas.`);
+    else if (dltvCubre(ruta, ltv) === false)
       avisos.push(`El DLTV nº ${ltv.numero ?? "?"} es de la semana del ${fecha(ltv.semana.desde)} al ${fecha(ltv.semana.hasta)} y la hoja es del ${fecha(ruta.tren.fecha)}: sus LTV no se aplican ese día.`);
   }
   for (const a of ruta.avisos) avisos.push(a.mensaje);
