@@ -13,7 +13,7 @@ import { ajustarDibujo, alcance, altoDibujo, altoLinea, limitesLineaMovil, pinta
 import { irAqui, mostrarPestana, movil, pintarDatos } from "./datos.js";
 import { iniciarEditor, pintarEditor } from "./editor.js";
 import { LOGO, linea } from "./iconos.js";
-import { desbloquear, ponerSilencio, ponerVolumen, probar, silenciado, tono, volumen } from "./sonido.js";
+import { desbloquear, ponerSilencio, ponerVolumen, probar, silenciado, tono, volumen, MUESTRA } from "./sonido.js";
 import { Avisador } from "./avisos.js";
 import { Residuo } from "./residuo.js";
 import * as despierto from "./despierto.js";
@@ -799,8 +799,8 @@ async function pintarAjustes() {
   }[pos?.modo] || "";
   $("desc-sonar").textContent = {
     no: "Sin sonido.",
-    urgentes: "Una campanita al acercarse a una LTV, CSV o bajada de velocidad, y otra más corta al pasar.",
-    todos: "Una campanita en cada aviso (también estaciones, radio, bloqueo…) y otra más corta al pasar.",
+    urgentes: "Al acercarse a una LTV, CSV o bajada de velocidad y al pasar; también el cambio de canal de radio y el residuo libre. Cada uno con su campanita.",
+    todos: "Además, en cada aviso (estaciones, bloqueo…), con una campanita al acercarse y otra más corta al pasar.",
   }[prefs.leer("sonar", "urgentes")];
   $("op-desvio").checked = prefs.leer("desvio", true);
   $("acerca").innerHTML = `RailNav v${VERSION_APP} · Desarrollado por Joan Vilajosana Quesada · Servicio no oficial ni homologado por la AESF`;
@@ -921,20 +921,39 @@ function iniciarAjustes() {
 // ---------- avisos sonoros ----------
 const avisador = new Avisador(alcance);
 const urgente = (x) => x.fase === "accion" || picDe(x.e)?.prioridad === "urgente";
+// El cambio de canal de radio suena también en «Urgentes»: hay que cambiar el canal.
+const radioYa = (x) => x.e.tipo === "cambio_radio" && x.fase === "accion";
+
+/** Campanita de cada aviso: la LTV, la radio y el resto, cada una la suya. */
+function sonDe(x) {
+  if (x.e.tipo === "ltv_inicio") return x.fase === "accion" ? "ltv_paso" : "ltv_aviso";
+  if (radioYa(x)) return "radio";
+  return x.fase === "accion" ? "paso" : "aviso";
+}
+const ORDEN_SON = ["ltv_aviso", "aviso", "ltv_paso", "radio", "paso"];
 
 function sonarAvisos() {
   const modo = prefs.leer("sonar", "urgentes");
   const salida = avisador.revisar(ruta, pos.d);
   if (modo === "no") return;
-  // Una sola campanita aunque coincidan varios avisos: la de aviso si hay alguno, si no la de paso.
-  const sonar = salida.filter((x) => modo === "todos" || urgente(x));
-  if (sonar.some((x) => x.fase !== "accion")) tono("aviso");
-  else if (sonar.length) tono("paso");
+  // Una sola campanita aunque coincidan varios avisos: la más importante.
+  const sonar = salida.filter((x) => modo === "todos" || urgente(x) || radioYa(x)).map(sonDe);
+  const son = ORDEN_SON.find((t) => sonar.includes(t));
+  if (son) tono(son);
 }
 
+let muestra = null;
 function probarAviso() {
-  const dur = tono("aviso");
-  setTimeout(() => tono("paso"), (dur + 0.6) * 1000);
+  clearTimeout(muestra);
+  const b = $("b-probar-aviso"), base = "Escuchar los avisos";
+  let i = 0;
+  const otro = () => {
+    if (i >= MUESTRA.length) return void (b.textContent = base);
+    const [t, nombre] = MUESTRA[i++];
+    b.textContent = "▶ " + nombre;
+    muestra = setTimeout(otro, (tono(t) + 0.9) * 1000);
+  };
+  otro();
 }
 
 // ---------- GPS (Fase 8) ----------
@@ -1541,7 +1560,7 @@ function bucle(t) {
     resRestante = residuo.activo ? r : null;
     if (r === 0) {
       resLibre = t;
-      tono("paso");
+      tono("residuo");
     }
   }
   if (resLibre && t - resLibre > 3000) {

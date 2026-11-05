@@ -829,3 +829,16 @@ html:has(body.app){background:var(--pn)}
 :root[data-disp="telefono"] .dlc-n{padding:2px 8px 2px 3px}
 :root[data-disp="telefono"] .dl-top .ltvm-mas{min-height:40px;padding:0 12px;font-size:15px}
 :root[data-disp="telefono"] .dlc-3{font-size:12px}
+
+/* v0.17.4 — Teléfono: avisos sin marco. Los próximos solo aparecen cuando los hay (tarjetas con
+   su color); sin ellos, los pasados (filas apagadas) ocupan todo el hueco. */
+:root[data-disp="telefono"] .mv-prox{height:auto;max-height:158px;overflow-y:auto}
+:root[data-disp="telefono"] .mv-prox:empty{display:none}
+:root[data-disp="telefono"] .scr:has(.mv-prox:empty){grid-template-areas:"vel vel" "hist lin" "hist lin" "odo odo"}
+:root[data-disp="telefono"] .hist{border:0;border-radius:0;background:transparent;padding:0}
+:root[data-disp="telefono"] .hr{margin:0 0 6px;border:1px solid color-mix(in srgb,var(--ln) 70%,transparent);border-radius:10px;background:transparent;opacity:.82}
+:root[data-disp="telefono"] .hist .vac{padding:6px 4px;font-size:14px}
+@media (orientation:landscape){:root[data-disp="telefono"] .scr:has(.mv-prox:empty){grid-template-areas:"vel hist lin" "vel hist lin" "odo hist lin"}}
+:root[data-disp="telefono"] .mv-prox{max-height:200px}
+:root[data-disp="telefono"] .mv-prox .px{height:auto;min-height:64px;overflow:visible}
+:root[data-disp="telefono"] .mv-prox .px small{line-height:1.3}

@@ -53,11 +53,31 @@ const accion = (e) => (e.tipo === "cambio_radio" ? "Cambio canal radio" : texto(
 
 // El PK de cada aviso: el que trae el propio texto («… PASO A NIVEL KM 78.975»), que se quita del
 // título, o el de la hoja en ese punto. Se enseña en vez de la hora (pedido por Joan).
-const RE_KM = /\s*(?:·\s*)?\b(?:KM|PK)\.?\s*(\d+(?:[.,]\d+)?)/i;
+// En una LTV, su rango de PK (del DLTV o, si se añadió a mano, de la hoja entre su inicio y su fin).
+const RE_KM = /\s*(?:·\s*)?\b(?:KM|PK)\.?\s*(\d+(?:[.,]\d+)?)(?:\s*(?:AL|A|-|–)\s*(?:(?:KM|PK)\.?\s*)?(\d+(?:[.,]\d+)?))?/i;
 const fmtPk = (x) => (Math.round(x * 10) / 10).toFixed(1).replace(".", ",");
+const fmtPk3 = (x) => x.toFixed(3).replace(".", ",");
+function rangoLtv(ruta, e) {
+  const id = e.datos?.ltv;
+  if (!id) return "";
+  const x = (ruta.p.dltv?.ltv || []).find((l) => "ltv-" + l.cod === id || l.cod === id);
+  if (x?.pki != null && x?.pkf != null) return `PK ${fmtPk3(x.pki)} – ${fmtPk3(x.pkf)}`;
+  const otro = ruta.eventos.find((o) => o !== e && o.datos?.ltv === id && (o.tipo === "ltv_inicio" || o.tipo === "ltv_fin"));
+  if (!otro) return "";
+  const [a, b] = [e, otro].sort((p, q) => p.pk_acum - q.pk_acum).map((o) => ruta.pkEn?.(o.pk_acum));
+  return a == null || b == null ? "" : `PK ${fmtPk(a)} – ${fmtPk(b)}`;
+}
 function tituloPk(ruta, e) {
-  const t = accion(e), m = t.match(RE_KM);
-  if (m) return [t.replace(RE_KM, "").replace(/\s*·\s*$/, "").trim(), "PK " + m[1].replace(".", ",")];
+  const t = accion(e);
+  if (e.tipo === "ltv_inicio" || e.tipo === "ltv_fin") {
+    const r = rangoLtv(ruta, e);
+    if (r) return [t, r];
+  }
+  const m = t.match(RE_KM);
+  if (m) {
+    const pk = "PK " + m[1].replace(".", ",") + (m[2] ? " – " + m[2].replace(".", ",") : "");
+    return [t.replace(RE_KM, "").replace(/\s*·\s*$/, "").replace(/\s{2,}/g, " ").trim(), pk];
+  }
   const pk = ruta.pkEn?.(e.pk_acum);
   return [t, pk == null ? "" : "PK " + fmtPk(pk)];
 }
@@ -75,7 +95,15 @@ function cuadroVia(x, y, codigo, fs) {
 }
 
 /** Segunda línea de un aviso: distancia, vía (si la LTV es de una sola vía) y «a revisar». */
+// PK con un decimal y sin espacios en el guion: para cuando el renglón no cabe.
+const compactar = (t) => t.replace(/(\d+),(\d{2,})/g, (_, a, b) => fmtPk(Number(a + "." + b))).replace(/ – /g, "–");
+
 function linea2(e, x, y, fs, pre, dist, maxX) {
+  const via = e.datos && e.datos.via;
+  if (via) {
+    const ancho = anchoTexto(pre, `${fs}px`) + anchoTexto(dist, `700 ${fs}px`) + 7 + anchoTexto("VÍA " + partesVia(via)[0], `800 ${fs * 0.95}px`) + fs * 1.1;
+    if (x + ancho > maxX) pre = compactar(pre);
+  }
   let s = `<text x="${x}" y="${y}" font-size="${fs}" fill="var(--gy)">${pre}<tspan font-weight="700" fill="var(--tx)">${dist}</tspan></text>`;
   let cx = x + anchoTexto(pre, `${fs}px`) + anchoTexto(dist, `700 ${fs}px`) + 7;
   if (e.estado === "revisar") {
@@ -89,6 +117,8 @@ function linea2(e, x, y, fs, pre, dist, maxX) {
   s += c;
   if (resto) {
     const rx = cx + cw + 6, hueco = maxX - rx, rw = anchoTexto(resto, `700 ${fs}px`);
+    // Si no cabe ni apretado, se deja solo el cuadro de la vía (la explicación está en Datos).
+    if (hueco < rw * 0.7) return s;
     s += `<text x="${rx}" y="${y}" font-size="${fs}" font-weight="700" fill="var(--tx)"${rw > hueco ? ` textLength="${hueco}" lengthAdjust="spacingAndGlyphs"` : ""}>${esc(resto)}</text>`;
   }
   return s;
@@ -291,7 +321,7 @@ export function pintarMarchaMovil(ruta, pos, { desvio: conDesvio = false, residu
           return `<div class="px${i ? "" : " pri"}${e.estado === "revisar" ? " rv" : ""}" style="--bc:${esc(k.borde || "var(--ln)")}">${icono(k, 40, e.datos)}<div><b>${esc(tit)}</b><small>${pk ? pk + " · " : ""}a <strong>${dm((e.pk_acum - d) * 1000)}</strong>${chipsLinea2(e)}</small></div>${num ? `<span class="px-n" style="color:${esc(k.color || "var(--tx)")}">${esc(num)}</span>` : ""}</div>`;
         })
         .join("")
-    : `<div class="vac">Sin avisos en los próximos 3 km</div>`));
+    : ""));
   // Línea de tiempo
   const el = $("mv-linea"), W = el.clientWidth, Ht = el.clientHeight;
   if (W && Ht) {

@@ -49,13 +49,24 @@ const audible = () => !estado.silencio && estado.volumen > 0;
 
 // Tonos: [frecuencia Hz, inicio s, duración s, intensidad 0–1]. Avisos sencillos, como una
 // notificación del teléfono (campanita de notas cortas, sin voz).
+// Cada aviso importante tiene la suya (pedido por Joan), con el mismo estilo de campanita:
 const TONOS = {
-  // al llegar a la distancia de aviso: tres notas que suben
+  // al llegar a la distancia de aviso (otros avisos): tres notas que suben
   aviso: [[1047, 0, 0.32, 0.55], [1319, 0.1, 0.32, 0.5], [1568, 0.2, 0.5, 0.5]],
-  // al pasar por el punto: la misma campanita, más corta y bajando
+  // al pasar por el punto (otros avisos): la misma campanita, más corta y bajando
   paso: [[1568, 0, 0.3, 0.45], [1175, 0.11, 0.45, 0.45]],
+  // aproximación a una LTV: cuatro notas que suben hasta una aguda, que se queda
+  ltv_aviso: [[1047, 0, 0.3, 0.55], [1319, 0.09, 0.3, 0.52], [1568, 0.18, 0.3, 0.5], [2093, 0.3, 0.7, 0.5]],
+  // paso por la LTV (empieza la limitación): dos golpes graves iguales y uno más bajo
+  ltv_paso: [[784, 0, 0.22, 0.6], [784, 0.16, 0.22, 0.6], [587, 0.34, 0.6, 0.6]],
+  // residuo libre (la cola ha pasado): campanas alternas, como un «vía libre»
+  residuo: [[1319, 0, 0.25, 0.5], [1760, 0.12, 0.25, 0.5], [1319, 0.24, 0.25, 0.5], [1760, 0.36, 0.6, 0.55]],
+  // cambio de canal de radio: «pi-pi-piii» en la misma nota y una más alta, larga
+  radio: [[988, 0, 0.12, 0.5], [988, 0.14, 0.12, 0.5], [1480, 0.3, 0.55, 0.5]],
 };
 TONOS.prueba = TONOS.aviso;
+/** Tonos que se oyen en «Escuchar los avisos», con su nombre. */
+export const MUESTRA = [["ltv_aviso", "Aproximación a LTV"], ["ltv_paso", "Paso por LTV"], ["radio", "Cambio de canal de radio"], ["residuo", "Residuo libre"], ["aviso", "Otros avisos"]];
 
 /** Toca un tono (no suena en silencio). Devuelve su duración en s. */
 export function tono(tipo = "prueba") {
