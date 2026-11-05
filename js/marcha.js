@@ -11,19 +11,25 @@ const $ = (id) => document.getElementById(id);
 // Alto del dibujo (unidades del SVG). 440 en pantallas 16:9; en el iPad (más alto en proporción)
 // crece para que las columnas laterales no se coman el historial: hay sitio para más avisos y
 // la línea de tiempo se alarga.
-let H = 440;
+let H = 440, hecha = false;
+// Anchos de las columnas (unidades del SVG): la de la velocidad y los avisos, más ancha; la de la
+// línea de tiempo, más estrecha (pedido por Joan). El historial del centro sigue con su parte.
+export const WL = 345, XR = 596, WR = 255;
+const FL = 0.4; // parte del ancho de la pantalla para la columna izquierda
 export const altoDibujo = () => H;
 export function ajustarDibujo(anchoPx, altoPx, apilado) {
-  const nuevo = apilado ? 440 : Math.max(440, Math.round((301.5 * altoPx) / (0.35 * anchoPx) + 6.5));
-  if (nuevo === H) return false;
+  const nuevo = apilado ? 440 : Math.max(440, Math.round(((WL + 1.5) * altoPx) / (FL * anchoPx) + 6.5));
+  if (nuevo === H && hecha) return false;
   H = nuevo;
-  for (const [id, x] of [["sa", 3.25], ["sc", 595.25]]) {
+  hecha = true;
+  for (const [id, x, w] of [["sa", 3.25, WL + 1.5], ["sc", XR - 0.75, WR + 1.5]]) {
     const s = document.getElementById(id);
-    s.setAttribute("viewBox", `${x} 3.25 301.5 ${H - 6.5}`);
-    s.style.aspectRatio = `301.5 / ${H - 6.5}`;
+    s.setAttribute("viewBox", `${x} 3.25 ${w} ${H - 6.5}`);
+    s.style.aspectRatio = `${w} / ${H - 6.5}`;
   }
   return true;
 }
+const CX = 4 + WL / 2, DER = 4 + WL - 10, XD = XR + WR - 6;
 
 // Escala de la línea de tiempo: más espacio para lo cercano.
 const K = [[0, 0], [500, 0.36], [1000, 0.62], [2000, 0.85], [3000, 1]];
@@ -118,7 +124,7 @@ function cuadroDesvio(ruta, pos, eta) {
   const v = valorDesvio(ruta, pos, eta);
   if (!v) return "";
   const [txt, color] = v;
-  return `<text x="886" y="${H - 15}" font-size="15" font-weight="800" text-anchor="end" fill="${color}">${txt}</text>`;
+  return `<text x="${XR + WR - 10}" y="${H - 15}" font-size="15" font-weight="800" text-anchor="end" fill="${color}">${txt}</text>`;
 }
 
 // Botón «Residuo» de la tablet, abajo a la izquierda (x, y, ancho, alto en el SVG).
@@ -143,62 +149,62 @@ export function pintarMarcha(ruta, pos, { desvio: conDesvio = false, residuo = n
   const lt = tramo?.fuente === "ltv";
   const nx = ruta.siguiente(d);
   let s = `<rect width="900" height="${H}" fill="var(--bg)"/>`;
-  for (const [x, y, w, h] of [[4, 4, 300, H - 8], [596, 4, 300, H - 48], [596, H - 38, 300, 34]])
+  for (const [x, y, w, h] of [[4, 4, WL, H - 8], [XR, 4, WR, H - 48], [XR, H - 38, WR, 34]])
     s += `<rect x="${x}" y="${y}" width="${w}" height="${h}" rx="6" fill="none" stroke="var(--ln)" stroke-width="1.5"/>`;
   // Velocidad
-  if (lt) s += `<g transform="translate(252 10) scale(.5)">${forma(pic("ltv") || {}, { v: vp })}</g><text x="246" y="27" font-size="13" font-weight="700" text-anchor="end" fill="var(--lt)">LTV</text>`;
+  if (lt) s += `<g transform="translate(${WL - 48} 10) scale(.5)">${forma(pic("ltv") || {}, { v: vp })}</g><text x="${WL - 54}" y="27" font-size="13" font-weight="700" text-anchor="end" fill="var(--lt)">LTV</text>`;
   if (tramo?.revisar) s += `<rect x="14" y="12" width="96" height="20" rx="5" fill="none" stroke="var(--dn)" stroke-dasharray="3 2"/><text x="62" y="26" font-size="12" font-weight="800" text-anchor="middle" fill="var(--dn)">A REVISAR</text>`;
   s += vp != null
-    ? `<text x="154" y="176" font-size="158" font-weight="700" text-anchor="middle" fill="${lt ? "var(--lt)" : "var(--tx)"}">${vp}</text>`
-    : `<text x="154" y="120" font-size="26" font-weight="700" text-anchor="middle" fill="var(--gy)">Sin V Max</text><text x="154" y="148" font-size="14" text-anchor="middle" fill="var(--gy)">${ruta.p.prueba ? "ruta de prueba: sin datos de ADIF" : "la hoja no la da en este tramo"}</text>`;
-  s += vp != null ? '<text x="154" y="198" font-size="13" text-anchor="middle" fill="var(--gy)">km/h</text>' : "";
+    ? `<text x="${CX}" y="178" font-size="${String(vp).length > 2 ? 182 : 190}" font-weight="700" text-anchor="middle" fill="${lt ? "var(--lt)" : "var(--tx)"}">${vp}</text>`
+    : `<text x="${CX}" y="120" font-size="26" font-weight="700" text-anchor="middle" fill="var(--gy)">Sin V Max</text><text x="${CX}" y="148" font-size="14" text-anchor="middle" fill="var(--gy)">${ruta.p.prueba ? "ruta de prueba: sin datos de ADIF" : "la hoja no la da en este tramo"}</text>`;
+  s += vp != null ? `<text x="${CX}" y="199" font-size="13" text-anchor="middle" fill="var(--gy)">km/h</text>` : "";
   // Hueco fijo entre la velocidad y «Siguiente» para las franjas de texto (marcha a la vista,
   // limitación que se mantiene por la cola): no tapan la velocidad ni mueven lo demás.
   const vista = ruta.vistaEn?.(d);
-  if (vista) s += `<rect x="12" y="206" width="284" height="30" rx="6" fill="#ffd200"/><text x="154" y="226" font-size="15" font-weight="800" text-anchor="middle" fill="#111">MARCHA A LA VISTA · TF ${vista.numero} · ${dm((vista.fin - d) * 1000)}</text>`;
-  else if (tramo?.por_cola) s += `<rect x="12" y="206" width="284" height="30" rx="6" fill="none" stroke="var(--gy)" stroke-width="1.5"/><text x="154" y="226" font-size="14" font-weight="800" text-anchor="middle" fill="var(--tx)">HASTA QUE PASE LA COLA · ${dm((tramo.libera - d) * 1000)}</text>`;
-  s += `<line x1="14" x2="294" y1="244" y2="244" stroke="var(--ln)"/>`;
+  if (vista) s += `<rect x="12" y="206" width="${WL - 16}" height="30" rx="6" fill="#ffd200"/><text x="${CX}" y="226" font-size="15" font-weight="800" text-anchor="middle" fill="#111">MARCHA A LA VISTA · TF ${vista.numero} · ${dm((vista.fin - d) * 1000)}</text>`;
+  else if (tramo?.por_cola) s += `<rect x="12" y="206" width="${WL - 16}" height="30" rx="6" fill="none" stroke="var(--gy)" stroke-width="1.5"/><text x="${CX}" y="226" font-size="14" font-weight="800" text-anchor="middle" fill="var(--tx)">HASTA QUE PASE LA COLA · ${dm((tramo.libera - d) * 1000)}</text>`;
+  s += `<line x1="14" x2="${DER}" y1="244" y2="244" stroke="var(--ln)"/>`;
   const cola = tramo?.por_cola && nx && Math.abs(nx.pk - tramo.libera) < 1e-6;
   s += `<text x="16" y="266" font-size="13" fill="var(--gy)">Siguiente${cola ? ' · <tspan font-weight="700" fill="var(--tx)">cuando pase la cola</tspan>' : ""}</text>`;
   if (nx) {
     const m = (nx.pk - d) * 1000, baja = vp != null && nx.v < vp, c = baja ? "var(--dn)" : "var(--up)";
-    s += `<text x="16" y="306" font-size="40" font-weight="700" fill="${c}">${baja ? "▼ " : "▲ "}${nx.v}</text><text x="294" y="306" font-size="30" font-weight="700" text-anchor="end" fill="var(--tx)">${dm(m)}</text>`;
-    s += `<rect x="16" y="316" width="278" height="5" rx="2" fill="var(--blu2)"/><rect x="16" y="316" width="${278 * (1 - Math.min(m, 3000) / 3000)}" height="5" rx="2" fill="${c}"/>`;
+    s += `<text x="16" y="308" font-size="46" font-weight="700" fill="${c}">${baja ? "▼ " : "▲ "}${nx.v}</text><text x="${DER}" y="308" font-size="34" font-weight="700" text-anchor="end" fill="var(--tx)">${dm(m)}</text>`;
+    s += `<rect x="16" y="318" width="${WL - 22}" height="5" rx="2" fill="var(--blu2)"/><rect x="16" y="318" width="${(WL - 22) * (1 - Math.min(m, 3000) / 3000)}" height="5" rx="2" fill="${c}"/>`;
   } else s += `<text x="16" y="302" font-size="24" font-weight="700" fill="var(--gy)">Sin más cambios</text>`;
   // Avisos
   const ev = ruta.proximos(d, alcance);
   if (!ev.length) s += `<text x="16" y="358" font-size="13" fill="var(--gy)">Sin avisos próximos</text>`;
   const reserva = residuo ? 64 : 0;
-  ev.slice(0, Math.max(residuo ? 1 : 2, Math.floor((H - 8 - 336 - reserva) / 58))).forEach((e, i) => {
-    const k = picDe(e) || {}, y = 336 + i * 58, [tit, pk] = tituloPk(ruta, e), num = numeroGrande(e), [t, at] = ajustar(tit, num ? 180 : 230, 26);
-    s += `<rect x="10" y="${y}" width="288" height="50" rx="6" fill="none" stroke="${esc(k.borde || "var(--ln)")}" stroke-width="${i ? 1.5 : 2.5}"${e.estado === "revisar" ? ' stroke-dasharray="5 3"' : ""}/>`;
-    s += `<g transform="translate(15 ${y + 7}) scale(.75)">${forma(k, e.datos)}</g><text x="58" y="${y + 21}" font-size="14" font-weight="700" fill="var(--tx)"${at}>${t}</text>`;
-    s += linea2(e, 58, y + 41, 14, `${pk ? pk + " · " : ""}a `, dm((e.pk_acum - d) * 1000), 294);
-    if (num) s += `<text x="290" y="${y + 36}" font-size="30" font-weight="800" text-anchor="end" fill="${esc(k.color || "var(--tx)")}">${esc(num)}</text>`;
+  ev.slice(0, Math.max(residuo ? 1 : 2, Math.floor((H - 8 - 336 - reserva) / 62))).forEach((e, i) => {
+    const k = picDe(e) || {}, y = 336 + i * 62, [tit, pk] = tituloPk(ruta, e), num = numeroGrande(e), [t, at] = ajustar(tit, num ? WL - 130 : WL - 74, 30);
+    s += `<rect x="10" y="${y}" width="${WL - 12}" height="55" rx="6" fill="none" stroke="${esc(k.borde || "var(--ln)")}" stroke-width="${i ? 1.5 : 2.5}"${e.estado === "revisar" ? ' stroke-dasharray="5 3"' : ""}/>`;
+    s += `<g transform="translate(15 ${y + 8}) scale(.8)">${forma(k, e.datos)}</g><text x="60" y="${y + 23}" font-size="16" font-weight="700" fill="var(--tx)"${at}>${t}</text>`;
+    s += linea2(e, 60, y + 45, 15, `${pk ? pk + " · " : ""}a `, dm((e.pk_acum - d) * 1000), DER);
+    if (num) s += `<text x="${WL - 6}" y="${y + 40}" font-size="34" font-weight="800" text-anchor="end" fill="${esc(k.color || "var(--tx)")}">${esc(num)}</text>`;
   });
-  if (residuo) s += botonResiduo(residuo, 10, H - 66, 288, 54);
+  if (residuo) s += botonResiduo(residuo, 10, H - 66, WL - 12, 54);
   // Línea de tiempo
   for (const m of [0, 500, 1000, 2000, 3000])
-    s += `<line x1="630" x2="890" y1="${Y(m)}" y2="${Y(m)}" stroke="var(--gy)" opacity=".35" stroke-dasharray="3 4"/><text x="625" y="${Y(m) + 4}" font-size="10" text-anchor="end" fill="var(--gy)">${m}</text>`;
-  s += `<text x="890" y="22" font-size="10" font-weight="700" letter-spacing=".06em" text-anchor="end" fill="${pos.fiable ? "var(--gy)" : "var(--lt)"}">${esc(pos.etiqueta || (pos.fiable ? MODO_TXT[pos.modo] || "" : "POSICIÓN NO FIABLE"))}</text>`;
+    s += `<line x1="630" x2="${XD}" y1="${Y(m)}" y2="${Y(m)}" stroke="var(--gy)" opacity=".35" stroke-dasharray="3 4"/><text x="625" y="${Y(m) + 4}" font-size="10" text-anchor="end" fill="var(--gy)">${m}</text>`;
+  s += `<text x="${XD}" y="22" font-size="10" font-weight="700" letter-spacing=".06em" text-anchor="end" fill="${pos.fiable ? "var(--gy)" : "var(--lt)"}">${esc(pos.etiqueta || (pos.fiable ? MODO_TXT[pos.modo] || "" : "POSICIÓN NO FIABLE"))}</text>`;
   s += `<line x1="644" x2="644" y1="40" y2="${H - 60}" stroke="var(--gy)" stroke-width="3" stroke-linecap="round"/>`;
   let pv = 999, fondo = "", frente = "";
   for (const e of ev) {
-    const k = picDe(e) || {}, [tit, pk] = tituloPk(ruta, e), num = numeroGrande(e), [t, at] = ajustar(num ? `${tit} ${num}` : tit, 221, 30), m = (e.pk_acum - d) * 1000, y = Y(m), ty = Math.min(y, pv - 38);
+    const k = picDe(e) || {}, [tit, pk] = tituloPk(ruta, e), num = numeroGrande(e), [t, at] = ajustar(num ? `${tit} ${num}` : tit, WR - 79, 30), m = (e.pk_acum - d) * 1000, y = Y(m), ty = Math.min(y, pv - 38);
     pv = ty;
     if (ty < 48) continue;
     fondo += `<circle cx="644" cy="${y}" r="3.5" fill="${esc(k.borde || "var(--gy)")}"/><line x1="644" x2="644" y1="${y}" y2="${ty}" stroke="${esc(k.borde || "var(--gy)")}" stroke-width="2"/>`;
     frente += `<g transform="translate(629 ${ty - 15}) scale(.625)">${forma(k, e.datos)}</g><text x="667" y="${ty - 1}" font-size="12" font-weight="700" fill="var(--tx)"${at}>${t}</text>`;
-    frente += linea2(e, 667, ty + 14, 12, pk ? pk + " · " : "", dm(m), 890);
+    frente += linea2(e, 667, ty + 14, 12, pk ? pk + " · " : "", dm(m), XD);
   }
   s += fondo + frente;
   s += `<polygon points="644,${H - 72} 634,${H - 52} 654,${H - 52}" fill="var(--yl)"/>`;
   const eta = ruta.eta(d);
   const dsv = conDesvio ? cuadroDesvio(ruta, pos, eta) : "";
-  s += `<rect x="602" y="${H - 33}" width="130" height="24" fill="var(--disc)"/><text x="667" y="${H - 15}" font-size="16" font-weight="700" text-anchor="middle" fill="var(--dt)">${miles(d * 1000)} m</text>`;
+  s += `<rect x="602" y="${H - 33}" width="112" height="24" fill="var(--disc)"/><text x="658" y="${H - 15}" font-size="16" font-weight="700" text-anchor="middle" fill="var(--dt)">${miles(d * 1000)} m</text>`;
   s += dsv
-    ? `<text x="738" y="${H - 15}" font-size="15" fill="var(--tx)">${eta == null ? "--:--" : hms(eta).slice(0, 5)}</text>` + dsv
-    : `<text x="814" y="${H - 15}" font-size="16" text-anchor="middle" fill="var(--tx)">${eta == null ? "--:--:--" : hms(eta)}</text>`;
+    ? `<text x="720" y="${H - 15}" font-size="15" fill="var(--tx)">${eta == null ? "--:--" : hms(eta).slice(0, 5)}</text>` + dsv
+    : `<text x="${(714 + XD) / 2}" y="${H - 15}" font-size="16" text-anchor="middle" fill="var(--tx)">${eta == null ? "--:--:--" : hms(eta)}</text>`;
   $("sa").innerHTML = s;
   $("sc").innerHTML = s;
   pintarHistorial(ruta, d);
