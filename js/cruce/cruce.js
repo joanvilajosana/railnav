@@ -71,7 +71,21 @@ function paradas(ruta, seg, a, b) {
     .map((p) => p.nombre || "?");
 }
 
-function velocidadPara(ltv, ruta) {
+// «Afecta a trenes pares/impares»: el número del tren lo dice (decisión de Joan, 05-11-2026).
+const RE_PARIDAD = /\*?\s*(?:AFECTA\s+)?(?:SOLO\s+|S[ÓO]LO\s+)?(?:A\s+)?(?:LOS\s+)?TRENES\s+(PARES|IMPARES)/i;
+const RE_PARIDAD_G = new RegExp(RE_PARIDAD.source, "gi");
+
+/** [¿afecta a este tren?, evidencia] si la LTV solo es para trenes pares o impares; null si no. */
+function paridad(ltv, ruta) {
+  const m = str(ltv.observaciones).replace(RE_SENAL, "").match(RE_PARIDAD);
+  const num = String(ruta.tren.numero || "").replace(/\D/g, "");
+  if (!m || !num) return [null, ""];
+  const par = Number(num.slice(-6)) % 2 === 0;
+  const afecta = par === (m[1].toUpperCase() === "PARES");
+  return [afecta, `«${palabras(m[0]).join(" ")}»: el tren ${ruta.tren.numero} es ${par ? "par" : "impar"}`];
+}
+
+function velocidadPara(ltv, ruta, afecta = null) {
   const vel = ltv.velocidad;
   if (vel.valor !== null) return [vel.valor, [`velocidad ${vel.valor}`], []];
   const texto = palabras(vel.texto).join(" ");
@@ -81,6 +95,7 @@ function velocidadPara(ltv, ruta) {
   const partes = {};
   for (const p of vel.compuesta) partes[p.sufijo] = p.valor;
   if (propia && propia in partes) return [partes[propia], [`velocidad «${texto}» → ${partes[propia]} (${clase})`], []];
+  if ("*" in partes && afecta) return [partes["*"], [`velocidad «${texto}» → ${partes["*"]} (el * es para este tren)`], []];
   const dudas = [];
   if ("*" in partes) dudas.push(`velocidad «${texto}»: el * remite a observaciones «${str(ltv.observaciones)}»`);
   else if (clase === null) dudas.push(`velocidad «${texto}»: no se sabe si el tren es de viajeros o mercancías`);
@@ -206,12 +221,18 @@ export function cruzarLtv(ltv, r, ruta, segs, ignorarFechas = false) {
       );
     }
   }
+  // Trenes pares o impares
+  const [afecta, evPar] = paridad(r, ruta);
+  if (afecta === false) return resultado(r.id, "NO_APLICA", [...evidencia, `${evPar}: no le afecta`]);
+  if (afecta) evidencia.push(`${evPar}: le afecta`);
   // Velocidad
-  const [v, evV, dudasV] = velocidadPara(r, ruta);
+  const [v, evV, dudasV] = velocidadPara(r, ruta, afecta);
   evidencia.push(...evV);
   dudas.push(...dudasV);
-  // Condiciones
-  if (r.observaciones && RE_CONDICION.test(r.observaciones.replace(RE_SENAL, "")) && !(r.velocidad.compuesta || []).some((p) => p.sufijo === "*"))
+  // Condiciones (la de pares o impares ya está resuelta)
+  let obs = str(r.observaciones).replace(RE_SENAL, "");
+  if (afecta) obs = obs.replace(RE_PARIDAD_G, "");
+  if (obs && RE_CONDICION.test(obs) && !(r.velocidad.compuesta || []).some((p) => p.sufijo === "*"))
     dudas.push(`condición en observaciones: «${r.observaciones}»`);
   if (fecha === null && !ignorarFechas) dudas.push("la hoja no tiene fecha: no se comprueba la vigencia");
   // Posición en la ruta

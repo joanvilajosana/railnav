@@ -14,11 +14,13 @@ const $ = (id) => document.getElementById(id);
 let H = 440, hecha = false;
 // Anchos de las columnas (unidades del SVG): la de la velocidad y los avisos, más ancha; la de la
 // línea de tiempo, más estrecha (pedido por Joan). El historial del centro sigue con su parte.
-export const WL = 345, XR = 596, WR = 255;
-const FL = 0.4; // parte del ancho de la pantalla para la columna izquierda
+// v0.18 (Joan): tres columnas iguales — velocidad y próximos, pasados, línea de tiempo.
+export const WL = 345, XR = 596, WR = 345;
+const HUECO = 8; // px entre columnas (.scr gap)
 export const altoDibujo = () => H;
 export function ajustarDibujo(anchoPx, altoPx, apilado) {
-  const nuevo = apilado ? 440 : Math.max(440, Math.round(((WL + 1.5) * altoPx) / (FL * anchoPx) + 6.5));
+  const tercio = (anchoPx - 2 * HUECO) / 3;
+  const nuevo = apilado ? 440 : Math.max(440, Math.round(((WL + 1.5) * altoPx) / tercio + 6.5));
   if (nuevo === H && hecha) return false;
   H = nuevo;
   hecha = true;
@@ -157,19 +159,20 @@ function cuadroDesvio(ruta, pos, eta) {
   return `<text x="${XR + WR - 10}" y="${H - 15}" font-size="15" font-weight="800" text-anchor="end" fill="${color}">${txt}</text>`;
 }
 
-// Botón «Residuo» de la tablet, abajo a la izquierda (x, y, ancho, alto en el SVG).
-function botonResiduo(res, x, y, w, h) {
+// Botón «Residuo»: abajo del cuadro de avisos pasados (tablet y teléfono). Es un elemento fijo al
+// que solo se le cambia el texto: si se rehiciera en cada fotograma, desaparecería bajo el dedo.
+function pintarResiduo(res) {
+  const b = $("hist-res");
+  if (!b) return;
+  b.hidden = !res;
+  if (!res) return;
   const act = res.restante != null;
-  let s = `<g data-residuo="1" style="cursor:pointer">`;
-  s += `<rect x="${x}" y="${y}" width="${w}" height="${h}" rx="8" fill="${act ? "var(--pn)" : "transparent"}" stroke="${act || res.libre ? "var(--tx)" : "var(--ln)"}" stroke-width="${act ? 2.5 : 1.5}"/>`;
-  if (act) {
-    const hecho = 1 - res.restante / res.metros;
-    s += `<rect x="${x + 2}" y="${y + h - 7}" width="${(w - 4) * hecho}" height="5" rx="2" fill="var(--up)"/>`;
-  }
-  s += `<text x="${x + 14}" y="${y + h / 2 + 6}" font-size="16" font-weight="800" letter-spacing=".04em" fill="var(--tx)">RESIDUO</text>`;
+  const cls = "res-b" + (act ? " on" : res.libre ? " libre" : "");
+  if (b.className !== cls) b.className = cls;
   const txt = act ? `${miles(res.restante)} m` : res.libre ? "LIBRE" : `${miles(res.metros)} m`;
-  s += `<text x="${x + w - 14}" y="${y + h / 2 + (act ? 9 : 6)}" font-size="${act ? 26 : 16}" font-weight="700" text-anchor="end" fill="${act ? "var(--tx)" : res.libre ? "var(--up)" : "var(--gy)"}">${txt}</text>`;
-  return s + "</g>";
+  const v = b.querySelector("b");
+  if (v.textContent !== txt) v.textContent = txt;
+  b.style.setProperty("--p", act ? (100 * (1 - res.restante / res.metros)).toFixed(1) + "%" : "0%");
 }
 
 export function pintarMarcha(ruta, pos, { desvio: conDesvio = false, residuo = null } = {}) {
@@ -178,7 +181,7 @@ export function pintarMarcha(ruta, pos, { desvio: conDesvio = false, residuo = n
   const vp = tramo?.v ?? null;
   const lt = tramo?.fuente === "ltv";
   const nx = ruta.siguiente(d);
-  let s = `<rect width="900" height="${H}" fill="var(--bg)"/>`;
+  let s = `<rect width="${XR + WR + 10}" height="${H}" fill="var(--bg)"/>`;
   for (const [x, y, w, h] of [[4, 4, WL, H - 8], [XR, 4, WR, H - 48], [XR, H - 38, WR, 34]])
     s += `<rect x="${x}" y="${y}" width="${w}" height="${h}" rx="6" fill="none" stroke="var(--ln)" stroke-width="1.5"/>`;
   // Velocidad
@@ -201,18 +204,18 @@ export function pintarMarcha(ruta, pos, { desvio: conDesvio = false, residuo = n
     s += `<text x="16" y="308" font-size="46" font-weight="700" fill="${c}">${baja ? "▼ " : "▲ "}${nx.v}</text><text x="${DER}" y="308" font-size="34" font-weight="700" text-anchor="end" fill="var(--tx)">${dm(m)}</text>`;
     s += `<rect x="16" y="318" width="${WL - 22}" height="5" rx="2" fill="var(--blu2)"/><rect x="16" y="318" width="${(WL - 22) * (1 - Math.min(m, 3000) / 3000)}" height="5" rx="2" fill="${c}"/>`;
   } else s += `<text x="16" y="302" font-size="24" font-weight="700" fill="var(--gy)">Sin más cambios</text>`;
-  // Avisos
+  // Avisos próximos (el residuo va abajo de los pasados)
   const ev = ruta.proximos(d, alcance);
-  if (!ev.length) s += `<text x="16" y="358" font-size="13" fill="var(--gy)">Sin avisos próximos</text>`;
-  const reserva = residuo ? 64 : 0;
-  ev.slice(0, Math.max(residuo ? 1 : 2, Math.floor((H - 8 - 336 - reserva) / 62))).forEach((e, i) => {
-    const k = picDe(e) || {}, y = 336 + i * 62, [tit, pk] = tituloPk(ruta, e), num = numeroGrande(e), [t, at] = ajustar(tit, num ? WL - 130 : WL - 74, 30);
+  s += `<text x="14" y="343" font-size="11" font-weight="800" letter-spacing=".08em" fill="var(--gy)">PRÓXIMOS</text>`;
+  if (!ev.length) s += `<text x="16" y="366" font-size="13" fill="var(--gy)">Ninguno en los próximos 3 km</text>`;
+  ev.slice(0, Math.max(1, Math.floor((H - 8 - 350) / 62))).forEach((e, i) => {
+    const k = picDe(e) || {}, y = 350 + i * 62, [tit, pk] = tituloPk(ruta, e), num = numeroGrande(e), [t, at] = ajustar(tit, num ? WL - 130 : WL - 74, 30);
     s += `<rect x="10" y="${y}" width="${WL - 12}" height="55" rx="6" fill="none" stroke="${esc(k.borde || "var(--ln)")}" stroke-width="${i ? 1.5 : 2.5}"${e.estado === "revisar" ? ' stroke-dasharray="5 3"' : ""}/>`;
     s += `<g transform="translate(15 ${y + 8}) scale(.8)">${forma(k, e.datos)}</g><text x="60" y="${y + 23}" font-size="16" font-weight="700" fill="var(--tx)"${at}>${t}</text>`;
     s += linea2(e, 60, y + 45, 15, `${pk ? pk + " · " : ""}a `, dm((e.pk_acum - d) * 1000), DER);
     if (num) s += `<text x="${WL - 6}" y="${y + 40}" font-size="34" font-weight="800" text-anchor="end" fill="${esc(k.color || "var(--tx)")}">${esc(num)}</text>`;
   });
-  if (residuo) s += botonResiduo(residuo, 10, H - 66, WL - 12, 54);
+  pintarResiduo(residuo);
   // Línea de tiempo
   for (const m of [0, 500, 1000, 2000, 3000])
     s += `<line x1="630" x2="${XD}" y1="${Y(m)}" y2="${Y(m)}" stroke="var(--gy)" opacity=".35" stroke-dasharray="3 4"/><text x="625" y="${Y(m) + 4}" font-size="10" text-anchor="end" fill="var(--gy)">${m}</text>`;
@@ -251,7 +254,7 @@ function pintarHistorial(ruta, d) {
   hN = H.length;
   hT = ahora;
   hRuta = ruta;
-  $("hist").innerHTML = H.length
+  $("hist-l").innerHTML = H.length
     ? H.map((e) => {
         const k = picDe(e), [tit, pk] = tituloPk(ruta, e), num = numeroGrande(e);
         return `<div class="hr${e.estado === "revisar" ? " rv" : ""}">${icono(k, 26, e.datos)}<div><b>${esc(tit)}</b><small>${pk ? pk + " · " : ""}hace ${dm((d - e.pk_acum) * 1000)}${e.datos?.via ? " · " + cuadroViaHtml(e.datos.via) : ""}${e.estado === "revisar" ? ' · <span class="rvchip">A REVISAR</span>' : ""}</small></div>${num ? `<span class="hr-n" style="color:${esc(k?.color || "var(--tx)")}">${esc(num)}</span>` : ""}</div>`;
@@ -356,7 +359,7 @@ export function pintarMarchaMovil(ruta, pos, { desvio: conDesvio = false, residu
   if (!o.querySelector(".odo-km"))
     o.innerHTML =
       `<span class="odo-km"></span><span class="odo-h"></span><span class="odo-d"></span>` +
-      `<button class="odo-res" data-residuo="1" aria-label="Residuo: cuenta atrás de la longitud del tren">Residuo <b></b></button><span class="odo-m"></span>`;
+      `<span class="odo-m"></span>`;
   texto_(o.querySelector(".odo-km"), `${miles(d * 1000)} m`);
   texto_(o.querySelector(".odo-h"), eta == null ? "--:--:--" : hms(eta));
   const od = o.querySelector(".odo-d");
@@ -365,12 +368,7 @@ export function pintarMarchaMovil(ruta, pos, { desvio: conDesvio = false, residu
     texto_(od, dsv[0]);
     od.style.color = dsv[1];
   }
-  const br = o.querySelector(".odo-res");
-  br.hidden = !residuo;
-  if (residuo) {
-    br.className = "odo-res" + (residuo.restante != null ? " on" : residuo.libre ? " libre" : "");
-    texto_(br.querySelector("b"), residuo.restante != null ? miles(residuo.restante) + " m" : residuo.libre ? "LIBRE" : miles(residuo.metros) + " m");
-  }
+  pintarResiduo(residuo);
   const om = o.querySelector(".odo-m");
   om.className = "odo-m" + (pos.fiable ? "" : " mal");
   texto_(om, modo);

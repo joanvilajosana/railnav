@@ -27,8 +27,9 @@ const CLASE = { mercancias: "Mercancías", viajeros: "Viajeros" };
 export function pintarDatos(ruta, d) {
   const p = ruta.p, t = ruta.tren;
   const dl = p.dltv;
-  const ap = dl ? dl.ltv.filter((x) => x.res === "APLICA").length : 0;
-  const rv = dl ? dl.ltv.length - ap : 0;
+  const dec = (x) => ruta.revision?.(x.cod);
+  const ap = dl ? dl.ltv.filter((x) => x.res === "APLICA" || dec(x)?.decision === "aplica").length : 0;
+  const rv = dl ? dl.ltv.filter((x) => x.res !== "APLICA" && !dec(x)).length : 0;
   const tec = ruta.eventos.filter((e) => e.tipo === "parada_tecnica");
   const tile = (ico, lab, val, tit) => `<div class="tt" title="${esc(tit || lab)}">${ico}<div><b>${lab}</b><span>${val}</span></div></div>`;
   const radio0 = p.radios?.[0]?.[1];
@@ -45,7 +46,7 @@ export function pintarDatos(ruta, d) {
   $("kv").innerHTML =
     `<div class="tr-cab"><span class="tr-ico">${lineal("tren", 30)}</span><div class="tr-txt"><div class="tr-num">${esc(t.numero)}${t.clase ? ` <span class="tr-cl">${CLASE[t.clase] || esc(t.clase)}</span>` : ""}</div>` +
     `<div class="tr-ruta">${esc(t.origen || "?")} <span>→</span> ${esc(t.destino || "?")}</div><div class="tr-res">${esc(resumen)}</div></div>` +
-    `<button class="fi-tg" aria-expanded="${!plegada}" aria-label="${plegada ? "Ver la ficha completa" : "Plegar la ficha"}">${plegada ? "Ficha ▾" : "Plegar ▴"}</button></div><div class="tr-tiles">` +
+    `<button class="fi-tg" aria-expanded="${!plegada}" aria-label="${plegada ? "Ver la ficha completa" : "Plegar la ficha"}">${plegada ? "▾" : "▴"}</button></div><div class="tr-tiles">` +
     tile(`<span class="tl">${lineal("fecha")}</span>`, "Fecha", fecha(t.fecha) || "?") +
     tile(`<span class="tl">${lineal("loco")}</span>`, "Locomotora", esc(t.locomotora || "?")) +
     tile(`<span class="tl">${lineal("peso")}</span>`, "Peso", t.masa_t ? nf(t.masa_t, 0) + " t" : "?") +
@@ -138,21 +139,29 @@ function hojaMovil(H, aqui) {
   return h + "</tbody>";
 }
 
+/** Estado de una LTV en Datos → DLTV, con la decisión del maquinista si la hay. */
+function estadoHtml(x, dec) {
+  if (dec?.decision === "aplica") return '<span class="dl-res ap">Aplica</span><span class="dl-rev">revisada</span>';
+  if (dec?.decision === "no") return '<span class="dl-res no">No aplica</span><span class="dl-rev">revisada</span>';
+  return x.res === "APLICA" ? '<span class="dl-res ap">Aplica</span>' : '<span class="dl-res rv">A revisar</span>';
+}
+
 // Teléfono: cada LTV en una tarjeta con todos sus datos.
-function dltvMovil(DL, d) {
+function dltvMovil(DL, d, dec = () => null) {
   let h = "<tbody>";
   for (const x of DL.ltv) {
     const aq = x.pkai != null && d >= Math.min(x.pkai, x.pkaf) - 1e-6 && d <= Math.max(x.pkai, x.pkaf) + 1e-6;
     const dudas = (x.ev || []).filter((e) => e.startsWith("a revisar")).map((e) => e.replace(/^a revisar:\s*/, ""));
     const dato = (lab, v) => (v ? `<span><i>${lab}</i> ${v}</span>` : "");
-    h += `<tr class="dm${aq ? " aqui" : ""}" data-a="${x.pkai ?? ""}"><td><div class="dm-g">`;
-    h += `<div class="dm-1">${x.res === "APLICA" ? '<span class="dl-res ap">Aplica</span>' : '<span class="dl-res rv">A revisar</span>'}${x.va ? " " + cuadroViaHtml(x.va, false) : ""}${x.csv ? ' <span class="cs">CSV</span>' : ""}<span class="vm dm-v">${esc(x.vel)}</span></div>`;
+    const rvx = x.res !== "APLICA", dx = dec(x);
+    h += `<tr class="dm${aq ? " aqui" : ""}${rvx ? " rvx" : ""}" data-a="${x.pkai ?? ""}"${rvx ? ` data-rev="${esc(x.cod)}"` : ""}><td><div class="dm-g">`;
+    h += `<div class="dm-1">${estadoHtml(x, dx)}${x.va ? " " + cuadroViaHtml(x.va, false) : ""}${x.csv ? ' <span class="cs">CSV</span>' : ""}<span class="vm dm-v">${esc(dx?.decision === "aplica" ? dx.v : x.vel)}</span></div>`;
     h += `<div class="dm-2">${dato("Km ruta", x.pkai != null ? `<b>${nf(x.pkai)} → ${nf(x.pkaf)}</b>` : "")}${dato("Línea", esc(x.lin || ""))}${dato("Vía", x.via ? `<b>${esc(x.via)}</b>${x.via_txt ? " " + esc(x.via_txt) : ""}` : "")}${dato("PK", `${nf(x.pki, 3)} → ${nf(x.pkf, 3)}`)}</div>`;
     if (x.tray?.length) h += `<div class="dm-t">${esc(x.tray.join(" – "))}</div>`;
     if (x.mot) h += `<div class="dm-m">${esc(x.mot)}</div>`;
     h += `<div class="dm-2">${dato("Vigencia", x.vig === "declarada" ? fecha(x.desde) + " – " + fecha(x.hasta) : "semana")}${dato("Horario", esc(x.hor || ""))}</div>`;
     if (x.obs) h += `<div class="dm-o"><i>Observaciones</i> ${esc(x.obs)}</div>`;
-    if (dudas.length) h += `<div class="dm-por">Por qué a revisar: ${esc(dudas.join(" · "))}</div>`;
+    if (dudas.length && !dx) h += `<div class="dm-por">Por qué a revisar: ${esc(dudas.join(" · "))} · <b>toca para decidir</b></div>`;
     h += `</div></td></tr>`;
   }
   return h + "</tbody>";
@@ -183,27 +192,29 @@ function pintarDltv(ruta, d) {
     $("dl").innerHTML = '<tbody><tr><td style="padding:14px">Esta ruta no tiene documento de LTV cruzado.</td></tr></tbody>';
     return;
   }
-  const ap = DL.ltv.filter((x) => x.res === "APLICA").length, rv = DL.ltv.length - ap;
+  const dec = (x) => ruta.revision?.(x.cod);
+  const ap = DL.ltv.filter((x) => x.res === "APLICA" || dec(x)?.decision === "aplica").length;
+  const rv = DL.ltv.filter((x) => x.res !== "APLICA" && !dec(x)).length;
   $("dl-cab").innerHTML =
     `<div class="dlc-1"><b>DLTV nº ${esc(DL.numero || "?")}</b><span>semana ${fecha(DL.desde)} – ${fecha(DL.hasta)}</span></div>` +
-    `<div class="dlc-2"><span class="dlc-n"><span class="dl-res ap">Aplica</span><b>${ap}</b></span><span class="dlc-n"><span class="dl-res rv">A revisar</span><b>${rv}</b></span></div>` +
-    `<div class="dlc-3">${cuadroViaHtml("vía II", false)}<span>LTV de una sola vía: aparece siempre, indicando a qué vía afecta${movil() ? "" : ". Sin fechas: vale toda la semana del DLTV"}</span></div>`;
-  if (movil()) return void ($("dl").innerHTML = dltvMovil(DL, d));
+    `<div class="dlc-2"><span class="dlc-n"><span class="dl-res ap">Aplica</span><b>${ap}</b></span><span class="dlc-n"><span class="dl-res rv">A revisar</span><b>${rv}</b></span></div>`;
+  if (movil()) return void ($("dl").innerHTML = dltvMovil(DL, d, dec));
   // Tablet: siete columnas que caben en el ancho (Joan no quiere desplazamiento lateral). Lo que
   // antes eran columnas sueltas va apilado: km de la ruta con línea y PK debajo; motivo con las
   // observaciones; las fechas (si no vale toda la semana) y el horario, bajo el estado.
-  const cols = ["Estado<small>Fechas · horario</small>", "Km ruta<small>Línea · PK del DLTV</small>", "Vía", "Veloc.", "Trayecto", "Motivo<small>Observaciones</small>"];
+  const cols = ["Estado", "Km ruta<small>Línea · PK del DLTV</small>", "Vía", "Veloc.", "Trayecto", "Motivo<small>Observaciones</small>"];
   let h = `<colgroup><col class="c-est"><col class="c-km"><col class="c-via"><col class="c-vel"><col class="c-tr"><col class="c-mot"></colgroup>`;
   h += "<thead><tr>" + cols.map((c) => `<th>${c}</th>`).join("") + "</tr></thead><tbody>";
   for (const x of DL.ltv) {
     const aq = x.pkai != null && d >= Math.min(x.pkai, x.pkaf) - 1e-6 && d <= Math.max(x.pkai, x.pkaf) + 1e-6;
     const dudas = (x.ev || []).filter((e) => e.startsWith("a revisar")).map((e) => e.replace(/^a revisar:\s*/, ""));
-    h += `<tr${aq ? ' class="aqui"' : ""} data-a="${x.pkai ?? ""}"><td>${x.res === "APLICA" ? '<span class="dl-res ap">Aplica</span>' : '<span class="dl-res rv">A revisar</span>'}${x.va ? " " + cuadroViaHtml(x.va, false) : ""}${x.vig === "declarada" ? `<small>${fecha(x.desde)} – ${fecha(x.hasta)}</small>` : ""}${x.hor ? `<small>${esc(x.hor)}</small>` : ""}</td>`;
+    const rvx = x.res !== "APLICA";
+    h += `<tr class="${aq ? "aqui" : ""}${rvx ? " rvx" : ""}" data-a="${x.pkai ?? ""}"${rvx ? ` data-rev="${esc(x.cod)}" title="Toca para revisarla"` : ""}><td>${estadoHtml(x, dec(x))}${x.va ? " " + cuadroViaHtml(x.va, false) : ""}${x.vig === "declarada" ? `<small>${fecha(x.desde)} – ${fecha(x.hasta)}</small>` : ""}${x.hor ? `<small>${esc(x.hor)}</small>` : ""}</td>`;
     h += `<td><b class="km">${x.pkai != null ? nf(x.pkai) + " → " + nf(x.pkaf) : "–"}</b><small>${x.lin ? "L " + esc(x.lin) + " · " : ""}PK ${nf(x.pki, 3)} → ${nf(x.pkf, 3)}</small></td>`;
     h += `<td title="${esc(x.via_txt || "")}"><b>${esc(x.via || "")}</b><small>${esc(x.via_txt || "")}</small></td>`;
-    h += `<td class="ce"><span class="vm">${esc(x.vel)}</span>${x.csv ? '<span class="cs">CSV</span>' : ""}</td><td>${esc((x.tray || []).join(" – "))}</td>`;
+    h += `<td class="ce"><span class="vm">${esc(dec(x)?.decision === "aplica" ? dec(x).v : x.vel)}</span>${x.csv ? '<span class="cs">CSV</span>' : ""}</td><td>${esc((x.tray || []).join(" – "))}</td>`;
     h += `<td>${esc(x.mot || "")}${x.obs ? `<small>${esc(x.obs)}</small>` : ""}</td></tr>`;
-    if (dudas.length) h += `<tr class="por${aq ? " aqui" : ""}"><td></td><td colspan="${cols.length - 1}">Por qué a revisar: ${esc(dudas.join(" · "))}</td></tr>`;
+    if (dudas.length && !dec(x)) h += `<tr class="por${aq ? " aqui" : ""} rvx" data-rev="${esc(x.cod)}"><td></td><td colspan="${cols.length - 1}">Por qué a revisar: ${esc(dudas.join(" · "))} · <b>toca para decidir</b></td></tr>`;
   }
   $("dl").innerHTML = h + "</tbody>";
 }

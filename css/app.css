@@ -850,3 +850,67 @@ html:has(body.app){background:var(--pn)}
 :root[data-disp="telefono"] .mv-prox .vac,:root[data-disp="telefono"] .hist .vac{padding:2px 4px 2px;font-size:13px}
 :root[data-disp="telefono"] .hr:last-child{margin-bottom:0}
 @media (orientation:landscape){:root[data-disp="telefono"] .scr{grid-template-rows:auto minmax(0,1fr) auto}:root[data-disp="telefono"] .mv-prox{max-height:52vh}}
+
+/* v0.18 — Marcha: tres columnas iguales (velocidad + próximos, pasados, línea de tiempo) */
+@media (min-aspect-ratio:5/4){.scr{grid-template-columns:minmax(0,1fr) minmax(0,1fr) minmax(0,1fr)}
+#sa,#sc{width:100%;height:100%;max-width:100%}}
+@media (max-aspect-ratio:5/4) and (min-aspect-ratio:4/5){.scr{grid-template-columns:1fr 1fr 1fr}}
+:root[data-disp="telefono"] .scr{grid-template-rows:auto auto minmax(132px,1fr) auto}
+:root[data-disp="telefono"] .mv-prox{max-height:40vh}
+/* Cuadro de pasados con rótulo y el botón «Residuo» abajo (tablet y teléfono) */
+.hist{display:flex;flex-direction:column}
+.hist::before{content:"PASADOS";display:block;position:sticky;top:0;z-index:1;padding:8px 10px 4px;font-size:11px;font-weight:800;letter-spacing:.08em;color:var(--gy);background:var(--bg);font-family:inherit}
+#hist-l{flex:1 0 auto}
+.res-b{position:sticky;bottom:0;z-index:1;flex:none;display:flex;align-items:center;justify-content:space-between;gap:10px;margin:6px 6px 6px;min-height:48px;padding:0 14px;border-radius:10px;border:1.5px solid var(--ln);background:linear-gradient(90deg,color-mix(in srgb,var(--up) 22%,var(--bg)) var(--p,0%),var(--bg) var(--p,0%));color:var(--gy);font:inherit;font-size:15px;font-weight:800;letter-spacing:.05em;text-transform:uppercase}
+.res-b[hidden]{display:none}
+.res-b b{color:var(--tx);font-size:18px;letter-spacing:0;text-transform:none;font-variant-numeric:tabular-nums}
+.res-b.on{border:2.5px solid var(--tx);color:var(--tx)}
+.res-b.on b{font-size:24px}
+.res-b.libre{border-color:var(--up)}
+.res-b.libre b{color:var(--up)}
+:root[data-disp="telefono"] .hist::before{padding:6px 2px 4px}
+:root[data-disp="telefono"] .res-b{margin:6px 0 0;min-height:44px}
+/* Datos: aire en el chip de la clase y en «Posición actual»; ficha solo con la flecha */
+.tr-cl{padding:3px 10px;margin-left:8px}
+#hj-aqui{padding:8px 16px;white-space:nowrap}
+.fi-tg{min-width:44px;min-height:40px;font-size:18px;line-height:1;padding:6px 12px}
+.i-rep{background:color-mix(in srgb,var(--gy) 45%,transparent)}
+/* DLTV: «+ Añadir LTV» a la derecha */
+.dl-top .ltvm-mas{margin-left:auto}
+/* Ajustes: cuadro de la longitud más grande, sin desplazamiento */
+/* (el estilo de los interruptores también caía sobre este cuadro: de ahí el cuadro pequeño y el
+   desplazamiento vertical) */
+#v-ajustes label.sw .lon-c input{width:120px;height:52px;margin:0;padding:0 8px;border:1.5px solid var(--ln);border-radius:10px;background:var(--bg);color:var(--tx);font:inherit;font-size:22px;font-weight:700;line-height:normal;text-align:center;overflow:hidden;cursor:text;transition:none;-webkit-appearance:none;appearance:none}
+#v-ajustes label.sw .lon-c input::after{content:none;display:none}
+#v-ajustes label.sw .lon-c input:focus{outline:2px solid var(--ac);outline-offset:1px}
+
+/* Revisión de LTV «a revisar»: se toca la fila y se decide en una ventana */
+.dlc tr.rvx{cursor:pointer}
+.dlc tr.rvx:hover td{background:color-mix(in srgb,var(--dn) 7%,transparent)}
+.dl-res.no{background:transparent;color:var(--gy);border:1.5px solid var(--gy)}
+.dl-rev{display:inline-block;margin-left:5px;font-size:10px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:var(--gy)}
+.modal{position:fixed;inset:0;z-index:50;display:grid;place-items:center;padding:16px;background:rgba(0,0,0,.55)}
+.modal[hidden]{display:none}
+.modal-c{width:min(560px,100%);max-height:calc(100% - 16px);overflow-y:auto;padding:18px;border-radius:16px;border:1.5px solid var(--ln);background:var(--pn);color:var(--tx);box-shadow:0 10px 40px rgba(0,0,0,.4)}
+.modal-c h2{margin:0 0 10px;font-size:20px}
+.rev-d{display:flex;flex-direction:column;gap:6px;margin-bottom:12px;font-size:15px}
+.rev-d>div{display:grid;grid-template-columns:118px minmax(0,1fr);gap:8px;overflow-wrap:anywhere}
+.rev-d i{font-style:normal;font-size:11px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:var(--gy);padding-top:3px}
+.rev-d .rev-por{display:block;padding:8px 10px;border:1.5px dashed var(--dn);border-radius:10px;color:var(--dn);font-size:14px}
+.rev-d .rev-ya{display:block;font-size:14px;color:var(--gy)}
+.rev-v{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:0 0 12px;font-weight:700}
+.rev-v[hidden]{display:none}
+.rev-v span{display:flex;align-items:center;gap:6px}
+.rev-v input{width:96px;height:48px;margin:0;padding:0 8px;border:1.5px solid var(--ln);border-radius:10px;background:var(--bg);color:var(--tx);font:inherit;font-size:22px;font-weight:700;text-align:center}
+.rev-v input.mal{border-color:var(--lt)}
+.rev-v b{color:var(--gy);font-size:14px}
+.rev-b{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.rev-b button{margin:0;min-height:52px;font-size:17px;font-weight:800;border-radius:12px}
+.rev-b #rev-si{background:var(--lt);color:#fff;border-color:var(--lt)}
+.rev-b #rev-si:disabled{opacity:.4}
+.rev-b2{display:flex;justify-content:space-between;gap:10px;margin-top:10px}
+.rev-b2 button{margin:0;min-height:44px}
+.rev-b2 #rev-quitar[hidden]{display:none}
+.rev-b2 #rev-x{margin-left:auto}
+.rev-nota{margin-top:12px;font-size:12px;color:var(--gy)}
+.dm-por b,.dlc tr.por b{color:var(--dn)}

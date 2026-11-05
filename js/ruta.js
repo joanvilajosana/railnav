@@ -40,6 +40,7 @@ export class Ruta {
     this.vmax0 = [...p.vmax].sort((a, b) => a.pk_acum_ini - b.pk_acum_ini);
     this.eventos0 = [...p.eventos].sort((a, b) => a.pk_acum - b.pk_acum);
     this.cola = 0;
+    this.revisiones = {};
     this.ponerTelefonemas([]);
     this.horario = (p.horario || []).map(([pk, h]) => [pk, minutos(h)]);
     // Horas que pasan de medianoche: se siguen contando (23:50 → 24:10).
@@ -51,6 +52,21 @@ export class Ruta {
    * Telefonemas registrados (js/telefonemas.js): sus LTV entran en la Vmax efectiva y sus
    * avisos (LTV, marcha a la vista, incidencias) en la lista de eventos.
    */
+  /**
+   * Decisiones del maquinista sobre las LTV «a revisar» (Datos → DLTV): { cod: { decision:
+   * "aplica" | "no", v } }. Las que aplican entran en la Vmax con su velocidad; las que no, se
+   * quitan de los avisos. Se guardan en el dispositivo, por ruta.
+   */
+  ponerRevisiones(r) {
+    this.revisiones = r || {};
+    this.ponerTelefonemas(this.telefonemas);
+  }
+
+  /** Decisión sobre una LTV del DLTV (por su código), o null. */
+  revision(cod) {
+    return this.revisiones?.[cod] || null;
+  }
+
   ponerTelefonemas(lista) {
     this.telefonemas = lista || [];
     const { eventos, limites, vistas, suprimidas } = efectos(lista, this.p);
@@ -75,9 +91,22 @@ export class Ruta {
         base.push(...(lims.length ? superponer(h, lims).map((x) => (x.telefonema ? { ...x, telefonema: undefined } : x)) : h));
       }
     }
-    this.vmax = superponer(base, limites);
+    // LTV revisadas a mano: las que aplican, con su velocidad; ya no quedan «a revisar».
+    const rev = this.revisiones || {}, dl = this.p.dltv?.ltv || [];
+    const revLim = dl
+      .filter((l) => rev[l.cod]?.decision === "aplica" && rev[l.cod].v && l.pkai != null && l.pkaf != null)
+      .map((l) => ({ ini: Math.min(l.pkai, l.pkaf), fin: Math.max(l.pkai, l.pkaf), v: rev[l.cod].v, id: "ltv-" + l.cod }));
+    this.vmax = superponer(base, [...limites, ...revLim]);
+    if (Object.keys(rev).length) {
+      const pendientes = dl.filter((l) => l.res !== "APLICA" && !rev[l.cod]);
+      const pisa = (l, t) => l.pkai == null || (Math.min(l.pkai, l.pkaf) < t.pk_acum_fin && Math.max(l.pkai, l.pkaf) > t.pk_acum_ini);
+      this.vmax = this.vmax.map((t) => (t.revisar && !pendientes.some((l) => pisa(l, t)) ? { ...t, revisar: false } : t));
+    }
+    const decidida = (e) => (e.datos?.ltv?.startsWith("ltv-") ? rev[e.datos.ltv.slice(4)] : null);
     const sup = (e) => e.datos?.ltv && suprimidas.has(e.datos.ltv);
     const propios = this.eventos0
+      .filter((e) => decidida(e)?.decision !== "no")
+      .map((e) => (decidida(e)?.decision === "aplica" ? { ...e, estado: "ok", datos: { ...e.datos, v: decidida(e).v } } : e))
       .filter((e) => !(sup(e) && e.tipo === "ltv_fin"))
       .map((e) =>
         sup(e) && e.tipo === "ltv_inicio"

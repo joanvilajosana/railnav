@@ -13,44 +13,24 @@
    "km": 17.7
   },
   {
-   "archivo": "tarragona-barcelona-sants.railnav.json",
-   "nombre": "Tarragona → Barcelona - Sants",
-   "km": 84.3
+   "archivo": "salou-port-aventura-tarragona.railnav.json",
+   "nombre": "Salou-Port Aventura → Tarragona",
+   "km": 10.1
   },
   {
-   "archivo": "barcelona-sants-tarragona.railnav.json",
-   "nombre": "Barcelona - Sants → Tarragona",
-   "km": 84.3
+   "archivo": "tarragona-salou-port-aventura.railnav.json",
+   "nombre": "Tarragona → Salou-Port Aventura",
+   "km": 10.1
   },
   {
-   "archivo": "reus-lleida-pirineus.railnav.json",
-   "nombre": "Reus → Lleida-Pirineus",
-   "km": 89.7
+   "archivo": "vila-seca-tortosa.railnav.json",
+   "nombre": "Vila-seca → Tortosa",
+   "km": 75.4
   },
   {
-   "archivo": "lleida-pirineus-reus.railnav.json",
-   "nombre": "Lleida-Pirineus → Reus",
-   "km": 89.7
-  },
-  {
-   "archivo": "reus-mora-la-nova.railnav.json",
-   "nombre": "Reus → Móra la Nova",
-   "km": 48.1
-  },
-  {
-   "archivo": "mora-la-nova-reus.railnav.json",
-   "nombre": "Móra la Nova → Reus",
-   "km": 48.1
-  },
-  {
-   "archivo": "tarragona-tortosa.railnav.json",
-   "nombre": "Tarragona → Tortosa",
-   "km": 84.1
-  },
-  {
-   "archivo": "tortosa-tarragona.railnav.json",
-   "nombre": "Tortosa → Tarragona",
-   "km": 84.1
+   "archivo": "tortosa-vila-seca.railnav.json",
+   "nombre": "Tortosa → Vila-seca",
+   "km": 75.4
   }
  ]
 }

@@ -66,7 +66,7 @@ const TONOS = {
 };
 TONOS.prueba = TONOS.aviso;
 /** Tonos que se oyen en «Escuchar los avisos», con su nombre. */
-export const MUESTRA = [["ltv_aviso", "Aproximación a LTV"], ["ltv_paso", "Paso por LTV"], ["radio", "Cambio de canal de radio"], ["residuo", "Residuo libre"], ["aviso", "Otros avisos"]];
+export const MUESTRA = [["ltv_aviso", "Aproximación a LTV o CSV"], ["ltv_paso", "Paso por LTV o CSV"], ["radio", "Cambio de canal de radio"], ["residuo", "Residuo libre"]];
 
 /** Toca un tono (no suena en silencio). Devuelve su duración en s. */
 export function tono(tipo = "prueba") {

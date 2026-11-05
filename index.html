@@ -40,6 +40,19 @@
   <div class="ic"><small>Bloqueo</small><b id="in-bq">—</b></div>
   <div class="ic"><small><span class="larga">Radiotelefonía</span><span class="corta">Radio</span></small><b id="in-rd">—</b></div>
 </div>
+<div id="rev" class="modal" hidden>
+ <div class="modal-c" role="dialog" aria-modal="true" aria-labelledby="rev-t">
+  <h2 id="rev-t">Revisar LTV</h2>
+  <div id="rev-d" class="rev-d"></div>
+  <label class="rev-v" id="rev-vl">Velocidad para este tren<span><input id="rev-v" type="text" inputmode="numeric" pattern="[0-9]*" maxlength="3" autocomplete="off"><b>km/h</b></span></label>
+  <div class="rev-b">
+   <button id="rev-si" class="pri">Aplica</button>
+   <button id="rev-no">No aplica</button>
+  </div>
+  <div class="rev-b2"><button id="rev-quitar">Volver a «a revisar»</button><button id="rev-x">Cancelar</button></div>
+  <div class="rev-nota">La decisión es tuya: se guarda en este dispositivo, solo para esta ruta. Si aplica, cuenta en la velocidad máxima de la marcha; si no, deja de avisarse.</div>
+ </div>
+</div>
 <div id="pop-vol" class="pop pop-vol" role="dialog" aria-label="Volumen" hidden>
   <b id="vol-n" class="vol-n"></b>
   <div id="vol" class="vslider" role="slider" tabindex="0" aria-label="Volumen" aria-orientation="vertical" aria-valuemin="0" aria-valuemax="100"><i class="vs-fill"></i><i class="vs-thumb"></i></div>
@@ -50,7 +63,7 @@
   <div id="aviso-ruta" class="aviso-ruta" role="alert" hidden>Esta ruta se generó con una versión anterior de RailNav y sus velocidades pueden ir desplazadas una fila. <b>Vuelve a generarla</b> desde los PDF en Ajustes.</div>
   <div class="scr">
    <svg id="sa" viewBox="3.25 3.25 346.5 433.5" aria-label="Velocidad y avisos"></svg>
-   <div class="hist" id="hist" aria-label="Historial"></div>
+   <div class="hist" id="hist" aria-label="Avisos pasados"><div id="hist-l"></div><button id="hist-res" class="res-b" data-residuo="1" aria-label="Residuo: cuenta atrás de la longitud del tren" hidden><span>Residuo</span><b></b></button></div>
    <svg id="sc" viewBox="595.25 3.25 256.5 433.5" aria-label="Línea de tiempo: arrastra para mover el tren"></svg>
    <!-- Teléfono: los mismos datos en piezas que se leen a ese tamaño -->
    <div id="mv-vel" class="mv-vel" aria-label="Velocidad"></div>
@@ -71,13 +84,13 @@
  <div id="v-datos" hidden>
   <div class="pn"><div id="kv" class="ficha"></div></div>
   <div class="pn">
-   <div class="hj-top"><div class="tabs" id="tabs"><button data-t="hoja" class="on">Hoja de ruta</button><button data-t="dltv">DLTV</button></div><button id="hj-aqui"><span class="t-larga">Ir a la posición actual</span><span class="t-corta">Posición actual</span></button></div>
+   <div class="hj-top"><div class="tabs" id="tabs"><button data-t="hoja" class="on">Hoja de ruta</button><button data-t="dltv">DLTV</button></div><button id="hj-aqui">Posición actual</button></div>
    <div id="t-hoja">
-    <div class="hj-ley"><span><i style="background:#28A0FF"></i>Marcado en azul en la hoja (CSV)</span><span><i class="i-aqui"></i>Posición actual</span><span>Gris claro: mismo valor que la fila anterior (celda combinada)</span></div>
+    <div class="hj-ley"><span><i style="background:#28A0FF"></i>CSV</span><span><i class="i-aqui"></i>Posición actual</span><span><i class="i-rep"></i>Celda combinada</span></div>
     <div class="hj-w" id="hj-w"><table id="tb" class="hj"></table></div>
    </div>
    <div id="t-dltv" hidden>
-    <div class="dl-top"><button class="ltvm-mas" data-ltvman="nueva">+ Añadir LTV</button><div class="hj-ley" id="dl-cab"></div></div>
+    <div class="dl-top"><div class="hj-ley" id="dl-cab"></div><button class="ltvm-mas" data-ltvman="nueva">+ Añadir LTV</button></div>
     <div id="dl-man"></div>
     <div class="hj-w" id="dl-w"><table id="dl" class="hj dlc"></table></div>
    </div>
@@ -132,16 +145,10 @@
   </section>
   <section class="pn aj">
    <h2 data-i="campana">Durante la marcha</h2>
-   <div class="seg-t">Avisos sonoros</div>
-   <div class="seg" role="radiogroup" aria-label="Avisos sonoros">
-    <label><input type="radio" name="sonar" value="no">No</label>
-    <label><input type="radio" name="sonar" value="urgentes">Urgentes</label>
-    <label><input type="radio" name="sonar" value="todos">Todos</label>
-   </div>
-   <div id="desc-sonar" class="seg-desc"></div>
+   <label class="sw"><span>Avisos sonoros<small id="desc-sonar"></small></span><input type="checkbox" id="op-sonar" role="switch"></label>
    <button id="b-probar-aviso">Escuchar los avisos</button>
    <label class="sw"><span>Adelanto o retraso<small>Respecto al horario de la hoja</small></span><input type="checkbox" id="op-desvio" role="switch"></label>
-   <label class="sw lon"><span>Longitud del tren<small id="desc-longitud"></small></span><span class="lon-c"><input type="number" id="op-longitud" inputmode="numeric" min="0" max="2000" step="5" placeholder="0" aria-label="Longitud del tren en metros"><b>m</b></span></label>
+   <label class="sw lon"><span>Longitud del tren<small id="desc-longitud"></small></span><span class="lon-c"><input type="text" id="op-longitud" inputmode="numeric" pattern="[0-9]*" maxlength="4" autocomplete="off" placeholder="0" aria-label="Longitud del tren en metros"><b>m</b></span></label>
   </section>
   <section class="pn aj">
    <h2 data-i="pantalla">Pantalla</h2>

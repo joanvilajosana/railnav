@@ -260,6 +260,7 @@ const dmTf = (km) => (km >= 1 ? `${km.toFixed(1).replace(".", ",")} km` : `${Mat
 function abrirFormTf(t = null, { manual = false } = {}) {
   manual = manual || !!t?.manual;
   $("tf-form").dataset.manual = manual ? "1" : "";
+  $("bk-tf").textContent = manual ? "← DLTV" : "← Marcha";
   $("tf-titulo").textContent = manual ? (t ? "Editar LTV añadida a mano" : "Añadir una LTV a mano") : "";
   $("tf-titulo").hidden = !manual;
   const hoy = tfs.filter((x) => !x.manual && x.fecha === new Date().toISOString().slice(0, 10));
@@ -302,7 +303,85 @@ function cerrarFormTf() {
   $("tf-nuevo").hidden = false;
   $("tf-form").dataset.manual = "";
   document.activeElement?.blur?.();
-  if (manual) mostrar("datos");
+  if (manual) volverADltv();
+}
+
+// ---------- revisión de LTV «a revisar» (Datos → DLTV) ----------
+let revCod = null;
+const claveRev = () => "revision." + ruta.id;
+
+function abrirRevision(cod) {
+  const x = (ruta?.p.dltv?.ltv || []).find((l) => l.cod === cod);
+  if (!x) return;
+  revCod = cod;
+  const dec = ruta.revision(cod);
+  const dudas = (x.ev || []).filter((e) => e.startsWith("a revisar")).map((e) => e.replace(/^a revisar:\s*/, ""));
+  const fila = (lab, v) => (v ? `<div><i>${lab}</i><span>${v}</span></div>` : "");
+  const nf1 = (v) => String(v).replace(".", ","), pk3 = (v) => (v == null ? "?" : Number(v).toFixed(3).replace(".", ","));
+  $("rev-d").innerHTML =
+    fila("Velocidad", `<b>${esc(x.vel)}</b>${x.csv ? ' <span class="cs">CSV</span>' : ""}`) +
+    fila("Km ruta", x.pkai != null ? `${nf1(x.pkai)} → ${nf1(x.pkaf)}` : "no se sabe dónde cae en la ruta") +
+    fila("Línea · PK", `${esc(x.lin || "?")} · ${pk3(x.pki)} → ${pk3(x.pkf)}`) +
+    fila("Vía", x.via ? `${esc(x.via)} ${esc(x.via_txt || "")}` : "") +
+    fila("Trayecto", esc((x.tray || []).join(" – "))) +
+    fila("Motivo", esc(x.mot || "")) +
+    fila("Observaciones", esc(x.obs || "")) +
+    fila("Tren", `${esc(ruta.tren.numero)}${ruta.tren.clase ? " · " + ({ mercancias: "Mercancías", viajeros: "Viajeros" }[ruta.tren.clase] || esc(ruta.tren.clase)) : ""}`) +
+    (dudas.length ? `<div class="rev-por">Por qué a revisar: ${esc(dudas.join(" · "))}</div>` : "") +
+    (dec ? `<div class="rev-ya">Ya revisada: <b>${dec.decision === "aplica" ? "aplica a " + dec.v + " km/h" : "no aplica"}</b></div>` : "");
+  const sinSitio = x.pkai == null;
+  $("rev-v").value = dec?.v || x.v || (String(x.vel).match(/\d+/) || [""])[0];
+  $("rev-vl").hidden = sinSitio;
+  $("rev-si").disabled = sinSitio;
+  $("rev-si").title = sinSitio ? "No se sabe dónde cae en la ruta: si aplica, añádela con «+ Añadir LTV»" : "";
+  $("rev-quitar").hidden = !dec;
+  $("rev").hidden = false;
+}
+
+function cerrarRevision() {
+  $("rev").hidden = true;
+  revCod = null;
+  document.activeElement?.blur?.();
+}
+
+function decidir(decision) {
+  if (!revCod || !ruta) return;
+  const todas = { ...prefs.leer(claveRev(), {}) };
+  if (decision === "aplica") {
+    const v = Math.round(Number($("rev-v").value));
+    if (!(v >= 5 && v <= 300)) {
+      $("rev-v").focus();
+      $("rev-v").classList.add("mal");
+      return;
+    }
+    todas[revCod] = { decision, v, fecha: new Date().toISOString() };
+  } else if (decision === "no") todas[revCod] = { decision, fecha: new Date().toISOString() };
+  else delete todas[revCod];
+  prefs.escribir(claveRev(), todas);
+  ruta.ponerRevisiones(todas);
+  cerrarRevision();
+  pintarDatos(ruta, pos.d);
+  sucio = true;
+}
+
+function iniciarRevision() {
+  $("v-datos").addEventListener("click", (e) => {
+    const r = e.target.closest("[data-rev]");
+    if (r && !e.target.closest("button")) abrirRevision(r.dataset.rev);
+  });
+  $("rev-si").onclick = () => decidir("aplica");
+  $("rev-no").onclick = () => decidir("no");
+  $("rev-quitar").onclick = () => decidir(null);
+  $("rev-x").onclick = cerrarRevision;
+  $("rev").addEventListener("click", (e) => e.target === $("rev") && cerrarRevision());
+  $("rev-v").addEventListener("input", () => $("rev-v").classList.remove("mal"));
+}
+
+/** Desde el formulario de una LTV a mano se vuelve a Datos → DLTV, no a la marcha. */
+function volverADltv() {
+  $("bk-tf").textContent = "← Marcha";
+  mostrar("datos");
+  mostrarPestana("dltv");
 }
 
 async function guardarTf(ev) {
@@ -396,8 +475,17 @@ function iniciarLtvManual() {
 
 function iniciarTelefonemas() {
   iniciarLtvManual();
+  iniciarRevision();
   $("m-tf").onclick = () => mostrar(vista === "tf" ? "marcha" : "tf");
-  $("bk-tf").onclick = () => mostrar("marcha");
+  $("bk-tf").onclick = () => {
+    if ($("tf-form").dataset.manual === "1") {
+      $("tf-form").hidden = true;
+      $("tf-nuevo").hidden = false;
+      $("tf-form").dataset.manual = "";
+      return volverADltv();
+    }
+    mostrar("marcha");
+  };
   $("tf-nuevo").onclick = () => abrirFormTf();
   $("tf-cancelar").onclick = cerrarFormTf;
   $("tf-form").onsubmit = guardarTf;
@@ -450,6 +538,7 @@ async function abrir(paquete, guardarla = true) {
   ruta.ponerLongitud(prefs.leer("longitud", 0));
   tfs = await telefonemas.deRuta(ruta.id).catch(() => []);
   ruta.ponerTelefonemas(tfs);
+  ruta.ponerRevisiones(prefs.leer("revision." + ruta.id, {}));
   pintarBotonTf();
   $("aviso-ruta").hidden = !obsoleta(paquete);
   via = paquete.geo?.puntos?.length ? new Via(paquete.geo) : null;
@@ -786,7 +875,7 @@ async function pintarAjustes() {
   // Solo se explica si no se puede: si está activa ya lo dice el interruptor.
   $("est-despierto").textContent = despierto.activado() && despierto.estado() === "no disponible" ? "este navegador no lo permite" : "";
   $("est-despierto").className = "estado";
-  for (const r of document.querySelectorAll("input[name=sonar]")) r.checked = r.value === prefs.leer("sonar", "urgentes");
+  $("op-sonar").checked = conSonido();
   pintarBordes();
   pintarTusDatos();
   const pp = prefs.leer("pantalla", "auto");
@@ -797,12 +886,8 @@ async function pintarAjustes() {
     simulacion: "El tren avanza solo a la velocidad máxima: marcha, pausa y velocidad, abajo en la pantalla de marcha.",
     gps: "La posición del dispositivo sobre el trazado de la vía.",
   }[pos?.modo] || "";
-  $("desc-sonar").textContent = {
-    no: "Sin sonido.",
-    urgentes: "Al acercarse a una LTV, CSV o bajada de velocidad y al pasar; también el cambio de canal de radio y el residuo libre. Cada uno con su campanita.",
-    todos: "Además, en cada aviso (estaciones, bloqueo…), con una campanita al acercarse y otra más corta al pasar.",
-  }[prefs.leer("sonar", "urgentes")];
-  $("op-desvio").checked = prefs.leer("desvio", true);
+  $("desc-sonar").textContent = conSonido() ? "LTV y CSV (al acercarse y al pasar), cambio de canal de radio y residuo libre, cada uno con su campanita" : "Sin sonido";
+  $("op-desvio").checked = prefs.leer("desvio", false);
   $("acerca").innerHTML = `RailNav v${VERSION_APP} · Desarrollado por Joan Vilajosana Quesada · Servicio no oficial ni homologado por la AESF`;
 }
 
@@ -860,12 +945,10 @@ function iniciarAjustes() {
     despierto.activar(e.target.checked);
     pintarAjustes();
   };
-  document.querySelectorAll("input[name=sonar]").forEach((r) =>
-    r.addEventListener("change", () => {
-      prefs.escribir("sonar", r.value);
-      pintarAjustes();
-    }),
-  );
+  $("op-sonar").onchange = (e) => {
+    prefs.escribir("sonar", e.target.checked ? "si" : "no");
+    pintarAjustes();
+  };
   // iconos de las secciones y nombre del archivo elegido en las casillas de carga
   for (const e of document.querySelectorAll("#v-ajustes [data-i]")) e.insertAdjacentHTML("afterbegin", linea(e.dataset.i, e.tagName === "H2" ? 22 : 26));
   for (const l of document.querySelectorAll("label.carga"))
@@ -920,24 +1003,23 @@ function iniciarAjustes() {
 
 // ---------- avisos sonoros ----------
 const avisador = new Avisador(alcance);
-const urgente = (x) => x.fase === "accion" || picDe(x.e)?.prioridad === "urgente";
-// El cambio de canal de radio suena también en «Urgentes»: hay que cambiar el canal.
-const radioYa = (x) => x.e.tipo === "cambio_radio" && x.fase === "accion";
+// Sonido sí o no (Joan, 05-11-2026): solo suenan las LTV y CSV, el cambio de canal de radio y el
+// residuo libre. Los valores antiguos («urgentes», «todos») cuentan como «sí».
+const conSonido = () => prefs.leer("sonar", "si") !== "no";
 
-/** Campanita de cada aviso: la LTV, la radio y el resto, cada una la suya. */
+/** Campanita de cada aviso (null: ese aviso no suena). */
 function sonDe(x) {
-  if (x.e.tipo === "ltv_inicio") return x.fase === "accion" ? "ltv_paso" : "ltv_aviso";
-  if (radioYa(x)) return "radio";
-  return x.fase === "accion" ? "paso" : "aviso";
+  if (x.e.tipo === "ltv_inicio" || x.e.tipo === "csv") return x.fase === "accion" ? "ltv_paso" : "ltv_aviso";
+  if (x.e.tipo === "cambio_radio" && x.fase === "accion") return "radio";
+  return null;
 }
-const ORDEN_SON = ["ltv_aviso", "aviso", "ltv_paso", "radio", "paso"];
+const ORDEN_SON = ["ltv_aviso", "ltv_paso", "radio"];
 
 function sonarAvisos() {
-  const modo = prefs.leer("sonar", "urgentes");
   const salida = avisador.revisar(ruta, pos.d);
-  if (modo === "no") return;
+  if (!conSonido()) return;
   // Una sola campanita aunque coincidan varios avisos: la más importante.
-  const sonar = salida.filter((x) => modo === "todos" || urgente(x) || radioYa(x)).map(sonDe);
+  const sonar = salida.map(sonDe);
   const son = ORDEN_SON.find((t) => sonar.includes(t));
   if (son) tono(son);
 }
@@ -1351,7 +1433,7 @@ let inercia = 0; // km/s
 
 function iniciarArrastre() {
   // Botón «Residuo» (se pinta con la pantalla de marcha: se escucha en el contenedor).
-  for (const id of ["sa", "sc", "mv-odo"])
+  for (const id of ["sa", "sc", "mv-odo", "hist"])
     $(id).addEventListener("pointerdown", (e) => {
       if (!e.target.closest?.("[data-residuo]") || !pos) return;
       e.preventDefault();
@@ -1560,7 +1642,7 @@ function bucle(t) {
     resRestante = residuo.activo ? r : null;
     if (r === 0) {
       resLibre = t;
-      tono("residuo");
+      if (conSonido()) tono("residuo");
     }
   }
   if (resLibre && t - resLibre > 3000) {
@@ -1570,14 +1652,14 @@ function bucle(t) {
   // el adelanto o retraso depende del reloj: se repinta cada segundo
   if (t - ultimoSegundo > 1000) {
     ultimoSegundo = t;
-    if (prefs.leer("desvio", true)) sucio = true;
+    if (prefs.leer("desvio", false)) sucio = true;
   }
   if (sucio && ruta) {
     sucio = false;
     estado();
     const lon = prefs.leer("longitud", 0);
     const res = lon ? { metros: lon, restante: resRestante, libre: !!resLibre } : null;
-    if (vista === "marcha") (movil() ? pintarMarchaMovil : pintarMarcha)(ruta, pos, { desvio: prefs.leer("desvio", true), residuo: res });
+    if (vista === "marcha") (movil() ? pintarMarchaMovil : pintarMarcha)(ruta, pos, { desvio: prefs.leer("desvio", false), residuo: res });
   }
   requestAnimationFrame(bucle);
 }
