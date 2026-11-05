@@ -205,7 +205,7 @@ body{-webkit-user-select:none;user-select:none;-webkit-tap-highlight-color:trans
    coinciden con la pantalla (de ahí los huecos y la barra cortada). «Panel inferior» alarga el
    cuerpo hacia abajo (o lo sube, en negativo) si un iPhone concreto lo necesita. */
 html:has(body.app){height:100%;overflow:hidden}
-body.app{position:fixed;top:0;left:0;right:0;bottom:calc(0px - var(--extra,0px) - var(--aj-inf,0px));overflow:hidden}
+body.app{position:fixed;top:0;left:0;right:0;bottom:calc(0px - var(--aj-inf,0px));overflow:hidden}
 body.app .w{height:100%}
 button,input,select{touch-action:manipulation}
 input,textarea,select,.hj td,.hj th{-webkit-user-select:text;user-select:text}
@@ -770,3 +770,11 @@ html,body{overflow-x:hidden;max-width:100%}
 .dlc-n b{font-size:18px;color:var(--tx)}
 .dlc-3{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--gy)}
 .dlc-3>:first-child{flex:none}
+/* v0.17.2: barra de vistas pegada al borde inferior y con aire (más relleno arriba y abajo,
+   además de la zona de la raya de inicio) */
+:root[data-disp="tablet"] .nav{padding-top:12px;padding-bottom:calc(18px + env(safe-area-inset-bottom,0px))}
+@media (min-height:501px){:root[data-disp="telefono"] .nav{padding-top:10px;padding-bottom:calc(16px + env(safe-area-inset-bottom,0px))}}
+/* v0.17.2: el cuerpo vuelve a acabar en el borde de la ventana (alargarlo con --extra escondía
+   el pie de la barra bajo el borde: se veía más estrecha). Lo que iOS deje por debajo de la
+   ventana se pinta del color de la barra, para que la barra llegue hasta el borde. */
+html:has(body.app){background:var(--pn)}
