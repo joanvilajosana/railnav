@@ -63,7 +63,7 @@
   <div id="aviso-ruta" class="aviso-ruta" role="alert" hidden>Esta ruta se generó con una versión anterior de RailNav y sus velocidades pueden ir desplazadas una fila. <b>Vuelve a generarla</b> desde los PDF en Ajustes.</div>
   <div class="scr">
    <svg id="sa" viewBox="3.25 3.25 346.5 433.5" aria-label="Velocidad y avisos"></svg>
-   <div class="hist" id="hist" aria-label="Avisos pasados"><div id="hist-l"></div><button id="hist-res" class="res-b" data-residuo="1" aria-label="Residuo: cuenta atrás de la longitud del tren" hidden><span>Residuo</span><b></b></button></div>
+   <div class="hist" id="hist" aria-label="Avisos pasados"><div id="hist-l"></div></div>
    <svg id="sc" viewBox="595.25 3.25 256.5 433.5" aria-label="Línea de tiempo: arrastra para mover el tren"></svg>
    <!-- Teléfono: los mismos datos en piezas que se leen a ese tamaño -->
    <div id="mv-vel" class="mv-vel" aria-label="Velocidad"></div>
@@ -181,13 +181,13 @@
   <section class="pn aj">
    <h2 data-i="almacen">Tus datos</h2>
    <div id="datos-res" class="sec-ley"></div>
-   <div class="botones">
+   <div class="botones copia">
     <button id="b-copia">Descargar copia de seguridad</button>
     <label class="boton"><input id="f-copia" type="file" accept=".json,application/json">Restaurar una copia</label>
    </div>
    <button id="b-borrar-todo" class="peligro ancho">Borrar todos los datos</button>
    <div id="msg-datos" class="gen-msg" aria-live="polite"></div>
-   <div class="note">Todo se guarda solo en este dispositivo. Las grabaciones de recorrido se borran solas a los 30 días, salvo las que marques «Conservar».</div>
+   <div class="note">Todo se guarda solo en este dispositivo. Las grabaciones de recorrido se guardan hasta que las borras.</div>
   </section>
   <section class="pn aj">
    <h2 data-i="legal">Información legal</h2>
@@ -244,7 +244,7 @@
      <label><input type="radio" name="tf-csvr" value="no" checked>No</label>
     </div>
    </div>
-   <label class="tf-otro">Mensaje<textarea id="tf-msg" rows="4" placeholder="El texto del telefonema"></textarea></label>
+   <label class="tf-otro">Mensaje<textarea id="tf-msg" rows="3" placeholder="El texto del telefonema"></textarea></label>
    <label class="tf-meta">Firma<input id="tf-firma" placeholder="Apellido del emisor" autocapitalize="words"></label>
    <div id="tf-err" class="tf-err" role="alert"></div>
    <div class="tf-bot"><button type="submit" id="tf-guardar">Guardar</button><button type="button" id="tf-cancelar">Cancelar</button></div>

@@ -170,13 +170,10 @@ export const geos = {
   cargar: async (firma) => (await A.geo.una(firma))?.geo ?? null,
 };
 
-// Recorridos grabados: los 10 últimos sin marcar, más los marcados «Conservar». Los que pasan
-// de 30 días sin marcar se borran solos (retencion.js; main.js lo revisa al abrir la app).
+// Recorridos grabados: se guardan todos hasta que se borran a mano (Joan, 05-11-2026).
 export const recorridos = {
   async guardar(r) {
     await A.recorridos.poner(r);
-    const todas = (await A.recorridos.todas()).filter((f) => !f.conservar).sort((a, b) => (a.id < b.id ? 1 : -1));
-    for (const f of todas.slice(10)) await A.recorridos.quitar(f.id);
   },
   async conservar(id, si) {
     const r = await A.recorridos.una(id);

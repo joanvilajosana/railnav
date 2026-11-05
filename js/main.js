@@ -208,7 +208,7 @@ function camposTf() {
     causa: tipo === "ltv" ? $("tf-causa").value.trim() || null : null,
     senalizada: tipo === "ltv" ? radio("tf-sen") !== "no" : null,
     csv: tipo === "ltv" && radio("tf-csvr") === "si",
-    mensaje: tipo === "registro" ? $("tf-msg").value.trim() : "",
+    mensaje: $("tf-msg").value.trim(),
   };
 }
 
@@ -1226,7 +1226,6 @@ async function pintarPruebas() {
 }
 
 // ---------- tus datos: copia de seguridad, borrar, retención ----------
-const fechaCorta = (t) => new Date(t).toLocaleDateString("es-ES", { day: "2-digit", month: "2-digit" });
 
 async function antiguos() {
   const activa = ruta?.id ?? prefs.leer("activa", null);
@@ -1250,10 +1249,9 @@ async function pintarTusDatos() {
   $("datos-res").textContent =
     `En este dispositivo: ${plural(n.rutas, "ruta", "rutas")}, ${plural(n.dltv, "DLTV", "DLTV")}, ` +
     `${plural(n.recorridos, "grabación", "grabaciones")}, ${plural(n.telefonemas, "telefonema", "telefonemas")} y ${plural(n.tramos, "tabla de tramos propia", "tablas de tramos propias")}.`;
-  $("datos-res").textContent += ` Rutas, DLTV, grabaciones y telefonemas se borran solos a los ${DIAS} días.`;
+  $("datos-res").textContent += ` Rutas, DLTV y telefonemas se borran solos a los ${DIAS} días; las grabaciones, cuando las borras.`;
 }
 
-/** Al abrir la app: las grabaciones de más de 30 días sin «Conservar» se borran. */
 /** Al abrir la app: los telefonemas de hace más de 30 días se borran (antes, se exportan). */
 async function caducarTelefonemas() {
   const ids = caducados((await telefonemas.listar()).map((t) => ({ id: t.id })), Date.now());
@@ -1262,11 +1260,6 @@ async function caducarTelefonemas() {
   return ids.length;
 }
 
-async function caducarGrabaciones() {
-  const ids = caducados(await recorridos.listar(), Date.now(), grabar.enCurso()?.id);
-  for (const id of ids) await recorridos.borrar(id);
-  return ids.length;
-}
 
 function iniciarTusDatos() {
   const msg = (t, c = "") => {
@@ -1341,8 +1334,8 @@ async function pintarRecorridos() {
         `<div class="rec"><div><b>${esc(new Date(r.id).toLocaleString("es-ES", { dateStyle: "short", timeStyle: "short" }))}</b> · tren ${esc(r.tren ?? "?")}` +
         `<small>${x.puntos} posiciones · ${x.minutos.toFixed(0)} min` +
         (x.mediana != null ? ` · precisión típica ±${x.mediana} m, peor ±${x.peor} m` : "") +
-        (enCurso ? " · en curso" : r.conservar ? " · se conserva" : ` · se borrará el ${fechaCorta(Date.parse(r.id) + DIAS * 864e5)}`) +
-        `</small></div><div><button data-cons="${esc(r.id)}" class="${r.conservar ? "on" : ""}" aria-pressed="${!!r.conservar}" title="No borrarla a los ${DIAS} días">${r.conservar ? "Conservada" : "Conservar"}</button><button data-gpx="${esc(r.id)}">GPX</button><button data-json="${esc(r.id)}">JSON</button>${enCurso ? "" : `<button data-borrar-rec="${esc(r.id)}">Borrar</button>`}</div></div>`
+        (enCurso ? " · en curso" : "") +
+        `</small></div><div><button data-gpx="${esc(r.id)}">GPX</button><button data-json="${esc(r.id)}">JSON</button>${enCurso ? "" : `<button data-borrar-rec="${esc(r.id)}">Borrar</button>`}</div></div>`
       );
     })
     .join("");
@@ -1370,15 +1363,9 @@ function iniciarGrabacion() {
   $("recorridos").onclick = async (e) => {
     const b = e.target.closest("button");
     if (!b) return;
-    const id = b.dataset.gpx || b.dataset.json || b.dataset.borrarRec || b.dataset.cons;
+    const id = b.dataset.gpx || b.dataset.json || b.dataset.borrarRec;
     const r = await recorridos.cargar(id);
     if (!r) return;
-    if (b.dataset.cons) {
-      const si = !r.conservar, g = grabar.enCurso();
-      if (g?.id === id) g.conservar = si; // la grabación en curso se vuelve a guardar desde memoria
-      await recorridos.conservar(id, si);
-      return pintarRecorridos();
-    }
     const base = `railnav-${r.tren ?? "recorrido"}-${r.id.slice(0, 16).replace(/[:T]/g, "-")}`;
     if (b.dataset.gpx) compartirArchivo(base + ".gpx", grabar.gpx(r), "application/gpx+xml");
     if (b.dataset.json) compartirArchivo(base + ".json", grabar.json(r));
@@ -1433,7 +1420,7 @@ let inercia = 0; // km/s
 
 function iniciarArrastre() {
   // Botón «Residuo» (se pinta con la pantalla de marcha: se escucha en el contenedor).
-  for (const id of ["sa", "sc", "mv-odo", "hist"])
+  for (const id of ["sa", "sc", "mv-odo"])
     $(id).addEventListener("pointerdown", (e) => {
       if (!e.target.closest?.("[data-residuo]") || !pos) return;
       e.preventDefault();
@@ -1700,7 +1687,6 @@ async function iniciar() {
   pintarSim();
   requestAnimationFrame(bucle);
   persistir();
-  caducarGrabaciones().catch(() => {});
   caducarTelefonemas().catch(() => {});
   caducarArchivos().catch(() => {});
   if ("serviceWorker" in navigator && (location.protocol === "https:" || location.hostname === "localhost")) actualizaciones();

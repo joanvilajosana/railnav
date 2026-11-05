@@ -914,3 +914,19 @@ html:has(body.app){background:var(--pn)}
 .rev-b2 #rev-x{margin-left:auto}
 .rev-nota{margin-top:12px;font-size:12px;color:var(--gy)}
 .dm-por b,.dlc tr.por b{color:var(--dn)}
+
+/* v0.18.2 — Telefonemas: el mensaje, en todos los tipos (entre «Supone CSV» y la firma) */
+.tf-form .tf-otro{display:flex!important}
+.tf-form[data-manual="1"] .tf-otro{display:none!important}
+/* Datos: la flecha de la ficha, fija arriba a la derecha; aire bajo «Posición actual» */
+.ficha{position:relative;padding-right:52px}
+.ficha .fi-tg{position:absolute;top:6px;right:6px;margin:0}
+#hj-aqui{margin-bottom:8px}
+/* Tus datos: los dos botones de la copia, iguales */
+#v-ajustes .botones.copia{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+#v-ajustes .botones.copia>button,#v-ajustes .botones.copia>label.boton{width:100%;min-height:44px;margin:0;padding:8px 12px;font-size:15px;border-radius:8px;box-sizing:border-box;display:flex;align-items:center;justify-content:center;text-align:center}
+/* Teléfono: línea de tiempo más estrecha (solo lleva pictogramas) y cuadro de la longitud menor */
+:root[data-disp="telefono"] .scr{grid-template-columns:minmax(0,1fr) 88px}
+@media (orientation:landscape){:root[data-disp="telefono"] .scr{grid-template-columns:minmax(0,250px) minmax(0,1fr) 88px}}
+:root[data-disp="telefono"] #v-ajustes label.sw .lon-c input{width:84px;height:42px;font-size:18px}
+#tf-msg{font:inherit;font-size:16px}

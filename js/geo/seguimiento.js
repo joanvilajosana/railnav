@@ -12,6 +12,10 @@ export const PRECISION_MAX_M = 150; // lecturas peores se ignoran
 export const PERDIDA_S = 30;
 export const PARADA_S = 120;
 export const V_MAX_KMS = 200 / 3600; // por encima, la lectura es un salto imposible
+// Lecturas peores que esto no corrigen la velocidad estimada (con ±100 m, la velocidad que sale
+// de dos lecturas no vale). Visto en los viajes Salou ↔ Tarragona del 05-11-2026.
+export const PRECISION_VELOCIDAD_M = 50;
+export const V_EN_MARCHA_KMS = 3 / 1000; // 3 m/s (11 km/h): el tren va hacia delante
 
 export class Via {
   constructor(geo) {
@@ -105,12 +109,19 @@ export class Seguidor {
       this.d = c.d;
       this.v = 0;
     } else {
-      const k = Math.min(0.9, Math.max(0.3, 1 - precision / 300));
+      // Cuánto se cree la lectura: mucho si es buena (±15 m → 0,9), poco si es mala (±100 m → 0,33).
+      let k = Math.min(0.9, Math.max(0.15, 1 - precision / 150));
+      // Un tren en marcha no va hacia atrás: una lectura imprecisa que lo pone detrás solo lo
+      // retrasa a medias (en el viaje a Salou, una de ±102 m lo echaba 135 m atrás).
+      if (c.d < this.d && this.v > V_EN_MARCHA_KMS && precision > 25) k *= 0.5;
       const dt = (t - this.tFix) / 1000;
-      if (dt >= 0.5) {
+      if (dt >= 0.5 && precision <= PRECISION_VELOCIDAD_M) {
         let vMedida = (c.d - this.dFix) / dt;
         if (velocidad != null && velocidad >= 0) vMedida = 0.5 * vMedida + 0.5 * (velocidad / 1000);
         this.v = Math.min(V_MAX_KMS, Math.max(0, 0.6 * this.v + 0.4 * vMedida));
+      } else if (velocidad != null && velocidad >= 0 && precision <= PRECISION_MAX_M) {
+        // Lectura mala pero con velocidad del GPS (la mide por efecto Doppler, no por posición).
+        this.v = Math.min(V_MAX_KMS, 0.7 * this.v + 0.3 * (velocidad / 1000));
       }
       this.d += k * (c.d - this.d);
     }

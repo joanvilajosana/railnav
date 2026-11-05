@@ -56,7 +56,7 @@ export const SECCIONES = [
 <p>RailNav no usa cookies. Usa el almacenamiento del navegador solo para funcionar y para recordar las preferencias que eliges; no hay rastreo ni publicidad, por eso no te pide consentimiento.</p>
 <h3>Cuánto tiempo se guardan</h3>
 <ul>
-<li>Grabaciones de recorrido: se borran solas a los 30 días, salvo las que marques «Conservar».</li>
+<li>Grabaciones de recorrido: se guardan hasta que las borras.</li>
 <li>Rutas y DLTV: se borran solos a los 30 días de guardarlos (una ruta cuenta desde la última vez que la abres; la que tienes abierta no se borra).</li>
 <li>Telefonemas: se borran solos a los 30 días (antes puedes exportarlos en CSV para tu empresa).</li>
 </ul>

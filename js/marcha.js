@@ -12,6 +12,8 @@ const $ = (id) => document.getElementById(id);
 // crece para que las columnas laterales no se coman el historial: hay sitio para más avisos y
 // la línea de tiempo se alarga.
 let H = 440, hecha = false;
+// Alto que se reserva abajo de la columna derecha para el botón «Residuo» (si hay longitud).
+let R = 0;
 // Anchos de las columnas (unidades del SVG): la de la velocidad y los avisos, más ancha; la de la
 // línea de tiempo, más estrecha (pedido por Joan). El historial del centro sigue con su parte.
 // v0.18 (Joan): tres columnas iguales — velocidad y próximos, pasados, línea de tiempo.
@@ -36,7 +38,7 @@ const CX = 4 + WL / 2, DER = 4 + WL - 10, XD = XR + WR - 6;
 // Escala de la línea de tiempo: más espacio para lo cercano.
 const K = [[0, 0], [500, 0.36], [1000, 0.62], [2000, 0.85], [3000, 1]];
 export const Y = (m) => {
-  const base = H - 60, alto = H - 100;
+  const base = H - 60 - R, alto = H - 100 - R;
   for (let i = 1; i < K.length; i++)
     if (m <= K[i][0]) {
       const [a, fa] = K[i - 1], [b, fb] = K[i];
@@ -156,23 +158,34 @@ function cuadroDesvio(ruta, pos, eta) {
   const v = valorDesvio(ruta, pos, eta);
   if (!v) return "";
   const [txt, color] = v;
-  return `<text x="${XR + WR - 10}" y="${H - 15}" font-size="15" font-weight="800" text-anchor="end" fill="${color}">${txt}</text>`;
+  return `<text x="${XR + WR - 10}" y="${H - 15 - R}" font-size="15" font-weight="800" text-anchor="end" fill="${color}">${txt}</text>`;
 }
 
-// Botón «Residuo»: abajo del cuadro de avisos pasados (tablet y teléfono). Es un elemento fijo al
-// que solo se le cambia el texto: si se rehiciera en cada fotograma, desaparecería bajo el dedo.
-function pintarResiduo(res) {
-  const b = $("hist-res");
+// Botón «Residuo» de la tablet: en la columna de la línea de tiempo, debajo del odómetro
+// (x, y, ancho, alto en el SVG). Se toca en el contenedor (pointerdown), antes de repintar.
+function botonResiduo(res, x, y, w, h) {
+  const act = res.restante != null;
+  let s = `<g data-residuo="1" style="cursor:pointer">`;
+  s += `<rect x="${x}" y="${y}" width="${w}" height="${h}" rx="6" fill="${act ? "var(--pn)" : "transparent"}" stroke="${act ? "var(--tx)" : res.libre ? "var(--up)" : "var(--ln)"}" stroke-width="${act ? 2.5 : 1.5}"/>`;
+  if (act) s += `<rect x="${x + 2}" y="${y + h - 6}" width="${(w - 4) * (1 - res.restante / res.metros)}" height="4" rx="2" fill="var(--up)"/>`;
+  s += `<text x="${x + 14}" y="${y + h / 2 + 5}" font-size="14" font-weight="800" letter-spacing=".05em" fill="${act ? "var(--tx)" : "var(--gy)"}">RESIDUO</text>`;
+  const txt = act ? `${miles(res.restante)} m` : res.libre ? "LIBRE" : `${miles(res.metros)} m`;
+  s += `<text x="${x + w - 14}" y="${y + h / 2 + (act ? 8 : 6)}" font-size="${act ? 22 : 16}" font-weight="700" text-anchor="end" fill="${act ? "var(--tx)" : res.libre ? "var(--up)" : "var(--tx)"}">${txt}</text>`;
+  return s + "</g>";
+}
+
+// Botón «Residuo» del teléfono: en la fila del odómetro, debajo de la línea de tiempo. Es un
+// elemento fijo al que solo se le cambia el texto (rehecho en cada fotograma se iría del dedo).
+function pintarResiduo(res, b) {
   if (!b) return;
   b.hidden = !res;
   if (!res) return;
   const act = res.restante != null;
-  const cls = "res-b" + (act ? " on" : res.libre ? " libre" : "");
+  const cls = "odo-res" + (act ? " on" : res.libre ? " libre" : "");
   if (b.className !== cls) b.className = cls;
   const txt = act ? `${miles(res.restante)} m` : res.libre ? "LIBRE" : `${miles(res.metros)} m`;
   const v = b.querySelector("b");
   if (v.textContent !== txt) v.textContent = txt;
-  b.style.setProperty("--p", act ? (100 * (1 - res.restante / res.metros)).toFixed(1) + "%" : "0%");
 }
 
 export function pintarMarcha(ruta, pos, { desvio: conDesvio = false, residuo = null } = {}) {
@@ -182,7 +195,8 @@ export function pintarMarcha(ruta, pos, { desvio: conDesvio = false, residuo = n
   const lt = tramo?.fuente === "ltv";
   const nx = ruta.siguiente(d);
   let s = `<rect width="${XR + WR + 10}" height="${H}" fill="var(--bg)"/>`;
-  for (const [x, y, w, h] of [[4, 4, WL, H - 8], [XR, 4, WR, H - 48], [XR, H - 38, WR, 34]])
+  R = residuo ? 50 : 0;
+  for (const [x, y, w, h] of [[4, 4, WL, H - 8], [XR, 4, WR, H - 48 - R], [XR, H - 38 - R, WR, 34]])
     s += `<rect x="${x}" y="${y}" width="${w}" height="${h}" rx="6" fill="none" stroke="var(--ln)" stroke-width="1.5"/>`;
   // Velocidad
   if (lt) s += `<g transform="translate(${WL - 48} 10) scale(.5)">${forma(pic("ltv") || {}, { v: vp })}</g><text x="${WL - 54}" y="27" font-size="13" font-weight="700" text-anchor="end" fill="var(--lt)">LTV</text>`;
@@ -215,12 +229,11 @@ export function pintarMarcha(ruta, pos, { desvio: conDesvio = false, residuo = n
     s += linea2(e, 60, y + 45, 15, `${pk ? pk + " · " : ""}a `, dm((e.pk_acum - d) * 1000), DER);
     if (num) s += `<text x="${WL - 6}" y="${y + 40}" font-size="34" font-weight="800" text-anchor="end" fill="${esc(k.color || "var(--tx)")}">${esc(num)}</text>`;
   });
-  pintarResiduo(residuo);
   // Línea de tiempo
   for (const m of [0, 500, 1000, 2000, 3000])
     s += `<line x1="630" x2="${XD}" y1="${Y(m)}" y2="${Y(m)}" stroke="var(--gy)" opacity=".35" stroke-dasharray="3 4"/><text x="625" y="${Y(m) + 4}" font-size="10" text-anchor="end" fill="var(--gy)">${m}</text>`;
   s += `<text x="${XD}" y="22" font-size="10" font-weight="700" letter-spacing=".06em" text-anchor="end" fill="${pos.fiable ? "var(--gy)" : "var(--lt)"}">${esc(pos.etiqueta || (pos.fiable ? MODO_TXT[pos.modo] || "" : "POSICIÓN NO FIABLE"))}</text>`;
-  s += `<line x1="644" x2="644" y1="40" y2="${H - 60}" stroke="var(--gy)" stroke-width="3" stroke-linecap="round"/>`;
+  s += `<line x1="644" x2="644" y1="40" y2="${H - 60 - R}" stroke="var(--gy)" stroke-width="3" stroke-linecap="round"/>`;
   let pv = 999, fondo = "", frente = "";
   for (const e of ev) {
     const k = picDe(e) || {}, [tit, pk] = tituloPk(ruta, e), num = numeroGrande(e), [t, at] = ajustar(num ? `${tit} ${num}` : tit, WR - 79, 30), m = (e.pk_acum - d) * 1000, y = Y(m), ty = Math.min(y, pv - 38);
@@ -231,13 +244,14 @@ export function pintarMarcha(ruta, pos, { desvio: conDesvio = false, residuo = n
     frente += linea2(e, 667, ty + 14, 12, pk ? pk + " · " : "", dm(m), XD);
   }
   s += fondo + frente;
-  s += `<polygon points="644,${H - 72} 634,${H - 52} 654,${H - 52}" fill="var(--yl)"/>`;
+  s += `<polygon points="644,${H - 72 - R} 634,${H - 52 - R} 654,${H - 52 - R}" fill="var(--yl)"/>`;
   const eta = ruta.eta(d);
   const dsv = conDesvio ? cuadroDesvio(ruta, pos, eta) : "";
-  s += `<rect x="602" y="${H - 33}" width="112" height="24" fill="var(--disc)"/><text x="658" y="${H - 15}" font-size="16" font-weight="700" text-anchor="middle" fill="var(--dt)">${miles(d * 1000)} m</text>`;
+  s += `<rect x="602" y="${H - 33 - R}" width="112" height="24" fill="var(--disc)"/><text x="658" y="${H - 15 - R}" font-size="16" font-weight="700" text-anchor="middle" fill="var(--dt)">${miles(d * 1000)} m</text>`;
   s += dsv
-    ? `<text x="720" y="${H - 15}" font-size="15" fill="var(--tx)">${eta == null ? "--:--" : hms(eta).slice(0, 5)}</text>` + dsv
-    : `<text x="${(714 + XD) / 2}" y="${H - 15}" font-size="16" text-anchor="middle" fill="var(--tx)">${eta == null ? "--:--:--" : hms(eta)}</text>`;
+    ? `<text x="720" y="${H - 15 - R}" font-size="15" fill="var(--tx)">${eta == null ? "--:--" : hms(eta).slice(0, 5)}</text>` + dsv
+    : `<text x="${(714 + XD) / 2}" y="${H - 15 - R}" font-size="16" text-anchor="middle" fill="var(--tx)">${eta == null ? "--:--:--" : hms(eta)}</text>`;
+  if (residuo) s += botonResiduo(residuo, XR, H - 46, WR, 42);
   $("sa").innerHTML = s;
   $("sc").innerHTML = s;
   pintarHistorial(ruta, d);
@@ -329,12 +343,12 @@ export function pintarMarchaMovil(ruta, pos, { desvio: conDesvio = false, residu
   const el = $("mv-linea"), W = el.clientWidth, Ht = el.clientHeight;
   if (W && Ht) {
     // Las cifras de la escala, separadas del marco; el tren, un triángulo pequeño a la derecha del 0.
-    const [arriba, abajo] = limitesLineaMovil(Ht), x = 44, y = (m) => yMovil(m, arriba, abajo);
+    const [arriba, abajo] = limitesLineaMovil(Ht), x = 38, y = (m) => yMovil(m, arriba, abajo);
     let s = "";
     for (const m of [0, 500, 1000, 2000, 3000])
-      s += `<line x1="${x}" x2="${W - 4}" y1="${y(m)}" y2="${y(m)}" stroke="var(--gy)" opacity=".35" stroke-dasharray="3 4"/><text x="${x - 10}" y="${y(m) + 4}" font-size="11" text-anchor="end" fill="var(--gy)">${m}</text>`;
+      s += `<line x1="${x}" x2="${W - 4}" y1="${y(m)}" y2="${y(m)}" stroke="var(--gy)" opacity=".35" stroke-dasharray="3 4"/><text x="${x - 9}" y="${y(m) + 4}" font-size="10" text-anchor="end" fill="var(--gy)">${m}</text>`;
     s += `<line x1="${x}" x2="${x}" y1="${arriba}" y2="${abajo}" stroke="var(--gy)" stroke-width="3" stroke-linecap="round"/>`;
-    const tam = Math.min(36, W - x - 12), esc_ = tam / 48;
+    const tam = Math.min(34, W - x - 12), esc_ = tam / 48;
     let pv = 1e9, fondo = "", frente = "";
     for (const e of ev) {
       const k = picDe(e) || {}, yy = y((e.pk_acum - d) * 1000), ty = Math.min(yy, pv - tam - 4);
@@ -359,7 +373,7 @@ export function pintarMarchaMovil(ruta, pos, { desvio: conDesvio = false, residu
   if (!o.querySelector(".odo-km"))
     o.innerHTML =
       `<span class="odo-km"></span><span class="odo-h"></span><span class="odo-d"></span>` +
-      `<span class="odo-m"></span>`;
+      `<button class="odo-res" data-residuo="1" aria-label="Residuo: cuenta atrás de la longitud del tren">Residuo <b></b></button><span class="odo-m"></span>`;
   texto_(o.querySelector(".odo-km"), `${miles(d * 1000)} m`);
   texto_(o.querySelector(".odo-h"), eta == null ? "--:--:--" : hms(eta));
   const od = o.querySelector(".odo-d");
@@ -368,7 +382,7 @@ export function pintarMarchaMovil(ruta, pos, { desvio: conDesvio = false, residu
     texto_(od, dsv[0]);
     od.style.color = dsv[1];
   }
-  pintarResiduo(residuo);
+  pintarResiduo(residuo, o.querySelector(".odo-res"));
   const om = o.querySelector(".odo-m");
   om.className = "odo-m" + (pos.fiable ? "" : " mal");
   texto_(om, modo);
