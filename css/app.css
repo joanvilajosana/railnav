@@ -833,12 +833,20 @@ html:has(body.app){background:var(--pn)}
 /* v0.17.4 — Teléfono: avisos sin marco. Los próximos solo aparecen cuando los hay (tarjetas con
    su color); sin ellos, los pasados (filas apagadas) ocupan todo el hueco. */
 :root[data-disp="telefono"] .mv-prox{height:auto;max-height:158px;overflow-y:auto}
-:root[data-disp="telefono"] .mv-prox:empty{display:none}
-:root[data-disp="telefono"] .scr:has(.mv-prox:empty){grid-template-areas:"vel vel" "hist lin" "hist lin" "odo odo"}
-:root[data-disp="telefono"] .hist{border:0;border-radius:0;background:transparent;padding:0}
 :root[data-disp="telefono"] .hr{margin:0 0 6px;border:1px solid color-mix(in srgb,var(--ln) 70%,transparent);border-radius:10px;background:transparent;opacity:.82}
 :root[data-disp="telefono"] .hist .vac{padding:6px 4px;font-size:14px}
-@media (orientation:landscape){:root[data-disp="telefono"] .scr:has(.mv-prox:empty){grid-template-areas:"vel hist lin" "vel hist lin" "odo hist lin"}}
 :root[data-disp="telefono"] .mv-prox{max-height:200px}
 :root[data-disp="telefono"] .mv-prox .px{height:auto;min-height:64px;overflow:visible}
 :root[data-disp="telefono"] .mv-prox .px small{line-height:1.3}
+
+/* v0.17.5 — Teléfono: dos cuadros, «Próximos» y «Pasados», con su rótulo. Los próximos crecen con
+   sus avisos (hasta casi la mitad de la pantalla) y los pasados se quedan con el resto. */
+:root[data-disp="telefono"] .scr{grid-template-rows:auto auto minmax(76px,1fr) auto}
+:root[data-disp="telefono"] .mv-prox,:root[data-disp="telefono"] .hist{border:1.5px solid var(--ln);border-radius:12px;padding:0 6px 6px;background:var(--bg)}
+:root[data-disp="telefono"] .mv-prox{height:auto;max-height:44vh;overflow-y:auto;gap:6px;border-color:color-mix(in srgb,var(--tx) 45%,var(--ln))}
+:root[data-disp="telefono"] .mv-prox::before,:root[data-disp="telefono"] .hist::before{display:block;position:sticky;top:0;z-index:1;padding:6px 2px 4px;font-size:11px;font-weight:800;letter-spacing:.08em;color:var(--gy);background:var(--bg)}
+:root[data-disp="telefono"] .mv-prox::before{content:"PRÓXIMOS";margin-bottom:-6px}
+:root[data-disp="telefono"] .hist::before{content:"PASADOS"}
+:root[data-disp="telefono"] .mv-prox .vac,:root[data-disp="telefono"] .hist .vac{padding:2px 4px 2px;font-size:13px}
+:root[data-disp="telefono"] .hr:last-child{margin-bottom:0}
+@media (orientation:landscape){:root[data-disp="telefono"] .scr{grid-template-rows:auto minmax(0,1fr) auto}:root[data-disp="telefono"] .mv-prox{max-height:52vh}}

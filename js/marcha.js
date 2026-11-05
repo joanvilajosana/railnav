@@ -321,14 +321,15 @@ export function pintarMarchaMovil(ruta, pos, { desvio: conDesvio = false, residu
           return `<div class="px${i ? "" : " pri"}${e.estado === "revisar" ? " rv" : ""}" style="--bc:${esc(k.borde || "var(--ln)")}">${icono(k, 40, e.datos)}<div><b>${esc(tit)}</b><small>${pk ? pk + " · " : ""}a <strong>${dm((e.pk_acum - d) * 1000)}</strong>${chipsLinea2(e)}</small></div>${num ? `<span class="px-n" style="color:${esc(k.color || "var(--tx)")}">${esc(num)}</span>` : ""}</div>`;
         })
         .join("")
-    : ""));
+    : `<div class="vac">Ninguno en los próximos 3 km</div>`));
   // Línea de tiempo
   const el = $("mv-linea"), W = el.clientWidth, Ht = el.clientHeight;
   if (W && Ht) {
-    const [arriba, abajo] = limitesLineaMovil(Ht), x = 34, y = (m) => yMovil(m, arriba, abajo);
+    // Las cifras de la escala, separadas del marco; el tren, un triángulo pequeño a la derecha del 0.
+    const [arriba, abajo] = limitesLineaMovil(Ht), x = 44, y = (m) => yMovil(m, arriba, abajo);
     let s = "";
     for (const m of [0, 500, 1000, 2000, 3000])
-      s += `<line x1="${x}" x2="${W - 4}" y1="${y(m)}" y2="${y(m)}" stroke="var(--gy)" opacity=".35" stroke-dasharray="3 4"/><text x="${x - 6}" y="${y(m) + 4}" font-size="11" text-anchor="end" fill="var(--gy)">${m}</text>`;
+      s += `<line x1="${x}" x2="${W - 4}" y1="${y(m)}" y2="${y(m)}" stroke="var(--gy)" opacity=".35" stroke-dasharray="3 4"/><text x="${x - 10}" y="${y(m) + 4}" font-size="11" text-anchor="end" fill="var(--gy)">${m}</text>`;
     s += `<line x1="${x}" x2="${x}" y1="${arriba}" y2="${abajo}" stroke="var(--gy)" stroke-width="3" stroke-linecap="round"/>`;
     const tam = Math.min(36, W - x - 12), esc_ = tam / 48;
     let pv = 1e9, fondo = "", frente = "";
@@ -342,7 +343,7 @@ export function pintarMarchaMovil(ruta, pos, { desvio: conDesvio = false, residu
         frente += `<text x="${W - 4}" y="${ty + 4}" font-size="12" font-weight="700" text-anchor="end" fill="var(--tx)">${dm((e.pk_acum - d) * 1000)}</text>`;
     }
     s += fondo + frente;
-    s += `<polygon points="${x},${abajo - 12} ${x - 10},${abajo + 8} ${x + 10},${abajo + 8}" fill="var(--yl)"/>`;
+    s += `<polygon points="${x},${abajo - 7} ${x - 6},${abajo + 5} ${x + 6},${abajo + 5}" fill="var(--yl)"/>`;
     el.setAttribute("viewBox", `0 0 ${W} ${Ht}`);
     el.innerHTML = s;
   }
