@@ -778,3 +778,54 @@ html,body{overflow-x:hidden;max-width:100%}
    el pie de la barra bajo el borde: se veía más estrecha). Lo que iOS deje por debajo de la
    ventana se pinta del color de la barra, para que la barra llegue hasta el borde. */
 html:has(body.app){background:var(--pn)}
+
+/* v0.17.3 — Ajustes: la longitud del tren, centrada en su cuadro */
+.lon-c input{text-align:center;padding:0 6px}
+/* Datos: la ficha se pliega también en la tablet (como en el teléfono) y el número de tren y el
+   recorrido van más pequeños: ya están en la barra de arriba. */
+.fi-tg{display:block;flex:none;align-self:center;margin:0 0 0 auto;padding:8px 12px;font-size:14px;font-weight:700;border-radius:10px}
+.plegada .tr-res{display:block;font-size:13px;color:var(--gy);margin-top:2px}
+.plegada .tr-tiles{display:none}
+.ficha.plegada .tr-cab{flex:1;border-right:0;padding-right:0}
+.ficha:not(.plegada) .tr-cab{flex-wrap:wrap}
+.tr-num{font-size:19px}
+.tr-ruta{font-size:13px}
+.tr-ico{width:36px;height:36px;border-radius:10px}
+.tr-ico svg{width:24px;height:24px}
+:root[data-disp="telefono"] .tr-num{font-size:19px}
+:root[data-disp="telefono"] .tr-ruta{font-size:13px}
+:root[data-disp="telefono"] .fi-tg{align-self:center}
+#v-datos>.pn:first-child{padding-top:10px;padding-bottom:10px}
+/* DLTV: «+ Añadir LTV» a la izquierda de la cabecera, en la misma franja */
+.dl-top{display:flex;align-items:center;gap:10px 16px;flex-wrap:wrap;margin:0 0 10px}
+.dl-top .ltvm-mas{flex:none}
+.dl-top #dl-cab{flex:1 1 260px;margin:0}
+:root[data-disp="tablet"] #dl-cab{flex-direction:row;flex-wrap:wrap;align-items:center;gap:6px 16px}
+:root[data-disp="tablet"] .dlc-n{padding:2px 8px 2px 3px}
+:root[data-disp="tablet"] .dlc-n b,:root[data-disp="tablet"] .dlc-1 b{font-size:16px}
+#dl-man:empty{display:none}
+/* DLTV en la tablet: tabla de ancho fijo que reparte las columnas y parte el texto */
+:root[data-disp="tablet"] table.dlc{table-layout:fixed;width:100%}
+:root[data-disp="tablet"] .dlc col.c-est{width:13%}
+:root[data-disp="tablet"] .dlc col.c-km{width:18%}
+:root[data-disp="tablet"] .dlc col.c-via{width:13%}
+:root[data-disp="tablet"] .dlc col.c-vel{width:8%}
+:root[data-disp="tablet"] .dlc col.c-tr{width:21%}
+:root[data-disp="tablet"] .dlc col.c-mot{width:27%}
+:root[data-disp="tablet"] .dlc th{white-space:normal;vertical-align:bottom;line-height:1.2}
+:root[data-disp="tablet"] .dlc th small{display:block;font-size:9.5px;font-weight:600;letter-spacing:.02em;opacity:.75}
+:root[data-disp="tablet"] .dlc td{white-space:normal;overflow-wrap:break-word;vertical-align:top;line-height:1.3}
+:root[data-disp="tablet"] .dlc td small{display:block;margin:2px 0 0;font-size:11.5px;color:var(--gy)}
+:root[data-disp="tablet"] .dlc td b.km{white-space:nowrap;font-variant-numeric:tabular-nums}
+:root[data-disp="tablet"] .dlc td .dl-res{margin-bottom:3px}
+:root[data-disp="tablet"] .dlc td .cs{display:block;width:max-content;margin:4px auto 0;font-size:11px;padding:1px 6px}
+:root[data-disp="tablet"] #dl-w{overflow-x:hidden}
+/* Teléfono: ficha y cabecera del DLTV más compactas */
+:root[data-disp="telefono"] .tr-ico{display:none}
+:root[data-disp="telefono"] .plegada .tr-res{font-size:12px}
+:root[data-disp="telefono"] #dl-cab{flex-direction:row;flex-wrap:wrap;align-items:center;gap:6px 12px}
+:root[data-disp="telefono"] .dlc-1 b,:root[data-disp="telefono"] .dlc-n b{font-size:16px}
+:root[data-disp="telefono"] .dlc-1 span{font-size:13px}
+:root[data-disp="telefono"] .dlc-n{padding:2px 8px 2px 3px}
+:root[data-disp="telefono"] .dl-top .ltvm-mas{min-height:40px;padding:0 12px;font-size:15px}
+:root[data-disp="telefono"] .dlc-3{font-size:12px}

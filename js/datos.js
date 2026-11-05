@@ -161,8 +161,7 @@ function dltvMovil(DL, d) {
 /** LTV añadidas a mano en esta ruta (se guardan con los telefonemas, con `manual`). */
 function ltvManuales(ruta, d) {
   const lista = (ruta.telefonemas || []).filter((t) => t.manual);
-  const boton = `<button class="ltvm-mas" data-ltvman="nueva">+ Añadir LTV</button>`;
-  if (!lista.length) return `<div class="ltvm">${boton}</div>`;
+  if (!lista.length) return "";
   const filas = lista
     .map((t) => {
       const r = rango(t.desde, t.hasta), aq = r && d >= r[0] && d <= r[1];
@@ -173,7 +172,7 @@ function ltvManuales(ruta, d) {
       );
     })
     .join("");
-  return `<div class="ltvm">${boton}${filas}</div>`;
+  return `<div class="ltvm">${filas}</div>`;
 }
 
 function pintarDltv(ruta, d) {
@@ -188,17 +187,22 @@ function pintarDltv(ruta, d) {
   $("dl-cab").innerHTML =
     `<div class="dlc-1"><b>DLTV nº ${esc(DL.numero || "?")}</b><span>semana ${fecha(DL.desde)} – ${fecha(DL.hasta)}</span></div>` +
     `<div class="dlc-2"><span class="dlc-n"><span class="dl-res ap">Aplica</span><b>${ap}</b></span><span class="dlc-n"><span class="dl-res rv">A revisar</span><b>${rv}</b></span></div>` +
-    `<div class="dlc-3">${cuadroViaHtml("vía II", false)}<span>LTV de una sola vía: aparece siempre, indicando a qué vía afecta</span></div>`;
+    `<div class="dlc-3">${cuadroViaHtml("vía II", false)}<span>LTV de una sola vía: aparece siempre, indicando a qué vía afecta${movil() ? "" : ". Sin fechas: vale toda la semana del DLTV"}</span></div>`;
   if (movil()) return void ($("dl").innerHTML = dltvMovil(DL, d));
-  const cols = ["Estado", "Km ruta", "Línea", "Vía", "PK inicio → fin", "Veloc.", "Trayecto", "Motivo", "Vigencia", "CSV", "Horario", "Observaciones"];
-  let h = "<thead><tr>" + cols.map((c) => `<th>${c}</th>`).join("") + "</tr></thead><tbody>";
+  // Tablet: siete columnas que caben en el ancho (Joan no quiere desplazamiento lateral). Lo que
+  // antes eran columnas sueltas va apilado: km de la ruta con línea y PK debajo; motivo con las
+  // observaciones; las fechas (si no vale toda la semana) y el horario, bajo el estado.
+  const cols = ["Estado<small>Fechas · horario</small>", "Km ruta<small>Línea · PK del DLTV</small>", "Vía", "Veloc.", "Trayecto", "Motivo<small>Observaciones</small>"];
+  let h = `<colgroup><col class="c-est"><col class="c-km"><col class="c-via"><col class="c-vel"><col class="c-tr"><col class="c-mot"></colgroup>`;
+  h += "<thead><tr>" + cols.map((c) => `<th>${c}</th>`).join("") + "</tr></thead><tbody>";
   for (const x of DL.ltv) {
     const aq = x.pkai != null && d >= Math.min(x.pkai, x.pkaf) - 1e-6 && d <= Math.max(x.pkai, x.pkaf) + 1e-6;
     const dudas = (x.ev || []).filter((e) => e.startsWith("a revisar")).map((e) => e.replace(/^a revisar:\s*/, ""));
-    h += `<tr${aq ? ' class="aqui"' : ""} data-a="${x.pkai ?? ""}"><td>${x.res === "APLICA" ? '<span class="dl-res ap">Aplica</span>' : '<span class="dl-res rv">A revisar</span>'}${x.va ? " " + cuadroViaHtml(x.va, false) : ""}</td>`;
-    h += `<td class="n">${x.pkai != null ? nf(x.pkai) + " → " + nf(x.pkaf) : ""}</td><td>${esc(x.lin || "")}</td><td title="${esc(x.via_txt || "")}"><b>${esc(x.via || "")}</b><small>${esc(x.via_txt || "")}</small></td>`;
-    h += `<td class="n">${nf(x.pki, 3)} → ${nf(x.pkf, 3)}</td><td class="n"><span class="vm">${esc(x.vel)}</span></td><td class="tw">${esc((x.tray || []).join(" – "))}</td><td class="tw">${esc(x.mot || "")}</td>`;
-    h += `<td>${x.vig === "declarada" ? fecha(x.desde) + " – " + fecha(x.hasta) : "semana"}</td><td class="ce">${x.csv ? '<span class="cs">CSV</span>' : ""}</td><td>${esc(x.hor || "")}</td><td class="tw">${esc(x.obs || "")}</td></tr>`;
+    h += `<tr${aq ? ' class="aqui"' : ""} data-a="${x.pkai ?? ""}"><td>${x.res === "APLICA" ? '<span class="dl-res ap">Aplica</span>' : '<span class="dl-res rv">A revisar</span>'}${x.va ? " " + cuadroViaHtml(x.va, false) : ""}${x.vig === "declarada" ? `<small>${fecha(x.desde)} – ${fecha(x.hasta)}</small>` : ""}${x.hor ? `<small>${esc(x.hor)}</small>` : ""}</td>`;
+    h += `<td><b class="km">${x.pkai != null ? nf(x.pkai) + " → " + nf(x.pkaf) : "–"}</b><small>${x.lin ? "L " + esc(x.lin) + " · " : ""}PK ${nf(x.pki, 3)} → ${nf(x.pkf, 3)}</small></td>`;
+    h += `<td title="${esc(x.via_txt || "")}"><b>${esc(x.via || "")}</b><small>${esc(x.via_txt || "")}</small></td>`;
+    h += `<td class="ce"><span class="vm">${esc(x.vel)}</span>${x.csv ? '<span class="cs">CSV</span>' : ""}</td><td>${esc((x.tray || []).join(" – "))}</td>`;
+    h += `<td>${esc(x.mot || "")}${x.obs ? `<small>${esc(x.obs)}</small>` : ""}</td></tr>`;
     if (dudas.length) h += `<tr class="por${aq ? " aqui" : ""}"><td></td><td colspan="${cols.length - 1}">Por qué a revisar: ${esc(dudas.join(" · "))}</td></tr>`;
   }
   $("dl").innerHTML = h + "</tbody>";

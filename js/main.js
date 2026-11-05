@@ -882,7 +882,7 @@ function iniciarAjustes() {
     const m = Math.min(2000, Math.max(0, Math.round(Number($("op-longitud").value) || 0)));
     $("desc-longitud").textContent = m
       ? `Las limitaciones se mantienen hasta que pasan los ${m} m del tren (salvo LTV «solo vehículo cabeza»). En la marcha, el botón «Residuo» cuenta atrás los ${m} m`
-      : "Sin longitud: las limitaciones acaban en la cabeza. Mírala en la hoja o en el documento de admisión";
+      : "Sin longitud: las limitaciones acaban en la cabeza";
     return m;
   };
   $("op-longitud").value = prefs.leer("longitud", 0) || "";
