@@ -53,7 +53,10 @@ export const alcance = (e) => {
   const p = picDe(e);
   return Math.min(3, p?.aviso ?? e.aviso_km ?? 3);
 };
-const accion = (e) => (e.tipo === "cambio_radio" ? "Cambio canal radio" : texto((picDe(e) || {}).accion || picDe(e)?.nombre || e.tipo, e.datos));
+const accion = (e) =>
+  e.tipo === "cambio_radio"
+    ? "Cambio canal radio"
+    : texto((picDe(e) || {}).accion || picDe(e)?.nombre || e.tipo, e.datos) + (e.datos?.cvm ? " · CVM" : "");
 
 // El PK de cada aviso: el que trae el propio texto («… PASO A NIVEL KM 78.975»), que se quita del
 // título, o el de la hoja en ese punto. Se enseña en vez de la hora (pedido por Joan).
@@ -200,6 +203,7 @@ export function pintarMarcha(ruta, pos, { desvio: conDesvio = false, residuo = n
     s += `<rect x="${x}" y="${y}" width="${w}" height="${h}" rx="6" fill="none" stroke="var(--ln)" stroke-width="1.5"/>`;
   // Velocidad
   if (lt) s += `<g transform="translate(${WL - 48} 10) scale(.5)">${forma(pic("ltv") || {}, { v: vp })}</g><text x="${WL - 54}" y="27" font-size="13" font-weight="700" text-anchor="end" fill="var(--lt)">LTV</text>`;
+  else if (tramo?.fuente === "cvm") s += `<text x="${WL - 14}" y="27" font-size="13" font-weight="800" text-anchor="end" fill="var(--dn)">CVM</text>`;
   if (tramo?.revisar) s += `<rect x="14" y="12" width="96" height="20" rx="5" fill="none" stroke="var(--dn)" stroke-dasharray="3 2"/><text x="62" y="26" font-size="12" font-weight="800" text-anchor="middle" fill="var(--dn)">A REVISAR</text>`;
   s += vp != null
     ? `<text x="${CX}" y="178" font-size="${String(vp).length > 2 ? 182 : 190}" font-weight="700" text-anchor="middle" fill="${lt ? "var(--lt)" : "var(--tx)"}">${vp}</text>`
@@ -317,8 +321,9 @@ export function pintarMarchaMovil(ruta, pos, { desvio: conDesvio = false, residu
   let v = `<div class="mv-v${lt ? " ltv" : ""}">`;
   if (vp != null) v += `<span class="mv-n">${vp}</span><span class="mv-u">km/h</span>`;
   else v += `<span class="mv-sin">Sin V Max<small>${ruta.p.prueba ? "ruta de prueba: sin datos de ADIF" : "la hoja no la da en este tramo"}</small></span>`;
-  if (lt || tramo?.revisar)
-    v += `<span class="mv-et">${lt ? '<span class="mv-ltv">LTV</span>' : ""}${tramo?.revisar ? '<span class="rvchip">A REVISAR</span>' : ""}</span>`;
+  const cv = tramo?.fuente === "cvm";
+  if (lt || cv || tramo?.revisar)
+    v += `<span class="mv-et">${lt ? '<span class="mv-ltv">LTV</span>' : cv ? '<span class="rvchip">CVM</span>' : ""}${tramo?.revisar ? '<span class="rvchip">A REVISAR</span>' : ""}</span>`;
   const cola = tramo?.por_cola && nx && Math.abs(nx.pk - tramo.libera) < 1e-6;
   v += `</div><div class="mv-sig"><small>Siguiente${cola ? " · <span class=\"mv-cola\">cuando pase la cola</span>" : ""}</small>`;
   if (nx) {

@@ -1,4 +1,4 @@
-// Vista Datos: ficha del tren y pestañas «Hoja de ruta» (original completa) y «DLTV».
+// Vista Datos: ficha del tren y pestañas «Hoja de ruta» (original completa), «DLTV» y «CVM».
 
 import { esc, fecha, nf } from "./util.js";
 import { rango, resumen } from "./telefonemas.js";
@@ -37,6 +37,7 @@ export function pintarDatos(ruta, d) {
   const resumen = [
     fecha(t.fecha) || null,
     dl ? `${ap} LTV${rv ? ` · ${rv} a revisar` : ""}` : "sin DLTV",
+    p.cvm ? (p.cvm.tramos.length ? `CVM: ${p.cvm.tramos.length} a revisar` : "coincide con el CVM") : null,
     tec.length ? `${tec.length} ${tec.length > 1 ? "paradas técnicas" : "parada técnica"}` : null,
   ]
     .filter(Boolean)
@@ -62,6 +63,7 @@ export function pintarDatos(ruta, d) {
   };
   pintarHoja(ruta, d);
   pintarDltv(ruta, d);
+  pintarCvm(ruta);
   mostrarPestana();
 }
 
@@ -69,6 +71,7 @@ export function mostrarPestana(t) {
   if (t) pestana = t;
   $("t-hoja").hidden = pestana !== "hoja";
   $("t-dltv").hidden = pestana !== "dltv";
+  $("t-cvm").hidden = pestana !== "cvm";
   document.querySelectorAll("#tabs button").forEach((b) => b.classList.toggle("on", b.dataset.t === pestana));
 }
 
@@ -217,6 +220,42 @@ function pintarDltv(ruta, d) {
     if (dudas.length && !dec(x)) h += `<tr class="por${aq ? " aqui" : ""} rvx" data-rev="${esc(x.cod)}"><td></td><td colspan="${cols.length - 1}">Por qué a revisar: ${esc(dudas.join(" · "))} · <b>toca para decidir</b></td></tr>`;
   }
   $("dl").innerHTML = h + "</tbody>";
+}
+
+const SENTIDO = { par: "par", impar: "impar" };
+const pkTxt = (a, b) => `PK ${nf(a)} → ${nf(b)}`;
+
+/** Cotejo de la hoja con el CVM (C2): qué parte se cotejó con qué cuadro y dónde no coinciden. */
+function pintarCvm(ruta) {
+  const c = ruta.p.cvm;
+  if (!c) {
+    $("cv").innerHTML = `<p class="cv-nada">Esta ruta no se ha cotejado con el CVM. Carga el CVM en Ajustes y vuelve a generar la ruta.</p>`;
+    return;
+  }
+  const pk = (x) => ` · km ${nf(x)} de la ruta`;
+  let h = `<p class="cv-cab">Columna <b>${esc(c.columna)}</b> del CVM${c.tope ? ` · tope del tren ${c.tope} km/h` : ""}. Donde no coinciden rige la más restrictiva; lo que no se puede cotejar vale como dice la hoja.</p>`;
+  h += `<h3>No coinciden</h3>`;
+  h += c.tramos.length
+    ? c.tramos
+        .map(
+          (t) =>
+            `<div class="cv-it rv"><b>${pkTxt(t.pki, t.pkf)} · línea ${esc(t.lin)} ${esc(SENTIDO[t.sen] || t.sen || "")}</b>` +
+            `<span>Hoja <b>${t.hoja}</b> · CVM <b>${t.cvm}</b> → rige <b>${t.v ?? t.hoja}</b>${t.res === "HOJA_MAYOR" ? " (el CVM)" : " (la hoja)"}</span>` +
+            `<small>${t.pag ? `pág. ${t.pag} · ` : ""}${esc(t.doc || "")}${pk(t.pkai)}</small></div>`,
+        )
+        .join("")
+    : `<p class="cv-nada">Ninguno: la V Max de la hoja coincide con el CVM en todo lo cotejado.</p>`;
+  h += `<h3>Partes de la ruta</h3>`;
+  h += c.partes
+    .map((x) => {
+      const n = (x.puntos || 1) - 1;
+      const estado = x.cvm
+        ? `${x.ok || 0} de ${n} tramos coinciden${x.sin ? ` · ${x.sin} sin cotejo (vale la hoja)` : ""}`
+        : `sin cotejo: ${esc(x.mot || "")}`;
+      return `<div class="cv-it${x.cvm ? "" : " sin"}"><b>${esc(x.de || "?")} → ${esc(x.a || "?")}</b><span>Línea ${esc(x.lin || "?")}${x.sen ? " " + esc(x.sen) : ""} · ${estado}</span>${x.cvm ? `<small>${esc(x.cvm)}${x.pags ? ` · págs. ${x.pags.join(", ")}` : ""}</small>` : ""}</div>`;
+    })
+    .join("");
+  $("cv").innerHTML = h;
 }
 
 /** Lleva la tabla visible a la fila de la posición actual. */

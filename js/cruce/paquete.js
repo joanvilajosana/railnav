@@ -2,9 +2,10 @@
 // Reúne la hoja original, los eventos, la Vmax efectiva, la radiotelefonía, los bloqueos, el
 // horario y las LTV del DLTV que afectan a la ruta.
 
+import { tramosMarcha } from "./cotejo_cvm.js";
 import { generar } from "./eventos.js";
 import { textoVia } from "./vias.js";
-import { palabras, redondear } from "../pdf/py.js";
+import { fmtG, palabras, redondear } from "../pdf/py.js";
 
 export const FORMATO = "railnav-ruta";
 export const VERSION = 1;
@@ -100,8 +101,35 @@ function cambios(ruta, campo) {
   return lista;
 }
 
-export function construir(ruta, ltv, cruce, tramos, pictos) {
-  const eventos = generar(ruta, ltv, cruce, tramos, pictos);
+/** Resumen del cotejo con el CVM (como `cvm_de_la_ruta` de Python). */
+export function cvmDeLaRuta(ruta, cot, tramosCvm) {
+  const nombre = (p) => p.nombre || (p.pk === null || p.pk === undefined ? null : fmtG(p.pk));
+  const partes = cot.segmentos.map((sc) => {
+    const cuenta = {};
+    for (const c of sc.comparaciones) cuenta[c.resultado] = (cuenta[c.resultado] || 0) + 1;
+    return sinVacios({
+      de: nombre(ruta.puntos[sc.segmento.iIni]),
+      a: nombre(ruta.puntos[sc.segmento.iFin]),
+      lin: sc.linea,
+      sen: sc.sentido,
+      cvm: sc.archivo,
+      pags: sc.cvm ? sc.cvm.paginas : null,
+      filas: sc.filas.size,
+      puntos: sc.puntos,
+      ok: cuenta.COINCIDE || 0,
+      sin: cuenta.SIN_COTEJO || 0,
+      mot: sc.motivo || null,
+    });
+  });
+  const tramos = tramosCvm.map((t) =>
+    sinVacios({ pkai: km(t.ini), pkaf: km(t.fin), res: t.resultado, lin: t.linea, sen: t.sentido, pki: t.pkIni, pkf: t.pkFin, hoja: t.hoja, cvm: t.cvm, v: t.v, pag: t.pagina, doc: t.archivo }),
+  );
+  return { columna: cot.columna.toUpperCase(), tope: cot.tope, partes, tramos };
+}
+
+export function construir(ruta, ltv, cruce, tramos, pictos, cotejo = null) {
+  const tramosCvm = cotejo ? tramosMarcha(cotejo) : null;
+  const eventos = generar(ruta, ltv, cruce, tramos, pictos, tramosCvm);
   const t = ruta.tren;
   const conAcum = ruta.puntos.filter((p) => p.pk_acum !== null);
   const sem = ltv ? ltv.semana : null;
@@ -126,6 +154,7 @@ export function construir(ruta, ltv, cruce, tramos, pictos) {
     eventos: eventos.eventos,
     hoja: hojaOriginal(ruta),
     dltv: ltv && cruce ? dltvDeLaRuta(ltv, cruce) : null,
+    cvm: cotejo ? cvmDeLaRuta(ruta, cotejo, tramosCvm) : null,
     geo: null, // trazado para el GPS: lo añade la app después (js/geo/preparar.js)
   };
 }

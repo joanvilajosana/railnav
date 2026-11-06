@@ -4,6 +4,8 @@
 // representa y la distancia de aviso de ese pictograma.
 // Vmax efectiva en cada tramo = mín(V Max de la hoja, LTV que APLICA). Una LTV INCIERTA no la
 // cambia, pero marca el tramo con `revisar` y su evento sale con estado «revisar».
+// Con el cotejo del CVM (C2), donde la hoja da más rige el CVM y donde no coinciden queda «a
+// revisar»; el cambio de velocidad por el CVM tiene su aviso (estado «revisar», datos.cvm).
 
 import { segmentoDePunto, segmentos } from "./lineas.js";
 import { textoViaCorto } from "./vias.js";
@@ -35,7 +37,7 @@ const conArchivo = (o, archivo) => (o.archivo ? o : { ...o, archivo });
 export const porId = (repo, id) => repo.pictogramas.find((p) => p.id === id) ?? null;
 export const paraTipo = (repo, tipo) => repo.pictogramas.find((p) => p.tipos.includes(tipo)) ?? null;
 
-export function generar(ruta, ltv, cruce, tramos, pictos) {
+export function generar(ruta, ltv, cruce, tramos, pictos, cvm = null) {
   const [segs] = segmentos(ruta, tramos);
   const archivo = ruta.fuente.archivo;
   const crudos = []; // [pk_acum, tipo, datos, origen, estado, pictograma forzado]
@@ -129,6 +131,26 @@ export function generar(ruta, ltv, cruce, tramos, pictos) {
       tramosLtv.push([res.pk_acum_ini, res.pk_acum_fin, res.velocidad, r.id, estado]);
     }
   }
+  // CVM: dónde rige porque la hoja da más (aviso al empezar y al acabar).
+  for (const t of cvm || []) {
+    if (t.v === null) continue;
+    const o = { archivo: t.archivo, pagina: t.pagina || 1, fila: null, bbox: null, texto: `línea ${t.linea} ${t.sentido}` };
+    const datos = { cvm: true, linea: t.linea, pk_ini: t.pkIni, pk_fin: t.pkFin };
+    add(t.ini, "cambio_vmax_baja", { ...datos, de: vmaxEn(puntos, t.ini), a: t.v, hoja: t.hoja }, o, "revisar");
+    add(t.fin, "cambio_vmax_sube", { ...datos, de: t.v, a: vmaxTras(puntos, t.fin) }, o, "revisar");
+  }
+  // Dentro de una zona donde rige el CVM, un cambio de la hoja que no baja de la V Max del CVM no
+  // cambia la velocidad que rige: no se avisa.
+  const zonas = (cvm || []).filter((t) => t.v !== null).map((t) => [t.ini, t.fin, t.v]);
+  if (zonas.length) {
+    const tapado = ([acum, tipo, datos]) => {
+      if ((tipo !== "cambio_vmax_baja" && tipo !== "cambio_vmax_sube") || datos.cvm) return false;
+      const de = datos.de ?? null, a = datos.a ?? null;
+      if (de === null || a === null) return false;
+      return zonas.some(([i, f, v]) => i < acum && acum < f && Math.min(de, a) >= v);
+    };
+    for (let k = crudos.length - 1; k >= 0; k--) if (tapado(crudos[k])) crudos.splice(k, 1);
+  }
   const idx = (t) => (ORDEN.includes(t) ? ORDEN.indexOf(t) : 99);
   crudos.sort((x, y) => x[0] - y[0] || idx(x[1]) - idx(y[1]) || x[3].pagina - y[3].pagina || (x[3].fila || 0) - (y[3].fila || 0));
   const eventos = crudos.map(([acum, tipo, datos, origen, estado, forzado], k) => {
@@ -148,7 +170,7 @@ export function generar(ruta, ltv, cruce, tramos, pictos) {
   return {
     ruta: archivo,
     fuentes: [archivo, ...(ltv ? [ltv.fuente.archivo] : [])],
-    vmax_efectiva: vmaxEfectiva(puntos, tramosLtv),
+    vmax_efectiva: vmaxEfectiva(puntos, tramosLtv, cvm || []),
     eventos,
   };
 }
@@ -159,12 +181,19 @@ function vmaxEn(puntos, acum) {
   return null;
 }
 
-function vmaxEfectiva(puntos, tramosLtv) {
+/** V Max de la hoja justo después de `acum`. */
+function vmaxTras(puntos, acum) {
+  for (const p of puntos) if (p.pk_acum !== null && p.pk_acum > acum) return p.vmax;
+  return null;
+}
+
+function vmaxEfectiva(puntos, tramosLtv, tramosCvm) {
   const conAcum = puntos.filter((p) => p.pk_acum !== null);
   if (conAcum.length < 2) return [];
   const finRuta = conAcum.at(-1).pk_acum;
   const cortesSet = new Set(conAcum.map((p) => p.pk_acum));
   for (const [ini, fin] of tramosLtv) cortesSet.add(ini).add(fin);
+  for (const t of tramosCvm) cortesSet.add(t.ini).add(t.fin);
   const cortes = [...cortesSet].filter((c) => 0 <= c && c <= finRuta).sort((x, y) => x - y);
   const res = [];
   for (let k = 0; k + 1 < cortes.length; k++) {
@@ -175,12 +204,14 @@ function vmaxEfectiva(puntos, tramosLtv) {
     const vHoja = conAcum.find((p) => p.pk_acum > medio)?.vmax ?? null;
     const aplican = tramosLtv.filter((t) => t[0] <= medio && medio <= t[1] && t[4] === "ok");
     const dudosas = tramosLtv.filter((t) => t[0] <= medio && medio <= t[1] && t[4] === "revisar");
+    const cvm = tramosCvm.filter((t) => t.ini <= medio && medio <= t.fin);
     let v = vHoja, fuente = "hoja", ltvId = null;
+    for (const t of cvm) if (t.v !== null && (v === null || t.v < v)) [v, fuente] = [t.v, "cvm"];
     for (const t of aplican)
       if (t[2] !== null && (v === null || t[2] < v)) [v, fuente, ltvId] = [t[2], "ltv", t[3]];
-    const tramo = { pk_acum_ini: a, pk_acum_fin: b, v, fuente, ltv: ltvId, revisar: dudosas.length > 0 };
+    const tramo = { pk_acum_ini: a, pk_acum_fin: b, v, fuente, ltv: ltvId, revisar: dudosas.length > 0 || cvm.length > 0, cvm: cvm.length > 0 };
     const prev = res.at(-1);
-    if (prev && prev.v === tramo.v && prev.fuente === tramo.fuente && prev.ltv === tramo.ltv && prev.revisar === tramo.revisar)
+    if (prev && prev.v === tramo.v && prev.fuente === tramo.fuente && prev.ltv === tramo.ltv && prev.revisar === tramo.revisar && prev.cvm === tramo.cvm)
       res[res.length - 1] = { ...prev, pk_acum_fin: b };
     else res.push(tramo);
   }

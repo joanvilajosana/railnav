@@ -57,7 +57,8 @@
       "v": 100,
       "fuente": "hoja",
       "ltv": null,
-      "revisar": false
+      "revisar": false,
+      "cvm": false
     },
     {
       "pk_acum_ini": 2.0,
@@ -65,7 +66,8 @@
       "v": 30,
       "fuente": "ltv",
       "ltv": "ltv-0001",
-      "revisar": false
+      "revisar": false,
+      "cvm": false
     },
     {
       "pk_acum_ini": 4.0,
@@ -73,7 +75,8 @@
       "v": 100,
       "fuente": "hoja",
       "ltv": null,
-      "revisar": false
+      "revisar": false,
+      "cvm": false
     },
     {
       "pk_acum_ini": 20.0,
@@ -81,7 +84,8 @@
       "v": 80,
       "fuente": "hoja",
       "ltv": null,
-      "revisar": false
+      "revisar": false,
+      "cvm": false
     },
     {
       "pk_acum_ini": 25.0,
@@ -89,7 +93,8 @@
       "v": 60,
       "fuente": "ltv",
       "ltv": "ltv-0002",
-      "revisar": false
+      "revisar": false,
+      "cvm": false
     },
     {
       "pk_acum_ini": 27.0,
@@ -97,7 +102,8 @@
       "v": 80,
       "fuente": "hoja",
       "ltv": null,
-      "revisar": false
+      "revisar": false,
+      "cvm": false
     }
   ],
   "vmax_regla": "fila_anterior",
@@ -460,5 +466,6 @@
       }
     ]
   },
+  "cvm": null,
   "geo": null
 }

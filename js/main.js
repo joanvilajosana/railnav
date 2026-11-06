@@ -4,7 +4,7 @@ import { VERSION_APP } from "./version.js";
 import { esc, fecha } from "./util.js";
 import { Ruta, validar } from "./ruta.js";
 import { MODOS, Posicion, metrosPorPixel } from "./posicion.js";
-import { datos, dltvs, firmaRuta, geos, obsoleta, persistir, prefs, recorridos, rutas, telefonemas, tramos } from "./almacen.js";
+import { cvms, datos, dltvs, firmaRuta, geos, obsoleta, persistir, prefs, recorridos, rutas, telefonemas, tramos } from "./almacen.js";
 import * as TF from "./telefonemas.js";
 import { caducados, dltvAntiguo, DIAS, rutaAntigua } from "./retencion.js";
 import { htmlLegal } from "./legal.js";
@@ -629,6 +629,34 @@ async function leerDltv(archivo) {
   }
 }
 
+async function pintarCvms() {
+  const lista = await cvms.listar();
+  $("cvm-lista").innerHTML = lista.length
+    ? `<small>Se coteja la hoja con:</small>` +
+      lista.map((c) => `<span class="cvm-it">${esc(c.titulo || c.id)}${c.anejo ? " · anejo " + esc(c.anejo) : ""} · ${c.lineas} líneas<button data-quitar="${esc(c.id)}" aria-label="Quitar">✕</button></span>`).join("")
+    : `<small>Sin CVM: la V Max de la hoja no se coteja.</small>`;
+  for (const b of $("cvm-lista").querySelectorAll("[data-quitar]"))
+    b.onclick = async () => {
+      await cvms.borrar(b.dataset.quitar);
+      pintarCvms();
+    };
+}
+
+async function leerCvms(archivos) {
+  const g = await gen();
+  const hechos = [];
+  for (const f of archivos)
+    try {
+      mensaje(`Leyendo el CVM <b>${esc(f.name)}</b>…`);
+      hechos.push(await cvms.guardar(g.leerCvmJson(await f.text())));
+    } catch (e) {
+      mensaje(`✗ ${esc(f.name)}: ${esc(e.message || String(e))}`, "mal");
+      return pintarCvms();
+    }
+  await pintarCvms();
+  mensaje(`✓ CVM guardado${hechos.length > 1 ? "s" : ""}: ${hechos.map((c) => esc(c.titulo || c.id)).join(", ")}. Las rutas que generes se cotejarán con ${hechos.length > 1 ? "ellos" : "él"}.`, "ok");
+}
+
 async function tablasConocidas() {
   if (!tablasDeSerie)
     tablasDeSerie = await fetch("datos/tramos.json")
@@ -648,7 +676,7 @@ async function generarRuta() {
     const ruta = await g.leerHojaPdf(hojaPdf);
     const idDltv = $("sel-dltv").value;
     const ltv = idDltv ? await dltvs.cargar(idDltv) : null;
-    if (!ltv) return terminar(g, ruta, null, null);
+    if (!ltv) return terminar(g, ruta, null, g.elegirTabla(ruta, await tablasConocidas()));
     // Hay maquinistas que usan hojas antiguas con el DLTV de la semana: la fecha de la hoja no
     // descarta LTV (decisión de Joan, 04-11-2026; se revisará cuando haya DLTV periódicos).
     ignorarFechasGen = true;
@@ -702,7 +730,8 @@ let ignorarFechasGen = false;
 async function terminar(g, ruta, ltv, tabla) {
   mensaje(ltv ? "Cruzando la hoja con el DLTV…" : "Preparando la ruta…");
   await new Promise((r) => setTimeout(r, 0));
-  const { paquete, cruce, avisos } = g.generarPaquete(ruta, ltv, tabla, { version: 1, pictogramas: deSerie() }, { ignorarFechas: !!ltv && ignorarFechasGen });
+  const listaCvm = await cvms.todos();
+  const { paquete, cruce, avisos } = g.generarPaquete(ruta, ltv, tabla, { version: 1, pictogramas: deSerie() }, { ignorarFechas: !!ltv && ignorarFechasGen, cvms: listaCvm });
   await abrir(paquete);
   if (!paquete.geo && navigator.onLine) prepararGps(); // en segundo plano; si falla, se avisa abajo
   const n = g.recuento(cruce);
@@ -710,8 +739,15 @@ async function terminar(g, ruta, ltv, tabla) {
   const ltvTxt = ltv
     ? ` · DLTV nº ${esc(ltv.numero ?? "?")}: <b>${n.APLICA}</b> LTV en la ruta` + (n.INCIERTA ? `, <b>${n.INCIERTA}</b> a revisar` : "")
     : " · sin DLTV";
+  const cv = paquete.cvm;
+  const mayor = cv ? cv.tramos.filter((x) => x.res === "HOJA_MAYOR").length : 0;
+  const cvmTxt = !cv
+    ? ""
+    : cv.tramos.length
+      ? ` · CVM: <b>${cv.tramos.length}</b> tramo${cv.tramos.length > 1 ? "s" : ""} no coincide${cv.tramos.length > 1 ? "n" : ""} con la hoja${mayor ? ` (en ${mayor} rige el CVM)` : ""}, a revisar`
+      : " · coincide con el CVM";
   mensaje(
-    `✓ Tren <b>${esc(t.numero)}</b> ${t.fecha ? "del " + fecha(t.fecha) : ""} · ${esc(t.origen ?? "?")} → ${esc(t.destino ?? "?")}${ltvTxt}. Guardada y abierta.` +
+    `✓ Tren <b>${esc(t.numero)}</b> ${t.fecha ? "del " + fecha(t.fecha) : ""} · ${esc(t.origen ?? "?")} → ${esc(t.destino ?? "?")}${ltvTxt}${cvmTxt}. Guardada y abierta.` +
       (avisos.length ? `<ul>${avisos.slice(0, 6).map((a) => `<li>${esc(a)}</li>`).join("")}</ul>` : ""),
     "ok",
   );
@@ -902,6 +938,11 @@ function iniciarAjustes() {
     if (f) leerDltv(f).finally(() => (e.target.value = ""));
   };
   $("sel-dltv").onchange = () => prefs.escribir("dltv", $("sel-dltv").value);
+  $("f-cvm").onchange = (e) => {
+    const fs = [...(e.target.files || [])];
+    if (fs.length) leerCvms(fs).finally(() => (e.target.value = ""));
+  };
+  pintarCvms();
   $("b-generar").onclick = generarRuta;
   pintarDltvs();
   $("f-ruta").onchange = (e) => cargarArchivos([...e.target.files]).finally(() => (e.target.value = ""));

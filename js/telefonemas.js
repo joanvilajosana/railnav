@@ -303,11 +303,13 @@ export function superponer(base, limites) {
     const t = base.find((x) => x.pk_acum_ini <= m && m < x.pk_acum_fin) || null;
     const l = limites.filter((x) => x.ini <= m && m < x.fin).sort((x, y) => x.v - y.v)[0];
     let n;
-    if (l && (t?.v == null || l.v < t.v)) n = { pk_acum_ini: a, pk_acum_fin: b, v: l.v, fuente: "ltv", ltv: l.id, revisar: false, telefonema: l.numero };
+    // La marca del CVM (hoja ≠ CVM, a revisar) se conserva aunque mande otra limitación.
+    const cvm = !!(t?.cvm || l?.cvm);
+    if (l && (t?.v == null || l.v < t.v)) n = { pk_acum_ini: a, pk_acum_fin: b, v: l.v, fuente: l.fuente || "ltv", ltv: l.id ?? null, revisar: cvm, cvm, telefonema: l.numero };
     else if (t) n = { ...t, pk_acum_ini: a, pk_acum_fin: b };
     else continue;
     const u = out[out.length - 1];
-    if (u && Math.abs(u.pk_acum_fin - a) < 1e-9 && u.v === n.v && u.fuente === n.fuente && u.ltv === n.ltv && u.revisar === n.revisar) u.pk_acum_fin = b;
+    if (u && Math.abs(u.pk_acum_fin - a) < 1e-9 && u.v === n.v && u.fuente === n.fuente && u.ltv === n.ltv && u.revisar === n.revisar && !!u.cvm === !!n.cvm) u.pk_acum_fin = b;
     else out.push(n);
   }
   return out;

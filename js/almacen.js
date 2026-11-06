@@ -1,6 +1,7 @@
 // Lo que la app guarda en el dispositivo:
 //   rutas  → IndexedDB (paquetes de ruta cargados o generados; sin límite práctico de tamaño)
 //   dltv   → IndexedDB (DLTV leídos de su PDF: se leen una vez por semana)
+//   cvm    → IndexedDB (CVM leídos en el ordenador, .cvm.json reducido: para cotejar la hoja)
 //   tramos → IndexedDB (tablas de tramos confirmadas por el maquinista en este iPad)
 //   geo    → IndexedDB (trazados de la vía ya preparados, por ruta: se reutilizan cada día)
 //   recorridos → IndexedDB (grabaciones de la posición del iPad)
@@ -38,14 +39,14 @@ export const prefs = {
 };
 
 let db = null;
-const ALMACENES = { rutas: "id", dltv: "id", tramos: "ruta", geo: "firma", recorridos: "id", telefonemas: "id" };
+const ALMACENES = { rutas: "id", dltv: "id", tramos: "ruta", geo: "firma", recorridos: "id", telefonemas: "id", cvm: "id" };
 const mem = Object.fromEntries(Object.keys(ALMACENES).map((k) => [k, new Map()]));
 
 function abrir() {
   if (db) return Promise.resolve(db);
   return new Promise((ok) => {
     try {
-      const r = indexedDB.open("railnav", 4);
+      const r = indexedDB.open("railnav", 5);
       r.onupgradeneeded = () => {
         for (const [nombre, clave] of Object.entries(ALMACENES))
           if (!r.result.objectStoreNames.contains(nombre)) r.result.createObjectStore(nombre, { keyPath: clave });
@@ -154,6 +155,28 @@ export const dltvs = {
     return (await A.dltv.una(id))?.doc ?? null;
   },
   borrar: (id) => A.dltv.quitar(id),
+};
+
+// CVM cargados (versión reducida de su .cvm.json; clave: el PDF del que se leyó). Se guardan
+// hasta que se quitan; uno con el mismo nombre sustituye al anterior.
+const resumenCvm = (f) => ({
+  id: f.id,
+  titulo: f.doc.titulo,
+  anejo: f.doc.anejo,
+  lineas: new Set(f.doc.lineas.map((l) => l.linea)).size,
+  guardado: f.guardado,
+});
+
+export const cvms = {
+  async guardar(doc) {
+    const fila = { id: doc.archivo || doc.titulo || "CVM", guardado: new Date().toISOString(), doc };
+    await A.cvm.poner(fila);
+    return resumenCvm(fila);
+  },
+  listar: async () => (await A.cvm.todas()).map(resumenCvm).sort((a, b) => (a.id < b.id ? -1 : 1)),
+  /** Los documentos, en orden de nombre, como los usa el cotejo: [{doc, archivo}]. */
+  todos: async () => (await A.cvm.todas()).sort((a, b) => (a.id < b.id ? -1 : 1)).map((f) => ({ doc: f.doc, archivo: f.id })),
+  borrar: (id) => A.cvm.quitar(id),
 };
 
 // Tablas de tramos confirmadas en este iPad (clave: el nombre de la ruta).

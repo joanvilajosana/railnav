@@ -78,7 +78,9 @@ export class Ruta {
       const hoja = vmaxHoja(this.p);
       const otras = (this.p.dltv?.ltv || [])
         .filter((l) => l.res === "APLICA" && l.v != null && l.pkai != null && !suprimidas.has("ltv-" + l.cod))
-        .map((l) => ({ ini: l.pkai, fin: l.pkaf, v: l.v, id: "ltv-" + l.cod }));
+        .map((l) => ({ ini: l.pkai, fin: l.pkaf, v: l.v, id: "ltv-" + l.cod }))
+        // donde rige el CVM (la hoja da más), sigue rigiendo
+        .concat((this.p.cvm?.tramos || []).filter((x) => x.v != null).map((x) => ({ ini: x.pkai, fin: x.pkaf, v: x.v, id: null, fuente: "cvm", cvm: true })));
       base = [];
       for (const t of this.vmax0) {
         if (t.fuente !== "ltv" || !suprimidas.has(t.ltv)) {
@@ -100,7 +102,7 @@ export class Ruta {
     if (Object.keys(rev).length) {
       const pendientes = dl.filter((l) => l.res !== "APLICA" && !rev[l.cod]);
       const pisa = (l, t) => l.pkai == null || (Math.min(l.pkai, l.pkaf) < t.pk_acum_fin && Math.max(l.pkai, l.pkaf) > t.pk_acum_ini);
-      this.vmax = this.vmax.map((t) => (t.revisar && !pendientes.some((l) => pisa(l, t)) ? { ...t, revisar: false } : t));
+      this.vmax = this.vmax.map((t) => (t.revisar && !t.cvm && !pendientes.some((l) => pisa(l, t)) ? { ...t, revisar: false } : t));
     }
     const decidida = (e) => (e.datos?.ltv?.startsWith("ltv-") ? rev[e.datos.ltv.slice(4)] : null);
     const sup = (e) => e.datos?.ltv && suprimidas.has(e.datos.ltv);

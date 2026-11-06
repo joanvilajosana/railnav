@@ -13,6 +13,7 @@ import { leerLtv } from "./pdf/ltv.js";
 import { cruzar } from "./cruce/cruce.js";
 import { segmentos } from "./cruce/lineas.js";
 import { construir } from "./cruce/paquete.js";
+import { cotejar, reducirCvm } from "./cruce/cotejo_cvm.js";
 import { proponer } from "./cruce/proponer.js";
 
 const fecha = (iso) => String(iso).split("-").reverse().join("/");
@@ -68,7 +69,7 @@ export function dltvCubre(ruta, ltv) {
  * Paquete de ruta. Sin DLTV, solo la hoja. Con DLTV hace falta la tabla de tramos.
  * @returns {{paquete, cruce, avisos: string[]}}
  */
-export function generarPaquete(ruta, ltv, tabla, pictos, { ignorarFechas = false } = {}) {
+export function generarPaquete(ruta, ltv, tabla, pictos, { ignorarFechas = false, cvms = [] } = {}) {
   const avisos = [];
   let cruce = null;
   if (ltv) {
@@ -82,8 +83,23 @@ export function generarPaquete(ruta, ltv, tabla, pictos, { ignorarFechas = false
       avisos.push(`El DLTV nº ${ltv.numero ?? "?"} es de la semana del ${fecha(ltv.semana.desde)} al ${fecha(ltv.semana.hasta)} y la hoja es del ${fecha(ruta.tren.fecha)}: sus LTV no se aplican ese día.`);
   }
   for (const a of ruta.avisos) avisos.push(a.mensaje);
-  const paquete = construir(ruta, ltv, cruce, tabla, pictos);
+  // Cotejo con el CVM (C2): hace falta la tabla de tramos (la línea de cada parte de la ruta).
+  const cotejo = cvms.length && tabla ? cotejar(ruta, tabla, cvms) : null;
+  if (cvms.length && !tabla) avisos.push("Sin tabla de tramos no se puede cotejar la hoja con el CVM.");
+  const paquete = construir(ruta, ltv, cruce, tabla, pictos, cotejo);
   return { paquete, cruce, avisos };
+}
+
+/** Un .cvm.json (de `python -m parsers.cvm`) → lo que guarda la app. */
+export function leerCvmJson(texto) {
+  let doc;
+  try {
+    doc = JSON.parse(texto);
+  } catch {
+    throw new Error("no es un JSON");
+  }
+  if (doc?.formato !== "railnav-cvm" || !Array.isArray(doc.lineas)) throw new Error("no es un CVM leído por RailNav (.cvm.json)");
+  return reducirCvm(doc);
 }
 
 /** Recuento para el mensaje final: LTV que aplican y a revisar. */

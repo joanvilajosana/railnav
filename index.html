@@ -84,11 +84,12 @@
  <div id="v-datos" hidden>
   <div class="pn"><div id="kv" class="ficha"></div></div>
   <div class="pn">
-   <div class="hj-top"><div class="tabs" id="tabs"><button data-t="hoja" class="on">Hoja de ruta</button><button data-t="dltv">DLTV</button></div><button id="hj-aqui">Posición actual</button></div>
+   <div class="hj-top"><div class="tabs" id="tabs"><button data-t="hoja" class="on">Hoja de ruta</button><button data-t="dltv">DLTV</button><button data-t="cvm">CVM</button></div><button id="hj-aqui">Posición actual</button></div>
    <div id="t-hoja">
     <div class="hj-ley"><span><i style="background:#28A0FF"></i>CSV</span><span><i class="i-aqui"></i>Posición actual</span><span><i class="i-rep"></i>Celda combinada</span></div>
     <div class="hj-w" id="hj-w"><table id="tb" class="hj"></table></div>
    </div>
+   <div id="t-cvm" hidden><div id="cv" class="cv"></div></div>
    <div id="t-dltv" hidden>
     <div class="dl-top"><div class="hj-ley" id="dl-cab"></div><button class="ltvm-mas" data-ltvman="nueva">+ Añadir LTV</button></div>
     <div id="dl-man"></div>
@@ -103,7 +104,9 @@
    <div class="cargas">
     <label class="carga"><span class="carga-i" data-i="doc"></span><span><b>Hoja de ruta</b><small class="carga-n" data-vacio="Elegir PDF">Elegir PDF</small></span><input id="f-hoja" type="file" accept="application/pdf,.pdf"></label>
     <label class="carga"><span class="carga-i" data-i="ltv"></span><span><b>DLTV de la semana</b><small class="carga-n" data-vacio="Elegir PDF">Elegir PDF</small></span><input id="f-dltv" type="file" accept="application/pdf,.pdf"></label>
+    <label class="carga"><span class="carga-i" data-i="doc"></span><span><b>CVM</b><small class="carga-n" data-vacio="Elegir .cvm.json">Elegir .cvm.json</small></span><input id="f-cvm" type="file" accept=".json,application/json" multiple></label>
    </div>
+   <div id="cvm-lista" class="cvm-lista"></div>
    <label class="fila"><span>Cruzar con</span><select id="sel-dltv"></select></label>
    <button id="b-generar" class="pri ancho" disabled>Generar ruta</button>
    <div id="gen-msg" class="gen-msg" aria-live="polite"></div>

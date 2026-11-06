@@ -39,7 +39,7 @@ export const SECCIONES = [
 <p>Joan Vilajosana Quesada. Contacto: ${correo}.</p>
 <h3>Qué se guarda en tu dispositivo</h3>
 <ul>
-<li>Las rutas generadas o cargadas, los DLTV leídos, las tablas de tramos que edites y los trazados de la vía.</li>
+<li>Las rutas generadas o cargadas, los DLTV leídos, los CVM que cargues, las tablas de tramos que edites y los trazados de la vía.</li>
 <li>Las grabaciones de recorrido, si las activas: la posición del dispositivo con la hora, segundo a segundo.</li>
 <li>Los telefonemas que registres: número, hora, emisor, receptor, mensaje y firma (el apellido de quien lo da), y lo que prescriben. Solo salen del dispositivo si compartes el registro.</li>
 <li>Tus preferencias: tema, volumen, disposición de la pantalla, modo de posición, avisos, longitud del tren, pictogramas editados.</li>
@@ -58,6 +58,7 @@ export const SECCIONES = [
 <ul>
 <li>Grabaciones de recorrido: se guardan hasta que las borras.</li>
 <li>Rutas y DLTV: se borran solos a los 30 días de guardarlos (una ruta cuenta desde la última vez que la abres; la que tienes abierta no se borra).</li>
+<li>CVM: se guardan hasta que los quitas.</li>
 <li>Telefonemas: se borran solos a los 30 días (antes puedes exportarlos en CSV para tu empresa).</li>
 </ul>
 <h3>Tus derechos</h3>
