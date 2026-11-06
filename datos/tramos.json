@@ -34,6 +34,13 @@
         },
         {
           "desde": "VALLECAS-IND",
+          "hasta": "VILLAVERDE BAJO",
+          "linea": "942",
+          "verificado": true,
+          "nota": "línea 942 por Bif. Rebolledo (confirmado por Joan, 06-11-2026, cotejo con el CVM)"
+        },
+        {
+          "desde": "VILLAVERDE BAJO",
           "hasta": "ARANJUEZ",
           "linea": "300",
           "verificado": true,
@@ -68,9 +75,9 @@
         {
           "desde": "S.CRISTOBAL INDT",
           "hasta": "VILLAVERDE BAJO",
-          "linea": "300",
+          "linea": "936",
           "verificado": true,
-          "nota": "línea 300 (confirmado por Joan, 26-10-2026)"
+          "nota": "línea 936 (confirmado por Joan, 06-11-2026, cotejo con el CVM)"
         },
         {
           "desde": "VILLAVERDE BAJO",
