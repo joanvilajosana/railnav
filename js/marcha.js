@@ -21,9 +21,13 @@ let R = 0;
 export const WL = 345, XR = 596, WR = 171.75;
 const HUECO = 8; // px entre columnas (.scr gap)
 export const altoDibujo = () => H;
-export function ajustarDibujo(anchoPx, altoPx, apilado) {
+// iPad en vertical (v0.20, Joan): el dibujo de la velocidad acaba en «Siguiente»; los próximos
+// van en su propio cuadro (#mv-prox), al lado de los pasados, en la mitad de abajo.
+let soloVel = false;
+export function ajustarDibujo(anchoPx, altoPx, apilado, vertical = false) {
   const col = (2 * (anchoPx - 2 * HUECO)) / 5; // ancho de la columna de la velocidad (40 %)
-  const nuevo = apilado ? 440 : Math.max(440, Math.round(((WL + 1.5) * altoPx) / col + 6.5));
+  const nuevo = vertical ? 342 : apilado ? 440 : Math.max(440, Math.round(((WL + 1.5) * altoPx) / col + 6.5));
+  soloVel = vertical;
   if (nuevo === H && hecha) return false;
   H = nuevo;
   hecha = true;
@@ -243,10 +247,11 @@ export function pintarMarcha(ruta, pos, { desvio: conDesvio = false, residuo = n
     s += `<text x="16" y="308" font-size="46" font-weight="700" fill="${c}">${baja ? "▼ " : "▲ "}${nx.v}</text><text x="${DER}" y="308" font-size="34" font-weight="700" text-anchor="end" fill="var(--tx)">${dm(m)}</text>`;
     s += `<rect x="16" y="318" width="${WL - 22}" height="5" rx="2" fill="var(--blu2)"/><rect x="16" y="318" width="${(WL - 22) * (1 - Math.min(m, 3000) / 3000)}" height="5" rx="2" fill="${c}"/>`;
   } else s += `<text x="16" y="302" font-size="24" font-weight="700" fill="var(--gy)">Sin más cambios</text>`;
-  // Avisos próximos (el residuo va abajo de los pasados)
-  const ev = ruta.proximos(d, alcance);
-  s += `<text x="14" y="343" font-size="11" font-weight="800" letter-spacing=".08em" fill="var(--gy)">PRÓXIMOS</text>`;
-  if (!ev.length) s += `<text x="16" y="366" font-size="13" fill="var(--gy)">Ninguno en los próximos 3 km</text>`;
+  // Avisos próximos (el residuo va abajo de los pasados). En el iPad en vertical, en su cuadro.
+  const ev = soloVel ? [] : ruta.proximos(d, alcance);
+  if (soloVel) pintarProximos(ruta, d, null);
+  else s += `<text x="14" y="343" font-size="11" font-weight="800" letter-spacing=".08em" fill="var(--gy)">PRÓXIMOS</text>`;
+  if (!soloVel && !ev.length) s += `<text x="16" y="366" font-size="13" fill="var(--gy)">Ninguno en los próximos 3 km</text>`;
   ev.slice(0, Math.max(1, Math.floor((H - 8 - 350) / 62))).forEach((e, i) => {
     const k = picDe(e) || {}, y = 350 + i * 62, [tit, pk] = tituloPk(ruta, e), num = numeroGrande(e), [t, at] = ajustar(tit, num ? WL - 130 : WL - 74, 30);
     s += `<rect x="10" y="${y}" width="${WL - 12}" height="55" rx="6" fill="none" stroke="${esc(k.borde || "var(--ln)")}" stroke-width="${i ? 1.5 : 2.5}"${e.estado === "revisar" ? ' stroke-dasharray="5 3"' : ""}/>`;
@@ -300,6 +305,20 @@ function pintarHistorial(ruta, d) {
         return `<div class="hr${e.estado === "revisar" ? " rv" : ""}">${icono(k, 26, e.datos)}<div><b>${esc(tit)}</b><small>${pk ? pk + " · " : ""}hace ${dm((d - e.pk_acum) * 1000)}${e.datos?.via ? " · " + cuadroViaHtml(e.datos.via) : ""}${e.estado === "revisar" ? ' · <span class="rvchip">A REVISAR</span>' : ""}</small></div>${num ? `<span class="hr-n" style="color:${esc(k?.color || "var(--tx)")}">${esc(num)}</span>` : ""}</div>`;
       }).join("")
     : `<div class="vac">Todavía no ha pasado nada</div>`;
+}
+
+/** Cuadro de próximos avisos en HTML (teléfono e iPad en vertical). */
+function pintarProximos(ruta, d, vista) {
+  const ev = ruta.proximos(d, alcance);
+  // Franjas de texto (marcha a la vista): entre la velocidad y los avisos, sin tapar nada.
+  poner("mv-prox", (vista ? `<div class="mv-vista">MARCHA A LA VISTA · TF ${vista.numero} · ${dm((vista.fin - d) * 1000)}</div>` : "") + (ev.length
+    ? ev
+        .map((e, i) => {
+          const k = picDe(e) || {}, [tit, pk] = tituloPk(ruta, e), num = numeroGrande(e);
+          return `<div class="px${i ? "" : " pri"}${e.estado === "revisar" ? " rv" : ""}" style="--bc:${esc(k.borde || "var(--ln)")}">${icono(k, 40, e.datos)}<div><b>${esc(tit)}</b><small>${pk ? pk + " · " : ""}a <strong>${dm((e.pk_acum - d) * 1000)}</strong>${chipsLinea2(e)}</small></div>${num ? `<span class="px-n" style="color:${esc(k.color || "var(--tx)")}">${esc(num)}</span>` : ""}</div>`;
+        })
+        .join("")
+    : `<div class="vac">Ninguno en los próximos 3 km</div>`));
 }
 
 // ---------------------------------------------------------------- teléfono
@@ -356,16 +375,8 @@ export function pintarMarchaMovil(ruta, pos, { desvio: conDesvio = false, residu
   v += `</div>`;
   poner("mv-vel", v);
   // Próximos avisos
+  pintarProximos(ruta, d, vista);
   const ev = ruta.proximos(d, alcance);
-  // Franjas de texto (marcha a la vista): entre la velocidad y los avisos, sin tapar nada.
-  poner("mv-prox", (vista ? `<div class="mv-vista">MARCHA A LA VISTA · TF ${vista.numero} · ${dm((vista.fin - d) * 1000)}</div>` : "") + (ev.length
-    ? ev
-        .map((e, i) => {
-          const k = picDe(e) || {}, [tit, pk] = tituloPk(ruta, e), num = numeroGrande(e);
-          return `<div class="px${i ? "" : " pri"}${e.estado === "revisar" ? " rv" : ""}" style="--bc:${esc(k.borde || "var(--ln)")}">${icono(k, 40, e.datos)}<div><b>${esc(tit)}</b><small>${pk ? pk + " · " : ""}a <strong>${dm((e.pk_acum - d) * 1000)}</strong>${chipsLinea2(e)}</small></div>${num ? `<span class="px-n" style="color:${esc(k.color || "var(--tx)")}">${esc(num)}</span>` : ""}</div>`;
-        })
-        .join("")
-    : `<div class="vac">Ninguno en los próximos 3 km</div>`));
   // Línea de tiempo
   const el = $("mv-linea"), W = el.clientWidth, Ht = el.clientHeight;
   if (W && Ht) {
@@ -399,7 +410,7 @@ export function pintarMarchaMovil(ruta, pos, { desvio: conDesvio = false, residu
   const o = $("mv-odo");
   if (!o.querySelector(".odo-km"))
     o.innerHTML =
-      `<span class="odo-km"></span><span class="odo-h"></span><span class="odo-d"></span>` +
+      `<span class="odo-kh"><span class="odo-km"></span><span class="odo-h"></span><span class="odo-d"></span></span>` +
       `<button class="odo-res" data-residuo="1" aria-label="Residuo: cuenta atrás de la longitud del tren">Residuo <b></b></button><span class="odo-m"></span>`;
   texto_(o.querySelector(".odo-km"), `${miles(d * 1000)} m`);
   texto_(o.querySelector(".odo-h"), eta == null ? "--:--:--" : hms(eta));

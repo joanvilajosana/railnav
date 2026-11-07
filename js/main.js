@@ -1662,11 +1662,13 @@ function iniciarTamano() {
     if (!r.width || !r.height) return;
     const apilado = matchMedia("(max-aspect-ratio: 5/4)").matches;
     const vertical = matchMedia("(max-aspect-ratio: 4/5)").matches;
-    if (ajustarDibujo(r.width, r.height, apilado)) sucio = true;
+    const tablet = document.documentElement.dataset.disp === "tablet";
+    if (ajustarDibujo(r.width, r.height, apilado, vertical && tablet)) sucio = true;
     // unidad del dibujo en píxeles: el historial usa la misma escala de letra
     // en vertical las dos columnas de dibujo ocupan el ancho; el historial, con letra legible
     // anchos del dibujo: velocidad 346,5 y línea de tiempo 173,25 (40 % / 20 %, v0.20)
-    const u = vertical ? Math.max(1, r.width / 520) : apilado ? r.width / 866 : r.height / (altoDibujo() - 6.5);
+    // iPad en vertical: los pasados van en media pantalla, con letra de tamaño fijo
+    const u = vertical ? Math.max(1, r.width / 640) : apilado ? r.width / 866 : r.height / (altoDibujo() - 6.5);
     scr.style.setProperty("--u", u + "px");
   };
   new ResizeObserver(medir).observe(scr);
