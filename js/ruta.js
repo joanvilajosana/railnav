@@ -148,15 +148,13 @@ export class Ruta {
   /**
    * Longitud del tren en metros (0: no se tiene en cuenta). Con longitud, una limitación se
    * mantiene hasta que la cola sale de ella: la Vmax en d es la menor de los tramos que pisa
-   * el tren (de d − longitud a d), y las subidas de velocidad y los fines de LTV se avisan donde
-   * la cola los libera. Las LTV «solo vehículo cabeza» solo cuentan en la cabeza.
+   * el tren (de d − longitud a d). Las LTV «solo vehículo cabeza» solo cuentan en la cabeza.
+   * Los avisos de subida y de fin de LTV van en su punto (v0.20.4, Joan): al rebasarlo empieza
+   * la cuenta de «librar por cola» (`tramo().por_cola`, hasta `libera`).
    */
   ponerLongitud(metros) {
     this.cola = Math.max(0, Number(metros) || 0) / 1000;
-    const libera = (e) => e.tipo === "cambio_vmax_sube" || (e.tipo === "ltv_fin" && !e.datos?.solo_cabeza);
-    this.eventos = this.cola
-      ? this.base.map((e) => (libera(e) ? { ...e, pk_acum: e.pk_acum + this.cola, cola: true } : e)).sort((a, b) => a.pk_acum - b.pk_acum)
-      : this.base;
+    this.eventos = this.base;
   }
 
   /** Tramo de Vmax en la cabeza del tren, en d (o null). */
@@ -187,23 +185,15 @@ export class Ruta {
     return this.tramo(d)?.v ?? null;
   }
 
-  /** Siguiente cambio de Vmax efectiva después de d: { pk, v, tramo } o null. */
+  /**
+   * Siguiente cambio de Vmax después de d, en la cabeza: { pk, v, tramo } o null. Con longitud
+   * también: la subida se anuncia en su punto; lo que falta para librar por cola lo cuenta
+   * `tramo(d).libera` una vez rebasado (v0.20.4, Joan).
+   */
   siguiente(d) {
-    const actual = this.vEn(d);
-    if (!this.cola) {
-      for (const t of this.vmax)
-        if (t.pk_acum_ini > d + 1e-6 && t.v != null && t.v !== actual) return { pk: t.pk_acum_ini, v: t.v, tramo: t };
-      return null;
-    }
-    // Con la cola, la velocidad cambia donde empieza un tramo (baja con la cabeza) o donde la
-    // cola sale de uno (sube).
-    const puntos = [...new Set(this.vmax.flatMap((t) => [t.pk_acum_ini, t.pk_acum_fin + this.cola]))]
-      .filter((x) => x > d + 1e-6)
-      .sort((a, b) => a - b);
-    for (const x of puntos) {
-      const t = this.tramo(x);
-      if (t?.v != null && t.v !== actual) return { pk: x, v: t.v, tramo: t };
-    }
+    const actual = this.tramoCabeza(d)?.v ?? null;
+    for (const t of this.vmax)
+      if (t.pk_acum_ini > d + 1e-6 && t.v != null && t.v !== actual) return { pk: t.pk_acum_ini, v: t.v, tramo: t };
     return null;
   }
 

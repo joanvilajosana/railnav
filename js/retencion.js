@@ -8,7 +8,20 @@
 //   no.
 
 export const DIAS = 30;
+export const AVISO_DIAS = 10; // se avisa cuando faltan estos días o menos (Joan, v0.20.4)
 const DIA_MS = 864e5;
+
+/** Días que faltan para que se borre algo guardado en `iso` (0 = hoy). null si no hay fecha. */
+export function diasRestantes(iso, ahora = Date.now(), dias = DIAS) {
+  const t = Date.parse(iso || "");
+  return Number.isFinite(t) ? Math.max(0, Math.ceil((t + dias * DIA_MS - ahora) / DIA_MS)) : null;
+}
+
+/** ¿Caduca pronto? (en AVISO_DIAS días o menos) */
+export const caducaPronto = (iso, ahora = Date.now()) => {
+  const n = diasRestantes(iso, ahora);
+  return n != null && n <= AVISO_DIAS;
+};
 
 /** Ids de las grabaciones caducadas. `lista`: [{id (ISO), conservar}]. */
 export function caducados(lista, ahora = Date.now(), enCurso = null, dias = DIAS) {

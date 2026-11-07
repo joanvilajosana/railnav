@@ -6,7 +6,7 @@ import { Ruta, validar } from "./ruta.js";
 import { MODOS, Posicion, metrosPorPixel } from "./posicion.js";
 import { cvms, datos, dltvs, firmaRuta, geos, obsoleta, persistir, prefs, recorridos, rutas, telefonemas, tramos } from "./almacen.js";
 import * as TF from "./telefonemas.js";
-import { caducados, dltvAntiguo, DIAS, rutaAntigua } from "./retencion.js";
+import { AVISO_DIAS, caducados, caducaPronto, diasRestantes, dltvAntiguo, DIAS, rutaAntigua } from "./retencion.js";
 import { htmlLegal } from "./legal.js";
 import { cargarPictos, deSerie, picDe, restaurar as restaurarPictos } from "./pictos.js";
 import { confirmar } from "./confirmar.js";
@@ -937,7 +937,7 @@ async function pintarAjustes() {
     ? lista
         .map(
           (r) =>
-            `<div class="ru${ruta && r.id === ruta.id ? " on" : ""}"><div><b>${esc(r.tren)}</b> · ${esc(r.origen || "?")} → ${esc(r.destino || "?")}<small>${r.tren === "PRUEBA" ? "ruta de prueba del GPS (sin datos de ADIF)" : fecha(r.fecha) + (r.ltv ? " · DLTV nº " + esc(r.ltv) : " · sin DLTV")}${r.obsoleta ? '<br><span class="aviso">Generada con una versión anterior: vuelve a generarla</span>' : ""}</small></div>` +
+            `<div class="ru${ruta && r.id === ruta.id ? " on" : ""}"><div><b>${esc(r.tren)}</b> · ${esc(r.origen || "?")} → ${esc(r.destino || "?")}<small>${r.tren === "PRUEBA" ? "ruta de prueba del GPS (sin datos de ADIF)" : fecha(r.fecha) + (r.ltv ? " · DLTV nº " + esc(r.ltv) : " · sin DLTV")}${r.obsoleta ? '<br><span class="aviso">Generada con una versión anterior: vuelve a generarla</span>' : ""}${!(ruta && r.id === ruta.id) && caducaPronto(r.guardado) ? `<br><span class="caduca">${textoCaduca(diasRestantes(r.guardado))}</span>` : ""}</small></div>` +
             `<div>${ruta && r.id === ruta.id ? "" : `<button data-abrir="${esc(r.id)}">Abrir</button>`}<button data-comp="${esc(r.id)}" title="Enviar la ruta (AirDrop, Mensajes, Correo…)">Compartir</button><button data-borrar="${esc(r.id)}" title="Borrar del dispositivo">Borrar</button></div></div>`,
         )
         .join("")
@@ -1344,7 +1344,31 @@ async function caducarArchivos() {
   return r.length + d.length;
 }
 
+const textoCaduca = (n) => (n <= 0 ? "Se borra hoy" : n === 1 ? "Se borra mañana" : `Se borra en ${n} días`);
+
+/** Lo que se borrará en AVISO_DIAS días o menos (la ruta abierta no se borra). */
+async function porCaducar() {
+  const activa = ruta?.id ?? prefs.leer("activa", null);
+  const r = (await rutas.listar()).filter((x) => x.id !== activa && caducaPronto(x.guardado));
+  const d = (await dltvs.listar()).filter((x) => caducaPronto(x.guardado));
+  const t = (await telefonemas.listar()).filter((x) => caducaPronto(x.id));
+  return { r, d, t, n: r.length + d.length + t.length };
+}
+
+/** Aviso de caducidad: en «Tus datos» y un punto en el botón de Ajustes. */
+async function avisarCaducidad() {
+  const c = await porCaducar();
+  $("m-ajustes").classList.toggle("caduca", c.n > 0);
+  const el = $("datos-cad");
+  el.hidden = !c.n;
+  if (!c.n) return;
+  const plural = (k, uno, varios) => `${k} ${k === 1 ? uno : varios}`;
+  const partes = [c.r.length && plural(c.r.length, "ruta", "rutas"), c.d.length && plural(c.d.length, "DLTV", "DLTV"), c.t.length && plural(c.t.length, "telefonema", "telefonemas")].filter(Boolean);
+  el.textContent = `⚠ ${partes.join(", ").replace(/, ([^,]*)$/, " y $1")} se ${c.n === 1 ? "borrará" : "borrarán"} en ${AVISO_DIAS} días o menos. Descarga una copia de seguridad para no perderlos.`;
+}
+
 async function pintarTusDatos() {
+  avisarCaducidad();
   const n = await datos.recuento();
   const plural = (k, uno, varios) => `${k} ${k === 1 ? uno : varios}`;
   $("datos-res").textContent =
@@ -1809,7 +1833,7 @@ async function iniciar() {
   requestAnimationFrame(bucle);
   persistir();
   caducarTelefonemas().catch(() => {});
-  caducarArchivos().catch(() => {});
+  caducarArchivos().catch(() => {}).finally(() => avisarCaducidad().catch(() => {}));
   if ("serviceWorker" in navigator && (location.protocol === "https:" || location.hostname === "localhost")) actualizaciones();
 }
 

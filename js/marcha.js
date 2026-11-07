@@ -238,12 +238,12 @@ export function pintarMarcha(ruta, pos, { desvio: conDesvio = false, residuo = n
   // limitación que se mantiene por la cola): no tapan la velocidad ni mueven lo demás.
   const vista = ruta.vistaEn?.(d);
   if (vista) s += `<rect x="12" y="206" width="${WL - 16}" height="30" rx="6" fill="#ffd200"/><text x="${CX}" y="226" font-size="15" font-weight="800" text-anchor="middle" fill="#111">MARCHA A LA VISTA · TF ${vista.numero} · ${dm((vista.fin - d) * 1000)}</text>`;
-  else if (tramo?.por_cola) s += `<rect x="12" y="206" width="${WL - 16}" height="30" rx="6" fill="none" stroke="var(--gy)" stroke-width="1.5"/><text x="${CX}" y="226" font-size="14" font-weight="800" text-anchor="middle" fill="var(--tx)">HASTA QUE PASE LA COLA · ${dm((tramo.libera - d) * 1000)}</text>`;
+  else if (tramo?.por_cola) s += `<rect x="12" y="206" width="${WL - 16}" height="30" rx="6" fill="none" stroke="var(--gy)" stroke-width="1.5"/><text x="${CX}" y="226" font-size="15" font-weight="800" text-anchor="middle" fill="var(--tx)">LIBRAR POR COLA · ${dm((tramo.libera - d) * 1000)}</text>`;
   s += `<line x1="14" x2="${DER}" y1="244" y2="244" stroke="var(--ln)"/>`;
-  const cola = tramo?.por_cola && nx && Math.abs(nx.pk - tramo.libera) < 1e-6;
-  s += `<text x="16" y="266" font-size="13" fill="var(--gy)">Siguiente${cola ? ' · <tspan font-weight="700" fill="var(--tx)">cuando pase la cola</tspan>' : ""}</text>`;
+  s += `<text x="16" y="266" font-size="13" fill="var(--gy)">Siguiente</text>`;
+  const vc = ruta.tramoCabeza(d)?.v ?? vp; // librando por cola: la de la cabeza
   if (nx) {
-    const m = (nx.pk - d) * 1000, baja = vp != null && nx.v < vp, c = baja ? "var(--dn)" : "var(--up)";
+    const m = (nx.pk - d) * 1000, baja = vc != null && nx.v < vc, c = baja ? "var(--dn)" : "var(--up)";
     s += `<text x="16" y="308" font-size="46" font-weight="700" fill="${c}">${baja ? "▼ " : "▲ "}${nx.v}</text><text x="${DER}" y="308" font-size="34" font-weight="700" text-anchor="end" fill="var(--tx)">${dm(m)}</text>`;
     s += `<rect x="16" y="318" width="${WL - 22}" height="5" rx="2" fill="var(--blu2)"/><rect x="16" y="318" width="${(WL - 22) * (1 - Math.min(m, 3000) / 3000)}" height="5" rx="2" fill="${c}"/>`;
   } else s += `<text x="16" y="302" font-size="24" font-weight="700" fill="var(--gy)">Sin más cambios</text>`;
@@ -365,10 +365,11 @@ export function pintarMarchaMovil(ruta, pos, { desvio: conDesvio = false, residu
   const cv = tramo?.fuente === "cvm";
   if (lt || cv || tramo?.revisar)
     v += `<span class="mv-et">${lt ? '<span class="mv-ltv">LTV</span>' : cv ? '<span class="rvchip">CVM</span>' : ""}${tramo?.revisar ? '<span class="rvchip">A REVISAR</span>' : ""}</span>`;
-  const cola = tramo?.por_cola && nx && Math.abs(nx.pk - tramo.libera) < 1e-6;
-  v += `</div><div class="mv-sig"><small>Siguiente${cola ? " · <span class=\"mv-cola\">cuando pase la cola</span>" : ""}</small>`;
+  if (tramo?.por_cola) v += `<span class="mv-libra">LIBRAR POR COLA · ${dm((tramo.libera - d) * 1000)}</span>`;
+  v += `</div><div class="mv-sig"><small>Siguiente</small>`;
+  const vc = ruta.tramoCabeza(d)?.v ?? vp; // librando por cola: la de la cabeza
   if (nx) {
-    const m = (nx.pk - d) * 1000, baja = vp != null && nx.v < vp;
+    const m = (nx.pk - d) * 1000, baja = vc != null && nx.v < vc;
     v += `<b class="${baja ? "baja" : "sube"}">${baja ? "▼" : "▲"} ${nx.v}</b><span class="mv-dist">${dm(m)}</span>`;
     v += `<i class="mv-bar"><i class="${baja ? "baja" : "sube"}" style="width:${(100 * (1 - Math.min(m, 3000) / 3000)).toFixed(1)}%"></i></i>`;
   } else v += `<b class="mv-nada">Sin más cambios</b>`;

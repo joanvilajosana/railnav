@@ -1079,3 +1079,11 @@ html:has(body.app){background:var(--pn)}
 :root[data-disp="telefono"] .sb-f{flex:1 1 0}
 :root[data-disp="telefono"] .simbar button{height:38px}
 }
+/* Librar por cola (teléfono): cuenta desde que la cabeza rebasa el aumento (v0.20.4) */
+.mv-libra{display:block;margin-top:6px;padding:4px 8px;border:1.5px solid var(--gy);border-radius:8px;font-size:13px;font-weight:800;letter-spacing:.03em;text-align:center;color:var(--tx);white-space:nowrap}
+/* Aviso de datos que caducan pronto (Ajustes y punto en el botón de Ajustes) */
+.caduca{color:var(--dn);font-weight:700}
+.caduca-aviso{margin:8px 0 0;padding:8px 10px;border:1.5px dashed var(--dn);border-radius:10px;font-size:14px;color:var(--tx)}
+.caduca-aviso[hidden]{display:none}
+#m-ajustes{position:relative}
+#m-ajustes.caduca::before{content:"";position:absolute;top:6px;right:6px;width:10px;height:10px;border-radius:50%;background:var(--dn)}
