@@ -12,10 +12,23 @@ export async function cargarPictos(url = "datos/pictogramas.json") {
   SERIE = (await r.json()).pictogramas;
   const propios = prefs.leer("pictos", null);
   D = Array.isArray(propios) && propios.length ? propios : clonar(SERIE);
+  // Los de serie que han salido después de que el usuario guardara los suyos se añaden (los que
+  // ya conocía y borró, no). Antes de la v0.20 no se apuntaban: entonces solo es nuevo aviso_cvm.
+  if (D !== propios) prefs.escribir("pictos.vistos", SERIE.map((p) => p.id));
+  else {
+    const vistos = prefs.leer("pictos.vistos", null) || SERIE.map((p) => p.id).filter((id) => !NUEVOS_V020.includes(id));
+    const nuevos = SERIE.filter((p) => !vistos.includes(p.id) && !D.some((x) => x.id === p.id));
+    if (nuevos.length) {
+      D = [...D, ...clonar(nuevos)];
+      guardar();
+    }
+    prefs.escribir("pictos.vistos", SERIE.map((p) => p.id));
+  }
   return D;
 }
 
 const clonar = (x) => JSON.parse(JSON.stringify(x));
+const NUEVOS_V020 = ["aviso_cvm"];
 export const todos = () => D;
 export const deSerie = () => SERIE;
 export const pic = (id) => D.find((p) => p.id === id);

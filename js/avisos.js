@@ -144,6 +144,8 @@ export function textoVoz({ fase, e, metros }) {
       return num(d.v) ? `Curva a ${d.v}${en}` : `Nota de la hoja${en}`;
     case "cambio_linea":
       return `Cambio de línea${en}`;
+    case "aviso_cvm":
+      return `Aviso del cuadro de velocidades${num(d.v) ? `, ${d.v}` : ""}${en}, a revisar`;
     default:
       return "";
   }

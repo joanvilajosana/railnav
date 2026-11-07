@@ -6,6 +6,9 @@
 // cambia, pero marca el tramo con `revisar` y su evento sale con estado «revisar».
 // Con el cotejo del CVM (C2), donde la hoja da más rige el CVM y donde no coinciden queda «a
 // revisar»; el cambio de velocidad por el CVM tiene su aviso (estado «revisar», datos.cvm).
+// Las VME que rigen (C3) son límites como esos (datos.vme); las que no cambian la velocidad son
+// avisos `aviso_cvm`. Si prevalece el CVM, un límite con `sustituye` pone su velocidad aunque sea
+// mayor que la de la hoja.
 
 import { segmentoDePunto, segmentos } from "./lineas.js";
 import { textoViaCorto } from "./vias.js";
@@ -26,6 +29,7 @@ const ORDEN = [
   "cambio_vmax_baja",
   "csv",
   "curva_nota",
+  "aviso_cvm",
   "ltv_inicio",
 ];
 const RE_NOTA_V = /^\[(\d+)\]/;
@@ -37,7 +41,7 @@ const conArchivo = (o, archivo) => (o.archivo ? o : { ...o, archivo });
 export const porId = (repo, id) => repo.pictogramas.find((p) => p.id === id) ?? null;
 export const paraTipo = (repo, tipo) => repo.pictogramas.find((p) => p.tipos.includes(tipo)) ?? null;
 
-export function generar(ruta, ltv, cruce, tramos, pictos, cvm = null) {
+export function generar(ruta, ltv, cruce, tramos, pictos, cvm = null, avisosCvm = null) {
   const [segs] = segmentos(ruta, tramos);
   const archivo = ruta.fuente.archivo;
   const crudos = []; // [pk_acum, tipo, datos, origen, estado, pictograma forzado]
@@ -131,25 +135,46 @@ export function generar(ruta, ltv, cruce, tramos, pictos, cvm = null) {
       tramosLtv.push([res.pk_acum_ini, res.pk_acum_fin, res.velocidad, r.id, estado]);
     }
   }
-  // CVM: dónde rige porque la hoja da más (aviso al empezar y al acabar).
+  // CVM: dónde rige (aviso al empezar y al acabar, con lo que rige a cada lado; sin aviso si no
+  // cambia).
   for (const t of cvm || []) {
     if (t.v === null) continue;
     const o = { archivo: t.archivo, pagina: t.pagina || 1, fila: null, bbox: null, texto: `línea ${t.linea} ${t.sentido}` };
-    const datos = { cvm: true, linea: t.linea, pk_ini: t.pkIni, pk_fin: t.pkFin };
-    add(t.ini, "cambio_vmax_baja", { ...datos, de: vmaxEn(puntos, t.ini), a: t.v, hoja: t.hoja }, o, "revisar");
-    add(t.fin, "cambio_vmax_sube", { ...datos, de: t.v, a: vmaxTras(puntos, t.fin) }, o, "revisar");
+    const datos = { cvm: true, linea: t.linea, pk_ini: t.pkIni, pk_fin: t.pkFin, vme: t.vme ?? null };
+    const dentro = (h) => (t.sustituye || h === null || h === undefined ? t.v : Math.min(t.v, h));
+    let de = vmaxEn(puntos, t.ini), a = dentro(vmaxTras(puntos, t.ini));
+    if (a !== de) add(t.ini, de !== null && a > de ? "cambio_vmax_sube" : "cambio_vmax_baja", { ...datos, de, a, hoja: t.hoja }, o, "revisar");
+    [de, a] = [dentro(vmaxEn(puntos, t.fin)), vmaxTras(puntos, t.fin)];
+    if (a !== de) add(t.fin, a !== null && a < de ? "cambio_vmax_baja" : "cambio_vmax_sube", { ...datos, de, a }, o, "revisar");
   }
-  // Dentro de una zona donde rige el CVM, un cambio de la hoja que no baja de la V Max del CVM no
-  // cambia la velocidad que rige: no se avisa.
-  const zonas = (cvm || []).filter((t) => t.v !== null).map((t) => [t.ini, t.fin, t.v]);
+  // Dentro de una zona donde rige el CVM, un cambio de la hoja se avisa con lo que rige (la menor
+  // entre la hoja y el CVM): si así no cambia, no se avisa. Si la sustituye, ninguno. En los
+  // bordes ya avisa el CVM.
+  const zonas = (cvm || []).filter((t) => t.v !== null).map((t) => [t.ini, t.fin, t.v, !!t.sustituye]);
   if (zonas.length) {
-    const tapado = ([acum, tipo, datos]) => {
-      if ((tipo !== "cambio_vmax_baja" && tipo !== "cambio_vmax_sube") || datos.cvm) return false;
-      const de = datos.de ?? null, a = datos.a ?? null;
-      if (de === null || a === null) return false;
-      return zonas.some(([i, f, v]) => i < acum && acum < f && Math.min(de, a) >= v);
+    const recortar = (e) => {
+      const [acum, tipo, datos] = e;
+      if ((tipo !== "cambio_vmax_baja" && tipo !== "cambio_vmax_sube") || datos.cvm) return e;
+      let de = datos.de ?? null, a = datos.a ?? null;
+      if (de === null || a === null) return e;
+      for (const [i, f, v, sust] of zonas) {
+        if (Math.abs(acum - i) < 1e-6 || Math.abs(acum - f) < 1e-6) return null;
+        if (i < acum && acum < f) {
+          if (sust) return null;
+          [de, a] = [Math.min(de, v), Math.min(a, v)];
+        }
+      }
+      if (de === a) return null;
+      if (de === datos.de && a === datos.a) return e;
+      return [acum, a < de ? "cambio_vmax_baja" : "cambio_vmax_sube", { ...datos, de, a }, ...e.slice(3)];
     };
-    for (let k = crudos.length - 1; k >= 0; k--) if (tapado(crudos[k])) crudos.splice(k, 1);
+    const quedan = crudos.map(recortar).filter((e) => e !== null);
+    crudos.splice(0, crudos.length, ...quedan);
+  }
+  // Avisos del CVM que no cambian la velocidad.
+  for (const x of avisosCvm || []) {
+    const o = { archivo: x.archivo, pagina: x.pagina || 1, fila: null, bbox: null, texto: `línea ${x.linea} ${x.sentido}` };
+    add(x.acum, "aviso_cvm", { cvm: true, v: x.v, nota: x.texto, motivo: x.motivo, linea: x.linea, pk: x.pk }, o, "revisar");
   }
   const idx = (t) => (ORDEN.includes(t) ? ORDEN.indexOf(t) : 99);
   crudos.sort((x, y) => x[0] - y[0] || idx(x[1]) - idx(y[1]) || x[3].pagina - y[3].pagina || (x[3].fila || 0) - (y[3].fila || 0));
@@ -206,7 +231,8 @@ function vmaxEfectiva(puntos, tramosLtv, tramosCvm) {
     const dudosas = tramosLtv.filter((t) => t[0] <= medio && medio <= t[1] && t[4] === "revisar");
     const cvm = tramosCvm.filter((t) => t.ini <= medio && medio <= t.fin);
     let v = vHoja, fuente = "hoja", ltvId = null;
-    for (const t of cvm) if (t.v !== null && (v === null || t.v < v)) [v, fuente] = [t.v, "cvm"];
+    for (const t of cvm) if (t.sustituye && t.v !== null) [v, fuente] = [t.v, "cvm"];
+    for (const t of cvm) if (!t.sustituye && t.v !== null && (v === null || t.v < v)) [v, fuente] = [t.v, "cvm"];
     for (const t of aplican)
       if (t[2] !== null && (v === null || t[2] < v)) [v, fuente, ltvId] = [t[2], "ltv", t[3]];
     const tramo = { pk_acum_ini: a, pk_acum_fin: b, v, fuente, ltv: ltvId, revisar: dudosas.length > 0 || cvm.length > 0, cvm: cvm.length > 0 };

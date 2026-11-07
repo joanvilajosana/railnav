@@ -80,7 +80,12 @@ export class Ruta {
         .filter((l) => l.res === "APLICA" && l.v != null && l.pkai != null && !suprimidas.has("ltv-" + l.cod))
         .map((l) => ({ ini: l.pkai, fin: l.pkaf, v: l.v, id: "ltv-" + l.cod }))
         // donde rige el CVM (la hoja da más), sigue rigiendo
-        .concat((this.p.cvm?.tramos || []).filter((x) => x.v != null).map((x) => ({ ini: x.pkai, fin: x.pkaf, v: x.v, id: null, fuente: "cvm", cvm: true })));
+        .concat((this.p.cvm?.tramos || []).filter((x) => x.v != null).map((x) => ({ ini: x.pkai, fin: x.pkaf, v: x.v, id: null, fuente: "cvm", cvm: true })))
+        .concat(
+          this.p.cvm?.prevalece === "hoja"
+            ? []
+            : (this.p.cvm?.vme || []).filter((x) => x.ef === "RIGE" && x.v != null && x.pkaf > x.pkai).map((x) => ({ ini: x.pkai, fin: x.pkaf, v: x.v, id: null, fuente: "cvm", cvm: true })),
+        );
       base = [];
       for (const t of this.vmax0) {
         if (t.fuente !== "ltv" || !suprimidas.has(t.ltv)) {

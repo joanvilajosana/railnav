@@ -8,7 +8,8 @@ import { cvms, datos, dltvs, firmaRuta, geos, obsoleta, persistir, prefs, recorr
 import * as TF from "./telefonemas.js";
 import { caducados, dltvAntiguo, DIAS, rutaAntigua } from "./retencion.js";
 import { htmlLegal } from "./legal.js";
-import { cargarPictos, deSerie, picDe } from "./pictos.js";
+import { cargarPictos, deSerie, picDe, restaurar as restaurarPictos } from "./pictos.js";
+import { confirmar } from "./confirmar.js";
 import { ajustarDibujo, alcance, altoDibujo, altoLinea, limitesLineaMovil, pintarMarcha, pintarMarchaMovil, reiniciarHistorial } from "./marcha.js";
 import { irAqui, mostrarPestana, movil, pintarDatos } from "./datos.js";
 import { iniciarEditor, pintarEditor } from "./editor.js";
@@ -33,6 +34,7 @@ let resRestante = null, resLibre = 0;
 // ---------- barra superior ----------
 function barra() {
   $("brand").innerHTML = LOGO(52) + `<small class="ver">v${VERSION_APP}</small>`;
+  $("hj-aqui").innerHTML = linea("aqui", 24);
   for (const [id, k, t] of [["m-marcha", "marcha", "Pantalla de marcha"], ["m-datos", "datos", "Datos del tren"], ["m-ajustes", "ajustes", "Ajustes"]]) {
     $(id).innerHTML = linea(k);
     $(id).title = t;
@@ -261,8 +263,7 @@ function abrirFormTf(t = null, { manual = false } = {}) {
   manual = manual || !!t?.manual;
   $("tf-form").dataset.manual = manual ? "1" : "";
   $("bk-tf").textContent = manual ? "← DLTV" : "← Marcha";
-  $("tf-titulo").textContent = manual ? (t ? "Editar LTV añadida a mano" : "Añadir una LTV a mano") : "";
-  $("tf-titulo").hidden = !manual;
+  $("tf-titulo").textContent = manual ? (t ? "Editar LTV añadida a mano" : "Añadir una LTV a mano") : t ? "Editar telefonema" : "Nuevo telefonema";
   const hoy = tfs.filter((x) => !x.manual && x.fecha === new Date().toISOString().slice(0, 10));
   const ult = tfs[tfs.length - 1];
   $("tf-id").value = t?.id || "";
@@ -291,16 +292,17 @@ function abrirFormTf(t = null, { manual = false } = {}) {
   telefonemas.listar().then((l) => {
     $("tf-emisores").innerHTML = [...new Set(l.map((x) => x.emisor).filter(Boolean))].map((n) => `<option value="${esc(n)}">`).join("");
   });
+  // Ventana emergente (v0.20, Joan), como la de revisar una LTV.
   $("tf-form").hidden = false;
-  $("tf-nuevo").hidden = true;
+  $("tf-modal").hidden = false;
   formTf();
-  $("v-tf").scrollTop = 0;
+  $("tf-modal").querySelector(".modal-c").scrollTop = 0;
 }
 
 function cerrarFormTf() {
   const manual = $("tf-form").dataset.manual === "1";
   $("tf-form").hidden = true;
-  $("tf-nuevo").hidden = false;
+  $("tf-modal").hidden = true;
   $("tf-form").dataset.manual = "";
   document.activeElement?.blur?.();
   if (manual) volverADltv();
@@ -456,15 +458,10 @@ function iniciarLtvManual() {
     const b = e.target.closest("[data-ltvman]");
     if (!b || !ruta) return;
     const id = b.dataset.ltvman, t = tfs.find((x) => x.id === id);
-    if (id === "nueva") {
-      mostrar("tf");
-      return abrirFormTf(null, { manual: true });
-    }
+    // La LTV a mano se añade en la ventana emergente, sin salir de Datos → DLTV.
+    if (id === "nueva") return abrirFormTf(null, { manual: true });
     if (!t) return;
-    if (b.dataset.acc === "editar") {
-      mostrar("tf");
-      return abrirFormTf(t, { manual: true });
-    }
+    if (b.dataset.acc === "editar") return abrirFormTf(t, { manual: true });
     if (b.dataset.acc === "borrar" && confirm("¿Borrar esta LTV añadida a mano?")) {
       await telefonemas.borrar(t.id);
       await aplicarTf();
@@ -488,6 +485,7 @@ function iniciarTelefonemas() {
   };
   $("tf-nuevo").onclick = () => abrirFormTf();
   $("tf-cancelar").onclick = cerrarFormTf;
+  addEventListener("keydown", (e) => e.key === "Escape" && !$("tf-modal").hidden && cerrarFormTf());
   $("tf-form").onsubmit = guardarTf;
   $("tf-form").oninput = formTf;
   $("tf-form").onchange = formTf;
@@ -635,6 +633,7 @@ async function pintarCvms() {
     ? `<small>Se coteja la hoja con:</small>` +
       lista.map((c) => `<span class="cvm-it">${esc(c.titulo || c.id)}${c.anejo ? " · anejo " + esc(c.anejo) : ""} · ${c.lineas} líneas<button data-quitar="${esc(c.id)}" aria-label="Quitar">✕</button></span>`).join("")
     : `<small>Sin CVM: la V Max de la hoja no se coteja.</small>`;
+  $("fila-prevalece").hidden = !lista.length;
   for (const b of $("cvm-lista").querySelectorAll("[data-quitar]"))
     b.onclick = async () => {
       await cvms.borrar(b.dataset.quitar);
@@ -731,7 +730,8 @@ async function terminar(g, ruta, ltv, tabla) {
   mensaje(ltv ? "Cruzando la hoja con el DLTV…" : "Preparando la ruta…");
   await new Promise((r) => setTimeout(r, 0));
   const listaCvm = await cvms.todos();
-  const { paquete, cruce, avisos } = g.generarPaquete(ruta, ltv, tabla, { version: 1, pictogramas: deSerie() }, { ignorarFechas: !!ltv && ignorarFechasGen, cvms: listaCvm });
+  const prevalece = prefs.leer("prevalece", "restrictiva");
+  const { paquete, cruce, avisos } = g.generarPaquete(ruta, ltv, tabla, { version: 1, pictogramas: deSerie() }, { ignorarFechas: !!ltv && ignorarFechasGen, cvms: listaCvm, prevalece });
   await abrir(paquete);
   if (!paquete.geo && navigator.onLine) prepararGps(); // en segundo plano; si falla, se avisa abajo
   const n = g.recuento(cruce);
@@ -741,11 +741,16 @@ async function terminar(g, ruta, ltv, tabla) {
     : " · sin DLTV";
   const cv = paquete.cvm;
   const mayor = cv ? cv.tramos.filter((x) => x.res === "HOJA_MAYOR").length : 0;
+  const rigen = cv?.vme ? cv.vme.filter((x) => x.ef === "RIGE").length : 0;
+  const otraVia = cv?.vme ? cv.vme.filter((x) => x.ef === "AVISO_VIA").length : 0;
+  const PREV = { hoja: "prevalece la hoja", cvm: "prevalece el CVM" };
   const cvmTxt = !cv
     ? ""
-    : cv.tramos.length
-      ? ` · CVM: <b>${cv.tramos.length}</b> tramo${cv.tramos.length > 1 ? "s" : ""} no coincide${cv.tramos.length > 1 ? "n" : ""} con la hoja${mayor ? ` (en ${mayor} rige el CVM)` : ""}, a revisar`
-      : " · coincide con el CVM";
+    : (cv.tramos.length
+        ? ` · CVM: <b>${cv.tramos.length}</b> tramo${cv.tramos.length > 1 ? "s" : ""} no coincide${cv.tramos.length > 1 ? "n" : ""} con la hoja${mayor && cv.prevalece !== "hoja" ? ` (en ${mayor} rige el CVM)` : ""}, a revisar`
+        : " · coincide con el CVM") +
+      (rigen || otraVia ? ` · VME: ${rigen ? `<b>${rigen}</b> rige${rigen > 1 ? "n" : ""}` : ""}${rigen && otraVia ? ", " : ""}${otraVia ? `<b>${otraVia}</b> de otra vía (aviso)` : ""}` : "") +
+      (PREV[cv.prevalece] ? ` · ${PREV[cv.prevalece]}` : "");
   mensaje(
     `✓ Tren <b>${esc(t.numero)}</b> ${t.fecha ? "del " + fecha(t.fecha) : ""} · ${esc(t.origen ?? "?")} → ${esc(t.destino ?? "?")}${ltvTxt}${cvmTxt}. Guardada y abierta.` +
       (avisos.length ? `<ul>${avisos.slice(0, 6).map((a) => `<li>${esc(a)}</li>`).join("")}</ul>` : ""),
@@ -938,6 +943,8 @@ function iniciarAjustes() {
     if (f) leerDltv(f).finally(() => (e.target.value = ""));
   };
   $("sel-dltv").onchange = () => prefs.escribir("dltv", $("sel-dltv").value);
+  $("sel-prevalece").value = prefs.leer("prevalece", "restrictiva");
+  $("sel-prevalece").onchange = () => prefs.escribir("prevalece", $("sel-prevalece").value);
   $("f-cvm").onchange = (e) => {
     const fs = [...(e.target.files || [])];
     if (fs.length) leerCvms(fs).finally(() => (e.target.value = ""));
@@ -1039,6 +1046,19 @@ function iniciarAjustes() {
   };
   iniciarGrabacion();
   $("oi").onclick = () => mostrar("pictos");
+  // Restablecer los pictogramas de serie: solo los pictogramas, el resto de ajustes no cambia.
+  $("b-pic-reset").onclick = async () => {
+    const si = await confirmar({
+      titulo: "Restablecer los pictogramas",
+      mensaje: "Se restaurarán los pictogramas originales de la aplicación y se perderán los cambios que hayas hecho en ellos. El resto de ajustes no cambia.",
+      si: "Restablecer",
+    });
+    if (!si) return;
+    restaurarPictos();
+    sucio = true;
+    $("msg-pic").className = "gen-msg ok";
+    $("msg-pic").innerHTML = "✓ Pictogramas restablecidos: son los originales de la aplicación.";
+  };
   $("bk").onclick = () => mostrar("ajustes");
 }
 
@@ -1645,7 +1665,8 @@ function iniciarTamano() {
     if (ajustarDibujo(r.width, r.height, apilado)) sucio = true;
     // unidad del dibujo en píxeles: el historial usa la misma escala de letra
     // en vertical las dos columnas de dibujo ocupan el ancho; el historial, con letra legible
-    const u = vertical ? Math.max(1, r.width / 603) : apilado ? r.width / 900 : r.height / (altoDibujo() - 6.5);
+    // anchos del dibujo: velocidad 346,5 y línea de tiempo 173,25 (40 % / 20 %, v0.20)
+    const u = vertical ? Math.max(1, r.width / 520) : apilado ? r.width / 866 : r.height / (altoDibujo() - 6.5);
     scr.style.setProperty("--u", u + "px");
   };
   new ResizeObserver(medir).observe(scr);

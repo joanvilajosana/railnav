@@ -90,6 +90,8 @@ td,th{padding:5px 6px;border-bottom:1px solid var(--ln);text-align:left}
 .cv-it small{font-size:12px;color:var(--gy)}
 .cv-it.rv{border:1.5px dashed var(--dn)}
 .cv-it.sin{opacity:.75}
+.cv-mas{margin:8px 0}
+.cv-mas summary{min-height:44px;display:flex;align-items:center;font-size:14px;color:var(--gy);cursor:pointer}
 .hj-ley i{display:inline-block;width:14px;height:14px;border-radius:3px;vertical-align:-2px;margin-right:4px}
 .hj-w{overflow:auto;flex:1;min-height:0;border:1.5px solid var(--ln);border-radius:10px;background:var(--pn)}
 table.hj{border-collapse:separate;border-spacing:0;width:100%;font-size:14px;font-variant-numeric:tabular-nums}
@@ -400,7 +402,7 @@ code{font:12px ui-monospace,Menlo,monospace;background:var(--in);padding:0 4px;b
 :root[data-disp="telefono"] .tt>div{min-width:0}
 :root[data-disp="telefono"] .tt b{font-size:11px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 :root[data-disp="telefono"] .tt span{display:block;font-size:16px;overflow-wrap:anywhere}
-:root[data-disp="telefono"] .tt:last-child{grid-column:1/-1}
+:root[data-disp="telefono"] .tt:last-child,:root[data-disp="telefono"] .tt:nth-last-child(2):nth-child(odd){grid-column:1/-1}
 :root[data-disp="telefono"] .tt>svg,:root[data-disp="telefono"] .tt>.tl{flex:none}
 :root[data-disp="telefono"] #v-datos>.pn:first-child{flex:none}
 /* Con la ficha desplegada la vista entera se desplaza y la hoja conserva un alto útil. */
@@ -412,7 +414,9 @@ code{font:12px ui-monospace,Menlo,monospace;background:var(--in);padding:0 4px;b
 :root[data-disp="telefono"] .tabs button{white-space:nowrap}
 :root[data-disp="telefono"] .hj-top{flex-wrap:nowrap}
 :root[data-disp="telefono"] .tabs button{padding:9px 14px;font-size:16px}
-:root[data-disp="telefono"] #hj-aqui{flex:none;padding:8px 10px;font-size:14px;font-weight:700}
+/* «Posición actual» de Datos: botón redondo con icono (v0.20, iPhone e iPad) */
+#hj-aqui{flex:none;width:44px;height:44px;min-width:44px;margin:0 0 4px;padding:0;border-radius:50%;display:grid;place-items:center}
+#hj-aqui svg{width:24px;height:24px}
 :root[data-disp="telefono"] .hj-ley{font-size:12px;gap:4px 12px}
 :root[data-disp="telefono"] table.hj{font-size:15px}
 :root[data-disp="telefono"] .hj td{white-space:normal;padding:8px 10px}
@@ -535,6 +539,7 @@ code{font:12px ui-monospace,Menlo,monospace;background:var(--in);padding:0 4px;b
 #v-ajustes label.carga input,#v-ajustes label.boton input{position:absolute;width:1px;height:1px;opacity:0;pointer-events:none}
 #v-ajustes .fila{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:12px 0 0;font-size:15px;color:var(--tx)}
 #v-ajustes .fila select{width:auto;max-width:65%;margin:0}
+#v-ajustes .fila span small{display:block;font-size:12px;color:var(--gy)}
 #v-ajustes .fila.sub{margin:4px 0 0 0;padding-left:14px}
 #v-ajustes button.ancho{display:block;width:100%;margin:12px 0 0;min-height:48px;font-size:16px}
 #v-ajustes .botones{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
@@ -643,10 +648,10 @@ code{font:12px ui-monospace,Menlo,monospace;background:var(--in);padding:0 4px;b
 .tf-form label.tf-csv{flex-direction:row;align-items:center;gap:8px;min-height:46px;font-size:16px;color:var(--tx)}
 .tf-csv input{width:22px;height:22px;min-height:0;margin:0}
 .tf-t{font-size:13px;font-weight:700;color:var(--gy);text-transform:uppercase;letter-spacing:.05em}
-#v-tf .seg{display:flex;border:1.5px solid var(--ln);border-radius:12px;background:var(--in);padding:3px;gap:3px}
-#v-tf .seg label{position:relative;flex:1;display:flex;flex-direction:row;align-items:center;justify-content:center;margin:0;min-height:44px;padding:6px 4px;border-radius:9px;font-size:15px;font-weight:700;color:var(--gy);cursor:pointer;text-align:center}
-#v-tf .seg label input{position:absolute;opacity:0;width:1px;height:1px;min-height:0;pointer-events:none}
-#v-tf .seg label:has(input:checked){background:var(--ac);color:var(--sobre-ac)}
+:is(#v-tf,#tf-modal) .seg{display:flex;border:1.5px solid var(--ln);border-radius:12px;background:var(--in);padding:3px;gap:3px}
+:is(#v-tf,#tf-modal) .seg label{position:relative;flex:1;display:flex;flex-direction:row;align-items:center;justify-content:center;margin:0;min-height:44px;padding:6px 4px;border-radius:9px;font-size:15px;font-weight:700;color:var(--gy);cursor:pointer;text-align:center}
+:is(#v-tf,#tf-modal) .seg label input{position:absolute;opacity:0;width:1px;height:1px;min-height:0;pointer-events:none}
+:is(#v-tf,#tf-modal) .seg label:has(input:checked){background:var(--ac);color:var(--sobre-ac)}
 .tf-r{font-size:13px;font-weight:600;color:var(--up);min-height:1em}
 .tf-r.mal{color:var(--dn)}
 .tf-form:not([data-tipo="suprime"]) .tf-sup,.tf-form[data-tipo="suprime"] .tf-pt,.tf-form[data-tipo="suprime"] .tf-vel,.tf-form[data-tipo="registro"] .tf-pt,.tf-form[data-tipo="registro"] .tf-vel,.tf-form:not([data-tipo="incidencia"]) .tf-inc,.tf-form[data-tipo="incidencia"] .tf-vel,.tf-form[data-tipo="incidencia"] .tf-hasta{display:none}
@@ -675,10 +680,10 @@ code{font:12px ui-monospace,Menlo,monospace;background:var(--in);padding:0 4px;b
 .tf-exp button{margin:0;min-height:48px;font-size:16px}
 .tf-nota{color:var(--gy);font-size:13px;margin:8px 2px 0}
 .tf-form select{margin:0;font-size:16px;font-weight:600;min-height:46px;border-radius:10px}
-#v-tf .seg{flex-wrap:wrap}
-#v-tf .seg label{flex:1 1 30%}
+:is(#v-tf,#tf-modal) .seg{flex-wrap:wrap}
+:is(#v-tf,#tf-modal) .seg label{flex:1 1 30%}
 @media (max-width:520px){.tf-exp{grid-template-columns:1fr}.tf-g2{grid-template-columns:1fr}.tf-g3{grid-template-columns:76px 110px minmax(0,1fr)}.tf-vel{grid-template-columns:140px auto}.tf-vel .tf-via{grid-column:1/-1}}
-#v-tf button.peligro{color:var(--lt);border-color:var(--lt);background:transparent;font-weight:700}
+:is(#v-tf,#tf-modal) button.peligro{color:var(--lt);border-color:var(--lt);background:transparent;font-weight:700}
 
 /* Teléfono: km/h debajo de la velocidad, los dos centrados (no se sale hacia la línea) */
 :root[data-disp="telefono"] .mv-v{flex-direction:column;align-items:center;justify-content:center;gap:0}
@@ -702,7 +707,7 @@ html,body{overflow-x:hidden;max-width:100%}
 .tf-form[data-tipo="registro"] .tf-lugar,.tf-form:not([data-tipo="ltv"]) .tf-ltv,.tf-form:not([data-tipo="registro"]) .tf-otro{display:none}
 #tf-donde:empty{display:none}
 #tf-donde{font-size:14px;line-height:1.35;padding:8px 10px;border-radius:10px;background:var(--in)}
-#v-tf .seg label{flex:1 1 0;min-width:0;font-size:14px;line-height:1.2;padding:6px 6px}
+:is(#v-tf,#tf-modal) .seg label{flex:1 1 0;min-width:0;font-size:14px;line-height:1.2;padding:6px 6px}
 
 /* Tablas de tramos como lista de tarjetas: sin tabla ni scroll lateral (v0.15.1) */
 .tr-rev .pop-t{font-size:17px;font-weight:800;margin:0 0 10px}
@@ -747,8 +752,17 @@ html,body{overflow-x:hidden;max-width:100%}
 .ltvm-acc{display:flex;gap:6px}
 .ltvm-acc button{margin:0;min-height:40px}
 .ltvm-acc button.peligro{color:var(--lt);border-color:var(--lt);background:transparent;font-weight:700}
-.tf-titulo{font-size:18px;font-weight:800}
-.tf-titulo[hidden]{display:none}
+.tf-titulo{margin:0;font-size:20px;font-weight:800}
+/* Telefonema nuevo o editado: ventana emergente (v0.20), como la de revisar una LTV */
+.tf-modal-c{width:min(640px,100%);overflow-x:hidden;overflow-wrap:anywhere}
+.tf-modal .tf-form{margin:0}
+.tf-modal .tf-bot{position:sticky;bottom:-18px;margin:0 -18px -18px;padding:10px 18px 18px;background:var(--pn);border-top:1px solid var(--ln)}
+/* Confirmación de la app (Restablecer pictogramas) */
+.conf-c{width:min(440px,100%)}
+.conf-m{margin:0 0 16px;font-size:16px;line-height:1.4;color:var(--tx)}
+#conf .rev-b button{margin:0;min-height:48px}
+/* «Mercancías»/«Viajeros» en el iPhone: algo más pequeño y más separado (v0.20) */
+:root[data-disp="telefono"] .tr-cl{display:inline-block;margin:4px 0 4px 10px;padding:1px 8px;font-size:11px;line-height:1.5;vertical-align:5px}
 .tf-form[data-manual="1"] .tf-meta{display:none!important}
 #v-tf:has(.tf-form[data-manual="1"]:not([hidden])) :is(#tf-lista,.tf-exp,.tf-nota,.tf-cab h2,.tf-cab .tf-tren){display:none}
 .ltvm-1{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
@@ -863,10 +877,13 @@ html:has(body.app){background:var(--pn)}
 :root[data-disp="telefono"] .hr:last-child{margin-bottom:0}
 @media (orientation:landscape){:root[data-disp="telefono"] .scr{grid-template-rows:auto minmax(0,1fr) auto}:root[data-disp="telefono"] .mv-prox{max-height:52vh}}
 
-/* v0.18 — Marcha: tres columnas iguales (velocidad + próximos, pasados, línea de tiempo) */
-@media (min-aspect-ratio:5/4){.scr{grid-template-columns:minmax(0,1fr) minmax(0,1fr) minmax(0,1fr)}
+/* Marcha en la tablet: velocidad + próximos 40 %, pasados 40 %, línea de tiempo 20 % (v0.20,
+   pedido por Joan; antes, tres columnas iguales). En vertical, arriba velocidad y línea de
+   tiempo en la misma proporción (2:1) y debajo los pasados. */
+@media (min-aspect-ratio:5/4){.scr{grid-template-columns:minmax(0,2fr) minmax(0,2fr) minmax(0,1fr)}
 #sa,#sc{width:100%;height:100%;max-width:100%}}
-@media (max-aspect-ratio:5/4) and (min-aspect-ratio:4/5){.scr{grid-template-columns:1fr 1fr 1fr}}
+@media (max-aspect-ratio:5/4) and (min-aspect-ratio:4/5){.scr{grid-template-columns:2fr 2fr 1fr}}
+@media (max-aspect-ratio:4/5){.scr{grid-template-columns:minmax(0,2fr) minmax(0,1fr)}#sa,#sc{max-height:56vh}}
 :root[data-disp="telefono"] .scr{grid-template-rows:auto auto minmax(132px,1fr) auto}
 :root[data-disp="telefono"] .mv-prox{max-height:40vh}
 /* Cuadro de pasados con rótulo y el botón «Residuo» abajo (tablet y teléfono) */
@@ -942,3 +959,37 @@ html:has(body.app){background:var(--pn)}
 @media (orientation:landscape){:root[data-disp="telefono"] .scr{grid-template-columns:minmax(0,250px) minmax(0,1fr) 88px}}
 :root[data-disp="telefono"] #v-ajustes label.sw .lon-c input{width:84px;height:42px;font-size:18px}
 #tf-msg{font:inherit;font-size:16px}
+
+/* ===================================================================== iPhone apaisado (v0.20)
+   Pedido por Joan: proporciones, márgenes y tamaños revisados. Va al final porque manda sobre las
+   reglas apaisadas anteriores (una cuarta fila de 132 px hacía que la marcha no cupiera en alto,
+   el bloqueo se partía letra a letra y la línea de tiempo no tenía sitio para las distancias). */
+@media (orientation:landscape){
+:root[data-disp="telefono"] .row{grid-template-columns:minmax(0,1fr) auto auto;grid-template-rows:auto minmax(0,1fr);grid-template-areas:"info nav mb" "vw vw vw";gap:6px 8px}
+:root[data-disp="telefono"] .info{grid-template-columns:minmax(0,1.3fr) minmax(0,1fr) minmax(0,.75fr);gap:6px}
+:root[data-disp="telefono"] .ic{min-height:40px;padding:3px 10px;gap:0;flex-direction:column;align-items:flex-start;justify-content:center}
+:root[data-disp="telefono"] .ic small{flex:none;font-size:9px;line-height:1.1}
+:root[data-disp="telefono"] .ic b,:root[data-disp="telefono"] .ic:not(:first-child) b{max-width:100%;min-width:0;font-size:16px;line-height:1.15;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;overflow-wrap:normal}
+:root[data-disp="telefono"] #in-rd{font-size:18px}
+:root[data-disp="telefono"] .ic-r{display:none}
+:root[data-disp="telefono"] .nav,:root[data-disp="telefono"] .mb{gap:5px;align-items:center}
+:root[data-disp="telefono"] .nav button,:root[data-disp="telefono"] .mb button{width:40px;height:40px;min-width:40px}
+:root[data-disp="telefono"] .mb .sep{height:24px}
+:root[data-disp="telefono"] .scr{grid-template-columns:minmax(0,clamp(180px,27%,240px)) minmax(0,1fr) 124px;grid-template-rows:auto minmax(0,1fr) auto;grid-template-areas:"vel prox lin" "vel hist lin" "odo hist lin";gap:6px}
+:root[data-disp="telefono"] .mv-vel{grid-template-columns:1fr;align-content:space-evenly;gap:6px;padding:6px 12px;min-height:0;overflow:hidden}
+:root[data-disp="telefono"] .mv-n{font-size:clamp(52px,21vh,92px)}
+:root[data-disp="telefono"] .mv-prox{max-height:36vh}
+:root[data-disp="telefono"] .hist{min-height:0}
+:root[data-disp="telefono"] .mv-linea{min-height:0;height:100%}
+:root[data-disp="telefono"] .mv-odo{flex-wrap:nowrap;min-height:40px;gap:8px}
+:root[data-disp="telefono"] .odo-m{display:none}
+:root[data-disp="telefono"] .mv-odo .odo-res{padding:0 8px;font-size:12px}
+/* Ficha del tren: más columnas, para que se vea la hoja debajo */
+:root[data-disp="telefono"] .tr-tiles{grid-template-columns:repeat(auto-fit,minmax(170px,1fr));margin-top:8px}
+:root[data-disp="telefono"] .tt:last-child,:root[data-disp="telefono"] .tt:nth-last-child(2):nth-child(odd){grid-column:auto}
+:root[data-disp="telefono"] .tt:last-child{grid-column:span 2}
+/* Datos, Ajustes y telefonemas: un poco de margen a los lados (las vistas no tienen relleno en el teléfono) */
+:root[data-disp="telefono"] #v-datos,:root[data-disp="telefono"] #v-ajustes,:root[data-disp="telefono"] #v-pictos,:root[data-disp="telefono"] #v-legal,:root[data-disp="telefono"] #v-tf{padding:0 2px}
+:root[data-disp="telefono"] .modal{padding:8px 16px}
+:root[data-disp="telefono"] .modal-c{max-height:calc(100% - 8px)}
+}

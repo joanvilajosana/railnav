@@ -209,9 +209,24 @@ export function tramosMarcha(cot) {
   return res;
 }
 
-/** Lo que la app guarda de un cvm.json: solo lo que usa el cotejo (es mucho más pequeño). */
+/**
+ * Lo que la app guarda de un cvm.json: solo lo que usan el cotejo (C2) y las VME (C3); es mucho
+ * más pequeño. `vme` y `bloqueo` faltan en los guardados antes de la v0.20.0.
+ */
 export function reducirCvm(doc) {
   const celdas = (ts) => (ts || []).map((t) => ({ desde: t.desde, hasta: t.hasta, valor: t.valor ?? null, origen: { pagina: t.origen.pagina } }));
+  const vme = (vs) =>
+    (vs || []).map((v) => ({
+      tras_fila: v.tras_fila,
+      n: v.n ?? null,
+      a: v.a ?? null,
+      b: v.b ?? null,
+      texto: v.texto,
+      pk_desde: v.pk_desde ?? null,
+      pk_hasta: v.pk_hasta ?? null,
+      fila: v.fila ?? null,
+      origen: { pagina: v.origen.pagina },
+    }));
   return {
     formato: doc.formato,
     archivo: doc.fuente?.archivo ?? null,
@@ -227,6 +242,8 @@ export function reducirCvm(doc) {
       vn: celdas(ln.vn),
       va: celdas(ln.va),
       vb: celdas(ln.vb),
+      bloqueo: (ln.bloqueo || []).map((t) => ({ desde: t.desde, hasta: t.hasta, texto: t.texto ?? null })),
+      vme: vme(ln.vme),
     })),
   };
 }

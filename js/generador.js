@@ -69,7 +69,7 @@ export function dltvCubre(ruta, ltv) {
  * Paquete de ruta. Sin DLTV, solo la hoja. Con DLTV hace falta la tabla de tramos.
  * @returns {{paquete, cruce, avisos: string[]}}
  */
-export function generarPaquete(ruta, ltv, tabla, pictos, { ignorarFechas = false, cvms = [] } = {}) {
+export function generarPaquete(ruta, ltv, tabla, pictos, { ignorarFechas = false, cvms = [], prevalece = "restrictiva" } = {}) {
   const avisos = [];
   let cruce = null;
   if (ltv) {
@@ -86,7 +86,10 @@ export function generarPaquete(ruta, ltv, tabla, pictos, { ignorarFechas = false
   // Cotejo con el CVM (C2): hace falta la tabla de tramos (la línea de cada parte de la ruta).
   const cotejo = cvms.length && tabla ? cotejar(ruta, tabla, cvms) : null;
   if (cvms.length && !tabla) avisos.push("Sin tabla de tramos no se puede cotejar la hoja con el CVM.");
-  const paquete = construir(ruta, ltv, cruce, tabla, pictos, cotejo);
+  // Los CVM guardados antes de la v0.20.0 no traen las VME (C3): hay que volver a cargarlos.
+  if (cotejo && cvms.some(({ doc }) => doc.lineas.some((ln) => !Array.isArray(ln.vme))))
+    avisos.push("Un CVM guardado no trae las VME: quítalo y vuelve a cargar su .cvm.json en Ajustes.");
+  const paquete = construir(ruta, ltv, cruce, tabla, pictos, cotejo, prevalece);
   return { paquete, cruce, avisos };
 }
 

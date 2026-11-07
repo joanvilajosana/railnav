@@ -53,6 +53,63 @@
   <div class="rev-nota">La decisión es tuya: se guarda en este dispositivo, solo para esta ruta. Si aplica, cuenta en la velocidad máxima de la marcha; si no, deja de avisarse.</div>
  </div>
 </div>
+<div id="tf-modal" class="modal tf-modal" hidden>
+ <div class="modal-c tf-modal-c" role="dialog" aria-modal="true" aria-labelledby="tf-titulo">
+  <form id="tf-form" class="tf-form" hidden autocomplete="off">
+   <input type="hidden" id="tf-id">
+   <h2 id="tf-titulo" class="tf-titulo"></h2>
+   <div class="tf-2 tf-meta">
+    <label>Número<input id="tf-num" type="number" inputmode="numeric" min="1" max="99" required></label>
+    <label>Hora<input id="tf-hora" type="time" required></label>
+   </div>
+   <label class="tf-meta">Emisor<input id="tf-emisor" list="tf-emisores" placeholder="p.e. RC CTC"></label>
+   <label class="tf-meta">Receptor<input id="tf-receptor" placeholder="Maquinista …"></label>
+   <div class="tf-t tf-meta">Telefonema</div>
+   <div class="seg tf-meta" role="radiogroup" aria-label="Tipo de telefonema">
+    <label><input type="radio" name="tf-tipo" value="ltv" checked>Establece LTV/CSV</label>
+    <label><input type="radio" name="tf-tipo" value="suprime">Suprime LTV/CSV</label>
+    <label><input type="radio" name="tf-tipo" value="registro">Otro</label>
+   </div>
+   <div class="tf-lugar">
+    <div class="tf-2">
+     <label><span>Velocidad</span><span class="tf-u"><input id="tf-v" type="number" inputmode="numeric" min="1" max="400" placeholder="km/h"><b>km/h</b></span></label>
+     <label>Vía(s)<input id="tf-via" placeholder="p. ej. I, II"></label>
+    </div>
+    <div class="tf-2">
+     <label>PK inicio<input id="tf-pki" inputmode="decimal" placeholder="p. ej. 45,3"></label>
+     <label>PK final<input id="tf-pkf" inputmode="decimal" placeholder="p. ej. 46,1"></label>
+    </div>
+    <label>Estación inicio<select id="tf-esti"></select></label>
+    <label>Estación final<select id="tf-estf"></select></label>
+    <div id="tf-donde" class="tf-r"></div>
+   </div>
+   <div class="tf-ltv">
+    <label>Causa<input id="tf-causa" placeholder="p. ej. estado de la vía"></label>
+    <div class="tf-t">Señalización</div>
+    <div class="seg" role="radiogroup" aria-label="Señalización">
+     <label><input type="radio" name="tf-sen" value="si" checked>Señalizada</label>
+     <label><input type="radio" name="tf-sen" value="no">Sin señalizar</label>
+    </div>
+    <div class="tf-t">¿Supone CSV?</div>
+    <div class="seg" role="radiogroup" aria-label="Supone CSV">
+     <label><input type="radio" name="tf-csvr" value="si">Sí</label>
+     <label><input type="radio" name="tf-csvr" value="no" checked>No</label>
+    </div>
+   </div>
+   <label class="tf-otro">Mensaje<textarea id="tf-msg" rows="3" placeholder="El texto del telefonema"></textarea></label>
+   <label class="tf-meta">Firma<input id="tf-firma" placeholder="Apellido del emisor" autocapitalize="words"></label>
+   <div id="tf-err" class="tf-err" role="alert"></div>
+   <div class="tf-bot"><button type="submit" id="tf-guardar">Guardar</button><button type="button" id="tf-cancelar">Cancelar</button></div>
+  </form>
+ </div>
+</div>
+<div id="conf" class="modal" hidden>
+ <div class="modal-c conf-c" role="alertdialog" aria-modal="true" aria-labelledby="conf-t" aria-describedby="conf-m">
+  <h2 id="conf-t"></h2>
+  <p id="conf-m" class="conf-m"></p>
+  <div class="rev-b"><button id="conf-no">Cancelar</button><button id="conf-si" class="pri"></button></div>
+ </div>
+</div>
 <div id="pop-vol" class="pop pop-vol" role="dialog" aria-label="Volumen" hidden>
   <b id="vol-n" class="vol-n"></b>
   <div id="vol" class="vslider" role="slider" tabindex="0" aria-label="Volumen" aria-orientation="vertical" aria-valuemin="0" aria-valuemax="100"><i class="vs-fill"></i><i class="vs-thumb"></i></div>
@@ -84,7 +141,7 @@
  <div id="v-datos" hidden>
   <div class="pn"><div id="kv" class="ficha"></div></div>
   <div class="pn">
-   <div class="hj-top"><div class="tabs" id="tabs"><button data-t="hoja" class="on">Hoja de ruta</button><button data-t="dltv">DLTV</button><button data-t="cvm">CVM</button></div><button id="hj-aqui">Posición actual</button></div>
+   <div class="hj-top"><div class="tabs" id="tabs"><button data-t="hoja" class="on">Hoja de ruta</button><button data-t="dltv">DLTV</button><button data-t="cvm">CVM</button></div><button id="hj-aqui" aria-label="Ir a la posición actual" title="Posición actual"></button></div>
    <div id="t-hoja">
     <div class="hj-ley"><span><i style="background:#28A0FF"></i>CSV</span><span><i class="i-aqui"></i>Posición actual</span><span><i class="i-rep"></i>Celda combinada</span></div>
     <div class="hj-w" id="hj-w"><table id="tb" class="hj"></table></div>
@@ -107,6 +164,7 @@
     <label class="carga"><span class="carga-i" data-i="doc"></span><span><b>CVM</b><small class="carga-n" data-vacio="Elegir .cvm.json">Elegir .cvm.json</small></span><input id="f-cvm" type="file" accept=".json,application/json" multiple></label>
    </div>
    <div id="cvm-lista" class="cvm-lista"></div>
+   <label class="fila" id="fila-prevalece" hidden><span>Si la hoja y el CVM no coinciden<small>Se aplica al generar la ruta</small></span><select id="sel-prevalece"><option value="restrictiva">La más restrictiva</option><option value="hoja">La hoja de ruta</option><option value="cvm">El CVM</option></select></label>
    <label class="fila"><span>Cruzar con</span><select id="sel-dltv"></select></label>
    <button id="b-generar" class="pri ancho" disabled>Generar ruta</button>
    <div id="gen-msg" class="gen-msg" aria-live="polite"></div>
@@ -179,7 +237,8 @@
   <section class="pn aj">
    <h2 data-i="pictos">Pictogramas</h2>
    <div class="sec-ley">Los avisos de la pantalla de marcha: forma, colores, distancia de aviso y mensaje.</div>
-   <button id="oi">Editar pictogramas</button>
+   <div class="botones copia"><button id="oi">Editar pictogramas</button><button id="b-pic-reset">Restablecer</button></div>
+   <div id="msg-pic" class="gen-msg" aria-live="polite"></div>
   </section>
   <section class="pn aj">
    <h2 data-i="almacen">Tus datos</h2>
@@ -206,52 +265,6 @@
  <div id="v-tf" hidden>
   <div class="tf-cab"><button id="bk-tf">← Marcha</button><h2>Telefonemas</h2><span id="tf-tren" class="tf-tren"></span></div>
   <button id="tf-nuevo" class="tf-nuevo">+ Nuevo telefonema</button>
-  <form id="tf-form" class="pn tf-form" hidden autocomplete="off">
-   <input type="hidden" id="tf-id">
-   <div id="tf-titulo" class="tf-titulo"></div>
-   <div class="tf-2 tf-meta">
-    <label>Número<input id="tf-num" type="number" inputmode="numeric" min="1" max="99" required></label>
-    <label>Hora<input id="tf-hora" type="time" required></label>
-   </div>
-   <label class="tf-meta">Emisor<input id="tf-emisor" list="tf-emisores" placeholder="p.e. RC CTC"></label>
-   <label class="tf-meta">Receptor<input id="tf-receptor" placeholder="Maquinista …"></label>
-   <div class="tf-t tf-meta">Telefonema</div>
-   <div class="seg tf-meta" role="radiogroup" aria-label="Tipo de telefonema">
-    <label><input type="radio" name="tf-tipo" value="ltv" checked>Establece LTV/CSV</label>
-    <label><input type="radio" name="tf-tipo" value="suprime">Suprime LTV/CSV</label>
-    <label><input type="radio" name="tf-tipo" value="registro">Otro</label>
-   </div>
-   <div class="tf-lugar">
-    <div class="tf-2">
-     <label><span>Velocidad</span><span class="tf-u"><input id="tf-v" type="number" inputmode="numeric" min="1" max="400" placeholder="km/h"><b>km/h</b></span></label>
-     <label>Vía(s)<input id="tf-via" placeholder="p. ej. I, II"></label>
-    </div>
-    <div class="tf-2">
-     <label>PK inicio<input id="tf-pki" inputmode="decimal" placeholder="p. ej. 45,3"></label>
-     <label>PK final<input id="tf-pkf" inputmode="decimal" placeholder="p. ej. 46,1"></label>
-    </div>
-    <label>Estación inicio<select id="tf-esti"></select></label>
-    <label>Estación final<select id="tf-estf"></select></label>
-    <div id="tf-donde" class="tf-r"></div>
-   </div>
-   <div class="tf-ltv">
-    <label>Causa<input id="tf-causa" placeholder="p. ej. estado de la vía"></label>
-    <div class="tf-t">Señalización</div>
-    <div class="seg" role="radiogroup" aria-label="Señalización">
-     <label><input type="radio" name="tf-sen" value="si" checked>Señalizada</label>
-     <label><input type="radio" name="tf-sen" value="no">Sin señalizar</label>
-    </div>
-    <div class="tf-t">¿Supone CSV?</div>
-    <div class="seg" role="radiogroup" aria-label="Supone CSV">
-     <label><input type="radio" name="tf-csvr" value="si">Sí</label>
-     <label><input type="radio" name="tf-csvr" value="no" checked>No</label>
-    </div>
-   </div>
-   <label class="tf-otro">Mensaje<textarea id="tf-msg" rows="3" placeholder="El texto del telefonema"></textarea></label>
-   <label class="tf-meta">Firma<input id="tf-firma" placeholder="Apellido del emisor" autocapitalize="words"></label>
-   <div id="tf-err" class="tf-err" role="alert"></div>
-   <div class="tf-bot"><button type="submit" id="tf-guardar">Guardar</button><button type="button" id="tf-cancelar">Cancelar</button></div>
-  </form>
   <datalist id="tf-emisores"></datalist>
   <div id="tf-lista"></div>
   <div class="tf-exp"><button id="tf-csv-exp">Exportar CSV para la empresa</button><button id="tf-compartir">Compartir el registro (texto)</button></div>
@@ -270,7 +283,7 @@
    <div class="pn"><h2>Pictogramas de los avisos</h2><div class="sec-ley">Avisos de la pantalla de marcha: salen de la hoja de ruta y, los marcados DLTV, del documento de LTV. Se pueden editar.</div><div id="grid"></div><button id="nw">Nuevo</button><button id="du">Duplicar</button><button id="de">Eliminar</button></div>
    <div class="pn" id="ed"></div>
   </div>
-  <div class="pn"><b>JSON de pictogramas</b><br><button id="ex">Exportar</button><button id="im">Aplicar JSON</button><button id="rr">Restaurar los de serie</button><textarea id="js" spellcheck="false" style="margin-top:8px"></textarea></div>
+  <div class="pn"><b>JSON de pictogramas</b><br><button id="ex">Exportar</button><button id="im">Aplicar JSON</button><button id="rr">Restaurar</button><textarea id="js" spellcheck="false" style="margin-top:8px"></textarea></div>
  </div>
 </div>
 </div></div>

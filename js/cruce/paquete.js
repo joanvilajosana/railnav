@@ -2,7 +2,7 @@
 // Reúne la hoja original, los eventos, la Vmax efectiva, la radiotelefonía, los bloqueos, el
 // horario y las LTV del DLTV que afectan a la ruta.
 
-import { tramosMarcha } from "./cotejo_cvm.js";
+import { paraMarcha, vmeDeLaRuta } from "./vme_cvm.js";
 import { generar } from "./eventos.js";
 import { textoVia } from "./vias.js";
 import { fmtG, palabras, redondear } from "../pdf/py.js";
@@ -102,7 +102,7 @@ function cambios(ruta, campo) {
 }
 
 /** Resumen del cotejo con el CVM (como `cvm_de_la_ruta` de Python). */
-export function cvmDeLaRuta(ruta, cot, tramosCvm) {
+export function cvmDeLaRuta(ruta, cot, tramosCvm, vmes = [], prevalece = "restrictiva") {
   const nombre = (p) => p.nombre || (p.pk === null || p.pk === undefined ? null : fmtG(p.pk));
   const partes = cot.segmentos.map((sc) => {
     const cuenta = {};
@@ -121,15 +121,42 @@ export function cvmDeLaRuta(ruta, cot, tramosCvm) {
       mot: sc.motivo || null,
     });
   });
-  const tramos = tramosCvm.map((t) =>
-    sinVacios({ pkai: km(t.ini), pkaf: km(t.fin), res: t.resultado, lin: t.linea, sen: t.sentido, pki: t.pkIni, pkf: t.pkFin, hoja: t.hoja, cvm: t.cvm, v: t.v, pag: t.pagina, doc: t.archivo }),
+  // Las VME van aparte (`vme`): no son tramos donde la hoja y el CVM difieren.
+  const tramos = tramosCvm.filter((t) => !t.vme).map((t) =>
+    sinVacios({ pkai: km(t.ini), pkaf: km(t.fin), res: t.resultado, lin: t.linea, sen: t.sentido, pki: t.pkIni, pkf: t.pkFin, hoja: t.hoja, cvm: t.cvm, v: t.v, pag: t.pagina, doc: t.archivo, sust: !!t.sustituye }),
   );
-  return { columna: cot.columna.toUpperCase(), tope: cot.tope, partes, tramos };
+  const vme = vmes.map((x) =>
+    sinVacios({
+      ef: x.efecto,
+      txt: x.vme.texto,
+      v: x.v,
+      ya: x.rigeYa,
+      vias: x.vias,
+      pkai: x.ini === null ? null : km(x.ini),
+      pkaf: x.fin === null ? null : km(x.fin),
+      pki: x.pkIni,
+      pkf: x.pkFin,
+      lin: x.linea,
+      sen: x.sentido,
+      pag: x.vme.origen.pagina,
+      doc: x.archivo,
+      mot: x.motivo,
+    }),
+  );
+  const res = { columna: cot.columna.toUpperCase(), tope: cot.tope, partes, tramos };
+  // Solo si hay algo nuevo, para que los paquetes de antes no cambien.
+  if (vme.length) res.vme = vme;
+  if (prevalece !== "restrictiva") res.prevalece = prevalece;
+  return res;
 }
 
-export function construir(ruta, ltv, cruce, tramos, pictos, cotejo = null) {
-  const tramosCvm = cotejo ? tramosMarcha(cotejo) : null;
-  const eventos = generar(ruta, ltv, cruce, tramos, pictos, tramosCvm);
+export function construir(ruta, ltv, cruce, tramos, pictos, cotejo = null, prevalece = "restrictiva") {
+  let tramosCvm = null, avisosCvm = null, vmes = null;
+  if (cotejo) {
+    vmes = vmeDeLaRuta(ruta, cotejo);
+    [tramosCvm, avisosCvm] = paraMarcha(cotejo, vmes, prevalece);
+  }
+  const eventos = generar(ruta, ltv, cruce, tramos, pictos, tramosCvm, avisosCvm);
   const t = ruta.tren;
   const conAcum = ruta.puntos.filter((p) => p.pk_acum !== null);
   const sem = ltv ? ltv.semana : null;
@@ -154,7 +181,7 @@ export function construir(ruta, ltv, cruce, tramos, pictos, cotejo = null) {
     eventos: eventos.eventos,
     hoja: hojaOriginal(ruta),
     dltv: ltv && cruce ? dltvDeLaRuta(ltv, cruce) : null,
-    cvm: cotejo ? cvmDeLaRuta(ruta, cotejo, tramosCvm) : null,
+    cvm: cotejo ? cvmDeLaRuta(ruta, cotejo, tramosCvm, vmes, prevalece) : null,
     geo: null, // trazado para el GPS: lo añade la app después (js/geo/preparar.js)
   };
 }

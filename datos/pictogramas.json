@@ -128,6 +128,24 @@
       "de_serie": true
     },
     {
+      "id": "aviso_cvm",
+      "nombre": "Aviso del CVM (VME de otra vía o que no se aplica)",
+      "forma": "rombo",
+      "fondo": "#ffffff",
+      "borde": "#d9730d",
+      "color": "#111111",
+      "glifo": "{v}",
+      "svg": "",
+      "aviso": 3.0,
+      "accion": "CVM {v} km/h · {nota}",
+      "marca": "",
+      "prioridad": "informativo",
+      "tipos": [
+        "aviso_cvm"
+      ],
+      "de_serie": true
+    },
+    {
       "id": "csv",
       "nombre": "Cambio significativo de velocidad (CSV)",
       "forma": "rombo",

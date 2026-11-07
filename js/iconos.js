@@ -1,8 +1,11 @@
 // Iconos de la propia app (barra superior). Los de la ficha del tren están en datos.js.
 
 export const ICO = {
-  marcha: '<path d="M3 11L12 3l9 8M5 10v10h5v-6h4v6h5V10"/>',
-  datos: '<rect x="5" y="3" width="14" height="14" rx="3"/><path d="M5 11h14M8 21l1.5-4M16 21l-1.5-4"/><circle cx="9" cy="14" r=".6"/><circle cx="15" cy="14" r=".6"/>',
+  // Barra de abajo (v0.20, Joan): un tren para la marcha y un velocímetro para los datos.
+  marcha: '<rect x="5" y="3" width="14" height="14" rx="3"/><path d="M5 11h14M8 21l1.5-4M16 21l-1.5-4"/><circle cx="9" cy="14" r=".6"/><circle cx="15" cy="14" r=".6"/>',
+  datos: '<path d="M4.2 17.5a9 9 0 1 1 15.6 0"/><path d="M12 14l4.2-4.2"/><circle cx="12" cy="14" r="1.6"/><path d="M12 5.5v1.6M6 8l1.1 1.1M18 8l-1.1 1.1M3.8 13h1.6M18.6 13h1.6"/>',
+  // Datos: ir a la posición actual en la hoja
+  aqui: '<circle cx="12" cy="12" r="7"/><circle cx="12" cy="12" r="2.6" fill="currentColor"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/>',
   // Engranaje de 8 dientes (perfil cerrado y eje), bien distinto del sol del modo día/noche.
   ajustes:
     '<path d="' +

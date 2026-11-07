@@ -16,13 +16,14 @@ let H = 440, hecha = false;
 let R = 0;
 // Anchos de las columnas (unidades del SVG): la de la velocidad y los avisos, más ancha; la de la
 // línea de tiempo, más estrecha (pedido por Joan). El historial del centro sigue con su parte.
-// v0.18 (Joan): tres columnas iguales — velocidad y próximos, pasados, línea de tiempo.
-export const WL = 345, XR = 596, WR = 345;
+// v0.18 (Joan): tres columnas — velocidad y próximos, pasados, línea de tiempo. v0.20 (Joan):
+// 40 % / 40 % / 20 %: la línea de tiempo mide la mitad que la de la velocidad.
+export const WL = 345, XR = 596, WR = 171.75;
 const HUECO = 8; // px entre columnas (.scr gap)
 export const altoDibujo = () => H;
 export function ajustarDibujo(anchoPx, altoPx, apilado) {
-  const tercio = (anchoPx - 2 * HUECO) / 3;
-  const nuevo = apilado ? 440 : Math.max(440, Math.round(((WL + 1.5) * altoPx) / tercio + 6.5));
+  const col = (2 * (anchoPx - 2 * HUECO)) / 5; // ancho de la columna de la velocidad (40 %)
+  const nuevo = apilado ? 440 : Math.max(440, Math.round(((WL + 1.5) * altoPx) / col + 6.5));
   if (nuevo === H && hecha) return false;
   H = nuevo;
   hecha = true;
@@ -56,7 +57,7 @@ export const alcance = (e) => {
 const accion = (e) =>
   e.tipo === "cambio_radio"
     ? "Cambio canal radio"
-    : texto((picDe(e) || {}).accion || picDe(e)?.nombre || e.tipo, e.datos) + (e.datos?.cvm ? " · CVM" : "");
+    : texto((picDe(e) || {}).accion || picDe(e)?.nombre || e.tipo, e.datos) + (e.datos?.cvm && e.tipo !== "aviso_cvm" ? (e.datos.vme ? " · VME" : " · CVM") : "");
 
 // El PK de cada aviso: el que trae el propio texto («… PASO A NIVEL KM 78.975»), que se quita del
 // título, o el de la hoja en ese punto. Se enseña en vez de la hora (pedido por Joan).
@@ -101,20 +102,40 @@ function cuadroVia(x, y, codigo, fs) {
   ];
 }
 
+/**
+ * Título de un aviso en la línea de tiempo (columna estrecha): se mide el texto; si no cabe se
+ * aprieta hasta un 25 % y, si ni así, se corta con «…».
+ */
+function ajustarAncho(t, ancho, fs) {
+  const f = `700 ${fs}px`;
+  let s = String(t);
+  if (anchoTexto(s, f) > ancho * 1.25) {
+    let c = s;
+    while (c.length > 3 && anchoTexto(c.trimEnd() + "…", f) > ancho * 1.25) c = c.slice(0, -1);
+    s = c.trimEnd() + "…";
+  }
+  return [esc(s), anchoTexto(s, f) > ancho ? ` textLength="${ancho}" lengthAdjust="spacingAndGlyphs"` : ""];
+}
+
 /** Segunda línea de un aviso: distancia, vía (si la LTV es de una sola vía) y «a revisar». */
 // PK con un decimal y sin espacios en el guion: para cuando el renglón no cabe.
 const compactar = (t) => t.replace(/(\d+),(\d{2,})/g, (_, a, b) => fmtPk(Number(a + "." + b))).replace(/ – /g, "–");
 
 function linea2(e, x, y, fs, pre, dist, maxX) {
-  const via = e.datos && e.datos.via;
-  if (via) {
-    const ancho = anchoTexto(pre, `${fs}px`) + anchoTexto(dist, `700 ${fs}px`) + 7 + anchoTexto("VÍA " + partesVia(via)[0], `800 ${fs * 0.95}px`) + fs * 1.1;
-    if (x + ancho > maxX) pre = compactar(pre);
-  }
+  const via = e.datos && e.datos.via, rv = e.estado === "revisar";
+  // Si no cabe: el PK más corto, luego sin PK y, en la columna estrecha, «!» en vez de «A REVISAR».
+  let t = "A REVISAR";
+  const ancho = () =>
+    anchoTexto(pre, `${fs}px`) + anchoTexto(dist, `700 ${fs}px`) + 7 +
+    (rv ? anchoTexto(t, `800 ${fs * 0.85}px`) + fs + 6 : 0) +
+    (via ? anchoTexto("VÍA " + partesVia(via)[0], `800 ${fs * 0.95}px`) + fs * 1.1 : 0);
+  if (x + ancho() > maxX) pre = compactar(pre);
+  if (x + ancho() > maxX && !via) pre = "";
+  if (x + ancho() > maxX && rv) t = "!";
   let s = `<text x="${x}" y="${y}" font-size="${fs}" fill="var(--gy)">${pre}<tspan font-weight="700" fill="var(--tx)">${dist}</tspan></text>`;
   let cx = x + anchoTexto(pre, `${fs}px`) + anchoTexto(dist, `700 ${fs}px`) + 7;
-  if (e.estado === "revisar") {
-    const t = "A REVISAR", w = anchoTexto(t, `800 ${fs * 0.85}px`) + fs;
+  if (rv) {
+    const w = anchoTexto(t, `800 ${fs * 0.85}px`) + fs;
     s += `<rect x="${cx}" y="${y - fs * 1.05}" width="${w}" height="${fs * 1.45}" rx="${fs * 0.35}" fill="none" stroke="var(--dn)" stroke-width="1.3" stroke-dasharray="3 2"/><text x="${cx + w / 2}" y="${y - 1}" font-size="${fs * 0.85}" font-weight="800" text-anchor="middle" fill="var(--dn)">${t}</text>`;
     cx += w + 6;
   }
@@ -161,7 +182,7 @@ function cuadroDesvio(ruta, pos, eta) {
   const v = valorDesvio(ruta, pos, eta);
   if (!v) return "";
   const [txt, color] = v;
-  return `<text x="${XR + WR - 10}" y="${H - 15 - R}" font-size="15" font-weight="800" text-anchor="end" fill="${color}">${txt}</text>`;
+  return `<text x="${XR + WR - 8}" y="${H - 15 - R}" font-size="13" font-weight="800" text-anchor="end" fill="${color}">${txt}</text>`;
 }
 
 // Botón «Residuo» de la tablet: en la columna de la línea de tiempo, debajo del odómetro
@@ -171,9 +192,9 @@ function botonResiduo(res, x, y, w, h) {
   let s = `<g data-residuo="1" style="cursor:pointer">`;
   s += `<rect x="${x}" y="${y}" width="${w}" height="${h}" rx="6" fill="${act ? "var(--pn)" : "transparent"}" stroke="${act ? "var(--tx)" : res.libre ? "var(--up)" : "var(--ln)"}" stroke-width="${act ? 2.5 : 1.5}"/>`;
   if (act) s += `<rect x="${x + 2}" y="${y + h - 6}" width="${(w - 4) * (1 - res.restante / res.metros)}" height="4" rx="2" fill="var(--up)"/>`;
-  s += `<text x="${x + 14}" y="${y + h / 2 + 5}" font-size="14" font-weight="800" letter-spacing=".05em" fill="${act ? "var(--tx)" : "var(--gy)"}">RESIDUO</text>`;
+  s += `<text x="${x + 10}" y="${y + h / 2 + 4}" font-size="11" font-weight="800" letter-spacing=".04em" fill="${act ? "var(--tx)" : "var(--gy)"}">RESIDUO</text>`;
   const txt = act ? `${miles(res.restante)} m` : res.libre ? "LIBRE" : `${miles(res.metros)} m`;
-  s += `<text x="${x + w - 14}" y="${y + h / 2 + (act ? 8 : 6)}" font-size="${act ? 22 : 16}" font-weight="700" text-anchor="end" fill="${act ? "var(--tx)" : res.libre ? "var(--up)" : "var(--tx)"}">${txt}</text>`;
+  s += `<text x="${x + w - 10}" y="${y + h / 2 + (act ? 7 : 5)}" font-size="${act ? 18 : 14}" font-weight="700" text-anchor="end" fill="${act ? "var(--tx)" : res.libre ? "var(--up)" : "var(--tx)"}">${txt}</text>`;
   return s + "</g>";
 }
 
@@ -240,21 +261,22 @@ export function pintarMarcha(ruta, pos, { desvio: conDesvio = false, residuo = n
   s += `<line x1="644" x2="644" y1="40" y2="${H - 60 - R}" stroke="var(--gy)" stroke-width="3" stroke-linecap="round"/>`;
   let pv = 999, fondo = "", frente = "";
   for (const e of ev) {
-    const k = picDe(e) || {}, [tit, pk] = tituloPk(ruta, e), num = numeroGrande(e), [t, at] = ajustar(num ? `${tit} ${num}` : tit, WR - 79, 30), m = (e.pk_acum - d) * 1000, y = Y(m), ty = Math.min(y, pv - 38);
+    const k = picDe(e) || {}, [tit, pk] = tituloPk(ruta, e), num = numeroGrande(e), [t, at] = ajustarAncho(num ? `${tit} ${num}` : tit, XD - 662, 12), m = (e.pk_acum - d) * 1000, y = Y(m), ty = Math.min(y, pv - 38);
     pv = ty;
     if (ty < 48) continue;
     fondo += `<circle cx="644" cy="${y}" r="3.5" fill="${esc(k.borde || "var(--gy)")}"/><line x1="644" x2="644" y1="${y}" y2="${ty}" stroke="${esc(k.borde || "var(--gy)")}" stroke-width="2"/>`;
-    frente += `<g transform="translate(629 ${ty - 15}) scale(.625)">${forma(k, e.datos)}</g><text x="667" y="${ty - 1}" font-size="12" font-weight="700" fill="var(--tx)"${at}>${t}</text>`;
-    frente += linea2(e, 667, ty + 14, 12, pk ? pk + " · " : "", dm(m), XD);
+    frente += `<g transform="translate(629 ${ty - 15}) scale(.625)">${forma(k, e.datos)}</g><text x="662" y="${ty - 1}" font-size="12" font-weight="700" fill="var(--tx)"${at}>${t}</text>`;
+    frente += linea2(e, 662, ty + 14, 11, pk ? pk + " · " : "", dm(m), XD);
   }
   s += fondo + frente;
   s += `<polygon points="644,${H - 72 - R} 634,${H - 52 - R} 654,${H - 52 - R}" fill="var(--yl)"/>`;
   const eta = ruta.eta(d);
   const dsv = conDesvio ? cuadroDesvio(ruta, pos, eta) : "";
-  s += `<rect x="602" y="${H - 33 - R}" width="112" height="24" fill="var(--disc)"/><text x="658" y="${H - 15 - R}" font-size="16" font-weight="700" text-anchor="middle" fill="var(--dt)">${miles(d * 1000)} m</text>`;
+  // Columna estrecha (20 %): odómetro y hora más pequeños, uno al lado del otro.
+  s += `<rect x="602" y="${H - 33 - R}" width="92" height="24" fill="var(--disc)"/><text x="648" y="${H - 15 - R}" font-size="15" font-weight="700" text-anchor="middle" fill="var(--dt)">${miles(d * 1000)} m</text>`;
   s += dsv
-    ? `<text x="720" y="${H - 15 - R}" font-size="15" fill="var(--tx)">${eta == null ? "--:--" : hms(eta).slice(0, 5)}</text>` + dsv
-    : `<text x="${(714 + XD) / 2}" y="${H - 15 - R}" font-size="16" text-anchor="middle" fill="var(--tx)">${eta == null ? "--:--:--" : hms(eta)}</text>`;
+    ? `<text x="699" y="${H - 15 - R}" font-size="13" fill="var(--tx)">${eta == null ? "--:--" : hms(eta).slice(0, 5)}</text>` + dsv
+    : `<text x="${(694 + XD) / 2}" y="${H - 15 - R}" font-size="14" text-anchor="middle" fill="var(--tx)">${eta == null ? "--:--:--" : hms(eta)}</text>`;
   if (residuo) s += botonResiduo(residuo, XR, H - 46, WR, 42);
   $("sa").innerHTML = s;
   $("sc").innerHTML = s;

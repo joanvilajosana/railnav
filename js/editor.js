@@ -2,6 +2,7 @@
 
 import { esc, texto } from "./util.js";
 import { MUESTRA, guardar, icono, reemplazar, restaurar, todos } from "./pictos.js";
+import { confirmar } from "./confirmar.js";
 
 const $ = (id) => document.getElementById(id);
 const DLTV = ["ltv", "ltv_csv", "fin_ltv"];
@@ -93,11 +94,15 @@ export function iniciarEditor() {
       alert("JSON no válido");
     }
   };
-  $("rr").onclick = () => {
-    if (confirm("¿Restaurar los pictogramas de serie?")) {
-      restaurar();
-      sel = 0;
-      pintarEditor();
-    }
+  $("rr").onclick = async () => {
+    const si = await confirmar({
+      titulo: "Restaurar los pictogramas",
+      mensaje: "Se restaurarán los pictogramas originales de la aplicación y se perderán los cambios que hayas hecho en ellos. El resto de ajustes no cambia.",
+      si: "Restaurar",
+    });
+    if (!si) return;
+    restaurar();
+    sel = 0;
+    pintarEditor();
   };
 }
