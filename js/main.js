@@ -11,7 +11,7 @@ import { htmlLegal } from "./legal.js";
 import { cargarPictos, deSerie, picDe, restaurar as restaurarPictos } from "./pictos.js";
 import { confirmar } from "./confirmar.js";
 import { ajustarDibujo, alcance, altoDibujo, altoLinea, limitesLineaMovil, pintarMarcha, pintarMarchaMovil, reiniciarHistorial } from "./marcha.js";
-import { irAqui, mostrarPestana, movil, pintarDatos } from "./datos.js";
+import { irAqui, mostrarPestana, movil, pintarDatos, pintarFicha } from "./datos.js";
 import { iniciarEditor, pintarEditor } from "./editor.js";
 import { LOGO, linea } from "./iconos.js";
 import { desbloquear, ponerSilencio, ponerVolumen, probar, silenciado, tono, volumen, MUESTRA } from "./sonido.js";
@@ -33,6 +33,7 @@ let resRestante = null, resLibre = 0;
 
 // ---------- barra superior ----------
 function barra() {
+  iniciarFicha();
   $("brand").innerHTML = LOGO(52) + `<small class="ver">v${VERSION_APP}</small>`;
   $("hj-aqui").innerHTML = linea("aqui", 24);
   for (const [id, k, t] of [["m-marcha", "marcha", "Pantalla de marcha"], ["m-datos", "datos", "Datos del tren"], ["m-ajustes", "ajustes", "Ajustes"]]) {
@@ -141,6 +142,9 @@ function estado() {
   };
   poner("in-tren", ruta?.tren?.numero ?? null);
   const t = ruta?.tren;
+  // Viajeros/Mercancías junto al número y el botón de la ficha (v0.20.2)
+  if (t?.clase) $("in-tren").insertAdjacentHTML("beforeend", `<span class="ic-cl">${esc(CLASE[t.clase] || t.clase)}</span>`);
+  $("in-ficha").hidden = !ruta;
   $("in-ruta").textContent = t ? `${t.origen || "?"} → ${t.destino || "?"}` : "";
   $("in-ruta").title = $("in-ruta").textContent;
   poner("in-bq", bq || null);
@@ -149,8 +153,44 @@ function estado() {
 }
 
 // ---------- vistas ----------
+// ---------- ficha del tren: desplegable desde el cuadro «Tren» ----------
+const CLASE = { mercancias: "Mercancías", viajeros: "Viajeros" };
+const TRIANGULO = (arriba) =>
+  `<svg viewBox="0 0 24 24" width="26" height="26" aria-hidden="true"><polygon points="${arriba ? "4,16 20,16 12,6.5" : "4,8 20,8 12,17.5"}" fill="currentColor"/></svg>`;
+
+function colocarFicha() {
+  const pop = $("pop-ficha"), info = document.querySelector(".info").getBoundingClientRect(), vw = document.querySelector(".vw").getBoundingClientRect();
+  const top = info.bottom + 6;
+  Object.assign(pop.style, { top: top + "px", left: vw.left + "px", width: vw.width + "px", maxHeight: Math.max(160, innerHeight - top - 12) + "px" });
+}
+
+function ponerFicha(abrir) {
+  abrir = !!abrir && !!ruta;
+  if (abrir) {
+    pintarFicha(ruta);
+    colocarFicha();
+  }
+  $("pop-ficha").hidden = !abrir;
+  const b = $("in-ficha");
+  b.setAttribute("aria-expanded", String(abrir));
+  b.setAttribute("aria-label", abrir ? "Plegar los datos del tren" : "Ver los datos del tren");
+  b.classList.toggle("on", abrir);
+  b.innerHTML = TRIANGULO(abrir);
+}
+
+function iniciarFicha() {
+  ponerFicha(false);
+  $("in-ficha").onclick = () => ponerFicha($("pop-ficha").hidden);
+  document.addEventListener("pointerdown", (e) => {
+    if (!$("pop-ficha").hidden && !e.target.closest?.("#pop-ficha,#in-ficha")) ponerFicha(false);
+  });
+  addEventListener("keydown", (e) => e.key === "Escape" && !$("pop-ficha").hidden && ponerFicha(false));
+  addEventListener("resize", () => !$("pop-ficha").hidden && colocarFicha());
+}
+
 function mostrar(v) {
   vista = v;
+  ponerFicha(false);
   for (const k of ["marcha", "datos", "ajustes", "pictos", "legal", "tf"]) $("v-" + k).hidden = k !== v;
   for (const k of ["marcha", "datos", "ajustes"]) $("m-" + k).classList.toggle("on", k === v || ((v === "pictos" || v === "legal") && k === "ajustes") || (v === "tf" && k === "marcha"));
   $("m-tf").classList.toggle("on", v === "tf");

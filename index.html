@@ -36,10 +36,12 @@
   </div>
 </div>
 <div class="info" aria-live="polite">
-  <div class="ic"><small>Tren</small><b id="in-tren">—</b><span id="in-ruta" class="ic-r"></span></div>
+  <div class="ic ic-tren"><small>Tren</small><b id="in-tren">—</b><span id="in-ruta" class="ic-r"></span><button id="in-ficha" class="ic-tg" aria-expanded="false" aria-controls="pop-ficha" aria-label="Ver los datos del tren" title="Datos del tren" hidden></button></div>
   <div class="ic"><small>Bloqueo</small><b id="in-bq">—</b></div>
   <div class="ic"><small><span class="larga">Radiotelefonía</span><span class="corta">Radio</span></small><b id="in-rd">—</b></div>
 </div>
+<!-- Datos del tren: desplegable flotante desde el cuadro «Tren», en todas las pantallas (v0.20.2) -->
+<div id="pop-ficha" class="pop-ficha" role="dialog" aria-label="Datos del tren" hidden><div id="kv" class="ficha"></div></div>
 <div id="rev" class="modal" hidden>
  <div class="modal-c" role="dialog" aria-modal="true" aria-labelledby="rev-t">
   <h2 id="rev-t">Revisar LTV</h2>
@@ -141,7 +143,6 @@
  </div>
  <!-- Datos -->
  <div id="v-datos" hidden>
-  <div class="pn"><div id="kv" class="ficha"></div></div>
   <div class="pn">
    <div class="hj-top"><div class="tabs" id="tabs"><button data-t="hoja" class="on">Hoja de ruta</button><button data-t="dltv">DLTV</button><button data-t="cvm">CVM</button></div><button id="hj-aqui" aria-label="Ir a la posición actual" title="Posición actual"></button></div>
    <div id="t-hoja">

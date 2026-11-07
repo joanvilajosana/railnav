@@ -405,7 +405,6 @@ code{font:12px ui-monospace,Menlo,monospace;background:var(--in);padding:0 4px;b
 :root[data-disp="telefono"] .tt span{display:block;font-size:16px;overflow-wrap:anywhere}
 :root[data-disp="telefono"] .tt:last-child,:root[data-disp="telefono"] .tt:nth-last-child(2):nth-child(odd){grid-column:1/-1}
 :root[data-disp="telefono"] .tt>svg,:root[data-disp="telefono"] .tt>.tl{flex:none}
-:root[data-disp="telefono"] #v-datos>.pn:first-child{flex:none}
 /* Con la ficha desplegada la vista entera se desplaza y la hoja conserva un alto útil. */
 :root[data-disp="telefono"] #v-datos{overflow-y:auto}
 :root[data-disp="telefono"] #v-datos>.pn:last-child{flex:1 0 auto;height:max(360px,100%)}
@@ -822,7 +821,6 @@ html:has(body.app){background:var(--pn)}
 :root[data-disp="telefono"] .tr-num{font-size:19px}
 :root[data-disp="telefono"] .tr-ruta{font-size:13px}
 :root[data-disp="telefono"] .fi-tg{align-self:center}
-#v-datos>.pn:first-child{padding-top:10px;padding-bottom:10px}
 /* DLTV: «+ Añadir LTV» a la izquierda de la cabecera, en la misma franja */
 .dl-top{display:flex;align-items:center;gap:10px 16px;flex-wrap:wrap;margin:0 0 10px}
 .dl-top .ltvm-mas{flex:none}
@@ -860,7 +858,7 @@ html:has(body.app){background:var(--pn)}
 /* v0.17.4 — Teléfono: avisos sin marco. Los próximos solo aparecen cuando los hay (tarjetas con
    su color); sin ellos, los pasados (filas apagadas) ocupan todo el hueco. */
 :root[data-disp="telefono"] .mv-prox{height:auto;max-height:158px;overflow-y:auto}
-:root[data-disp="telefono"] .hr{margin:0 0 6px;border:1px solid color-mix(in srgb,var(--ln) 70%,transparent);border-radius:10px;background:transparent;opacity:.82}
+:root[data-disp="telefono"] .hr{margin:0 0 6px;border:1px solid color-mix(in srgb,var(--ln) 70%,transparent);border-radius:10px;background:transparent}
 :root[data-disp="telefono"] .hist .vac{padding:6px 4px;font-size:14px}
 :root[data-disp="telefono"] .mv-prox{max-height:200px}
 :root[data-disp="telefono"] .mv-prox .px{height:auto;min-height:64px;overflow:visible}
@@ -892,11 +890,11 @@ html:has(body.app){background:var(--pn)}
    residuo) en la mitad de la pantalla; abajo, próximos y pasados en dos cuadros, uno al lado
    del otro. */
 @media (max-aspect-ratio:4/5){
-:root[data-disp="tablet"] .scr{grid-template-columns:minmax(0,1fr) minmax(0,1fr);grid-template-rows:minmax(0,1fr) minmax(0,1fr);grid-template-areas:"sup sup" "px hi";gap:8px}
-:root[data-disp="tablet"] .sup{grid-area:sup;display:flex;justify-content:center;gap:8px;min-height:0;min-width:0;height:100%}
-:root[data-disp="tablet"] #sa,:root[data-disp="tablet"] #sc{grid-area:auto;flex:none;height:100%;width:auto;max-height:none}
-:root[data-disp="tablet"] #sa{max-width:calc(66.6% - 4px)}
-:root[data-disp="tablet"] #sc{max-width:calc(33.3% - 4px)}
+:root[data-disp="tablet"] .scr{grid-template-columns:minmax(0,1fr) minmax(0,1fr);grid-template-rows:auto minmax(0,1fr);grid-template-areas:"sup sup" "px hi";gap:8px}
+:root[data-disp="tablet"] .sup{grid-area:sup;display:flex;gap:8px;min-width:0}
+:root[data-disp="tablet"] #sa,:root[data-disp="tablet"] #sc{grid-area:auto;flex:none;height:auto;max-height:none;max-width:none}
+:root[data-disp="tablet"] #sa{width:calc((100% - 8px) * 2 / 3)}
+:root[data-disp="tablet"] #sc{width:calc((100% - 8px) / 3)}
 :root[data-disp="tablet"] .mv-prox{grid-area:px;display:flex;flex-direction:column;gap:8px;min-height:0;overflow-y:auto;padding:0 8px 8px;border:1.5px solid var(--ln);border-radius:8px}
 :root[data-disp="tablet"] .mv-prox::before{content:"PRÓXIMOS";display:block;position:sticky;top:0;z-index:1;margin:0 -8px -2px;padding:8px 10px 4px;font-size:11px;font-weight:800;letter-spacing:.08em;color:var(--gy);background:var(--bg)}
 :root[data-disp="tablet"] .mv-prox .vac{padding:4px 2px;color:var(--gy)}
@@ -1022,4 +1020,28 @@ html:has(body.app){background:var(--pn)}
 :root[data-disp="telefono"] #v-datos,:root[data-disp="telefono"] #v-ajustes,:root[data-disp="telefono"] #v-pictos,:root[data-disp="telefono"] #v-legal,:root[data-disp="telefono"] #v-tf{padding:0 2px}
 :root[data-disp="telefono"] .modal{padding:8px 16px}
 :root[data-disp="telefono"] .modal-c{max-height:calc(100% - 8px)}
+}
+
+/* ===================================================================== v0.20.2 (capturas 004–008)
+   iPad: Datos, Ajustes y Pictogramas con los mismos márgenes que los cuadros de arriba. */
+:root[data-disp="tablet"] :is(#v-datos,#v-ajustes,#v-pictos,#v-legal){padding:0}
+/* Cuadro «Tren»: Viajeros/Mercancías junto al número y el botón de la ficha (triángulo grande) */
+.ic-tren{position:relative;padding-right:58px!important}
+.ic-cl{display:inline-block;margin-left:8px;padding:0 8px;border:1px solid var(--ln);border-radius:20px;background:var(--in);color:var(--gy);font-size:11px;font-weight:700;line-height:1.6;vertical-align:middle;letter-spacing:0}
+.ic-tg{position:absolute;right:6px;top:50%;transform:translateY(-50%);width:46px;height:46px;margin:0;padding:0;display:flex;align-items:center;justify-content:center;border-radius:10px;color:var(--tx);-webkit-appearance:none;appearance:none}
+.ic-tg[hidden]{display:none}
+.ic-tg svg{display:block;width:26px;height:26px}
+.ic-tg.on{background:var(--ac);color:var(--sobre-ac);border-color:var(--ac)}
+/* Ficha flotante, encima de la pantalla */
+.pop-ficha{position:fixed;z-index:40;box-sizing:border-box;overflow-y:auto;overscroll-behavior:contain;padding:12px 14px;background:var(--pn);border:1.5px solid var(--ln);border-radius:14px;box-shadow:0 12px 34px rgba(0,0,0,.35)}
+.pop-ficha[hidden]{display:none}
+.pop-ficha .ficha{padding-right:0}
+.tr-cvm{font-size:13px;color:var(--gy);margin-top:2px}
+:root[data-disp="telefono"] .ic-tren{padding-right:52px!important}
+:root[data-disp="telefono"] .ic-tg{width:42px;height:42px;right:4px}
+@media (orientation:landscape){
+:root[data-disp="telefono"] .ic-tren{padding-right:44px!important}
+:root[data-disp="telefono"] .ic-tg{width:36px;height:36px;right:2px}
+:root[data-disp="telefono"] .ic-tg svg{width:22px;height:22px}
+:root[data-disp="telefono"] .ic-cl{font-size:10px;padding:0 6px;margin-left:6px}
 }

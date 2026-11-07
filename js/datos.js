@@ -24,7 +24,8 @@ export const lineal = (k, tam = 26) =>
 
 const CLASE = { mercancias: "Mercancías", viajeros: "Viajeros" };
 
-export function pintarDatos(ruta, d) {
+/** Ficha del tren (desplegable del cuadro «Tren», en cualquier pantalla). */
+export function pintarFicha(ruta) {
   const p = ruta.p, t = ruta.tren;
   const dl = p.dltv;
   const dec = (x) => ruta.revision?.(x.cod);
@@ -32,21 +33,10 @@ export function pintarDatos(ruta, d) {
   const rv = dl ? dl.ltv.filter((x) => x.res !== "APLICA" && !dec(x)).length : 0;
   const tec = ruta.eventos.filter((e) => e.tipo === "parada_tecnica");
   const tile = (ico, lab, val, tit) => `<div class="tt" title="${esc(tit || lab)}">${ico}<div><b>${lab}</b><span>${val}</span></div></div>`;
-  // En el teléfono la ficha se puede plegar a una línea para dejar sitio a la hoja.
-  const resumen = [
-    fecha(t.fecha) || null,
-    dl ? `${ap} LTV${rv ? ` · ${rv} a revisar` : ""}` : "sin DLTV",
-    p.cvm ? (p.cvm.tramos.length ? `CVM: ${p.cvm.tramos.length} a revisar` : "coincide con el CVM") + ((p.cvm.vme || []).some((x) => x.ef === "RIGE" || x.ef === "AVISO_VIA") ? ` · VME: ${(p.cvm.vme || []).filter((x) => x.ef === "RIGE" || x.ef === "AVISO_VIA").length}` : "") : null,
-    tec.length ? `${tec.length} ${tec.length > 1 ? "paradas técnicas" : "parada técnica"}` : null,
-  ]
-    .filter(Boolean)
-    .join(" · ");
-  const plegada = prefs.leer("ficha.plegada", true);
-  $("kv").classList.toggle("plegada", plegada);
+  const cvm = p.cvm ? (p.cvm.tramos.length ? `CVM: ${p.cvm.tramos.length} a revisar` : "coincide con el CVM") : null;
   $("kv").innerHTML =
     `<div class="tr-cab"><span class="tr-ico">${lineal("tren", 30)}</span><div class="tr-txt"><div class="tr-num">${esc(t.numero)}${t.clase ? ` <span class="tr-cl">${CLASE[t.clase] || esc(t.clase)}</span>` : ""}</div>` +
-    `<div class="tr-ruta">${esc(t.origen || "?")} <span>→</span> ${esc(t.destino || "?")}</div><div class="tr-res">${esc(resumen)}</div></div>` +
-    `<button class="fi-tg" aria-expanded="${!plegada}" aria-label="${plegada ? "Ver la ficha completa" : "Plegar la ficha"}">${plegada ? "▾" : "▴"}</button></div><div class="tr-tiles">` +
+    `<div class="tr-ruta">${esc(t.origen || "?")} <span>→</span> ${esc(t.destino || "?")}</div>${cvm ? `<div class="tr-cvm">${esc(cvm)}</div>` : ""}</div></div><div class="tr-tiles">` +
     tile(`<span class="tl">${lineal("fecha")}</span>`, "Fecha", fecha(t.fecha) || "?") +
     tile(`<span class="tl">${lineal("loco")}</span>`, "Locomotora", esc(t.locomotora || "?")) +
     tile(`<span class="tl">${lineal("peso")}</span>`, "Peso", t.masa_t ? nf(t.masa_t, 0) + " t" : "?") +
@@ -55,10 +45,9 @@ export function pintarDatos(ruta, d) {
     (dl ? tile('<span class="tl rv">?</span>', "LTV a revisar", rv) : "") +
     tile(icono(pic("parada_tecnica"), 34, { min: "" }), "Paradas técnicas", tec.length ? tec.map((e) => `${esc(e.datos.nombre)} (${String(e.datos.min).replace(".", ",")} min)`).join(", ") : "Ninguna") +
     `</div>`;
-  $("kv").querySelector(".fi-tg").onclick = () => {
-    prefs.escribir("ficha.plegada", !plegada);
-    pintarDatos(ruta, d);
-  };
+}
+
+export function pintarDatos(ruta, d) {
   pintarHoja(ruta, d);
   pintarDltv(ruta, d);
   pintarCvm(ruta);
