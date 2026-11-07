@@ -1484,23 +1484,40 @@ function pintarSim() {
   $("simbar").hidden = !sim;
   document.querySelector(".pie").hidden = !sim; // abajo solo queda la barra de la simulación
   if (!sim) return;
-  $("sb-pl").innerHTML = linea(pos.enMarcha ? "pausa" : "play", 24) + `<span>${pos.enMarcha ? "Pausa" : "Marcha"}</span>`;
-  $("sb-pl").classList.toggle("on", pos.enMarcha);
-  $("sb-pl").setAttribute("aria-label", pos.enMarcha ? "Pausa" : "Marcha");
-  $("sb-ini").innerHTML = linea("inicio", 22);
+  // Reproductor (v0.20.3, Joan): principio, rebobinar, marcha, pausa, adelantar y final.
+  for (const [id, ico] of [["sb-ini", "inicio"], ["sb-atr", "rebobinar"], ["sb-play", "play"], ["sb-pausa", "pausa"], ["sb-ade", "adelantar"], ["sb-fin", "final"]])
+    if (!$(id).firstChild) $(id).innerHTML = linea(ico, 22);
+  $("sb-play").classList.toggle("on", pos.enMarcha);
+  $("sb-pausa").classList.toggle("on", !pos.enMarcha);
+  $("sb-play").setAttribute("aria-pressed", String(pos.enMarcha));
+  $("sb-pausa").setAttribute("aria-pressed", String(!pos.enMarcha));
   for (const b of document.querySelectorAll(".sb-f button")) b.classList.toggle("on", +b.dataset.f === pos.factor);
 }
 
 function iniciarSimulacion() {
-  $("sb-pl").onclick = () => {
-    if (pos.d >= pos.fin) pos.poner(0);
-    pos.enMarcha = !pos.enMarcha;
+  const PASO_KM = 1; // rebobinar y adelantar
+  const ir = (d) => {
+    const atras = d < pos.d;
+    pos.poner(Math.min(pos.fin, Math.max(0, d)));
+    if (atras) reiniciarHistorial();
+    sucio = true;
     pintarSim();
   };
-  $("sb-ini").onclick = () => {
-    pos.poner(0);
-    reiniciarHistorial();
+  $("sb-play").onclick = () => {
+    if (pos.d >= pos.fin) ir(0);
+    pos.enMarcha = true;
     pintarSim();
+  };
+  $("sb-pausa").onclick = () => {
+    pos.enMarcha = false;
+    pintarSim();
+  };
+  $("sb-ini").onclick = () => ir(0);
+  $("sb-atr").onclick = () => ir(pos.d - PASO_KM);
+  $("sb-ade").onclick = () => ir(pos.d + PASO_KM);
+  $("sb-fin").onclick = () => {
+    pos.enMarcha = false;
+    ir(pos.fin);
   };
   document.querySelector(".sb-f").onclick = (e) => {
     const b = e.target.closest("button[data-f]");

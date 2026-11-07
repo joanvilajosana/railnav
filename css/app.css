@@ -226,10 +226,14 @@ input,textarea,select,.hj td,.hj th{-webkit-user-select:text;user-select:text}
 .simbar[hidden]{display:none}
 .simbar button{margin:0;height:46px;min-width:52px;display:inline-flex;align-items:center;justify-content:center;gap:6px;border-radius:12px;font-weight:700}
 .sb-t{font-size:11px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:var(--gy)}
-.sb-pl{min-width:124px!important}
-.sb-pl.on,.sb-f button.on{background:var(--ac);border-color:var(--ac);color:#fff}
-:root[data-theme="dark"] .sb-pl.on,:root[data-theme="dark"] .sb-f button.on{color:var(--sobre-ac)}
-@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .sb-pl.on,:root:not([data-theme="light"]) .sb-f button.on{color:var(--sobre-ac)}}
+/* Reproductor de la simulación: seis botones juntos, como los de velocidad */
+.sb-tr{display:inline-flex}
+.sb-tr button{border-radius:0;margin-left:-1px;min-width:52px;padding:0}
+.sb-tr button:first-child{border-radius:12px 0 0 12px;margin-left:0}
+.sb-tr button:last-child{border-radius:0 12px 12px 0}
+.sb-tr button.on,.sb-f button.on{background:var(--ac);border-color:var(--ac);color:#fff}
+:root[data-theme="dark"] .sb-tr button.on,:root[data-theme="dark"] .sb-f button.on{color:var(--sobre-ac)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .sb-tr button.on,:root:not([data-theme="light"]) .sb-f button.on{color:var(--sobre-ac)}}
 .sb-f{display:inline-flex}
 .sb-f button{border-radius:0;margin-left:-1px;min-width:56px}
 .sb-f button:first-child{border-radius:12px 0 0 12px;margin-left:0}
@@ -385,7 +389,10 @@ code{font:12px ui-monospace,Menlo,monospace;background:var(--in);padding:0 4px;b
 :root[data-disp="telefono"] .simbar{flex-wrap:wrap;gap:6px;width:100%}
 :root[data-disp="telefono"] .simbar .sb-t{display:none}
 :root[data-disp="telefono"] .simbar button{height:44px;min-width:46px}
-:root[data-disp="telefono"] .sb-pl{min-width:108px!important;flex:1}
+:root[data-disp="telefono"] .sb-tr{flex:1 1 100%;display:flex}
+:root[data-disp="telefono"] .sb-tr button{flex:1;min-width:0}
+:root[data-disp="telefono"] .sb-f{flex:1 1 100%;display:flex}
+:root[data-disp="telefono"] .sb-f button{flex:1}
 :root[data-disp="telefono"] .sb-f button{min-width:46px;padding:0 6px}
 
 /* --- datos --- */
@@ -1044,4 +1051,31 @@ html:has(body.app){background:var(--pn)}
 :root[data-disp="telefono"] .ic-tg{width:36px;height:36px;right:2px}
 :root[data-disp="telefono"] .ic-tg svg{width:22px;height:22px}
 :root[data-disp="telefono"] .ic-cl{font-size:10px;padding:0 6px;margin-left:6px}
+}
+
+/* v0.20.3 — cuadro «Tren»: más aire entre Viajeros/Mercancías y el trayecto; el botón de la ficha
+   algo más pequeño (como los de arriba) y separado del borde derecho. iPhone e iPad. */
+.ic-tren b{line-height:1.3}
+.ic-tren .ic-r{margin-top:5px}
+.ic-cl{vertical-align:2px}
+.ic-tren{padding-right:62px!important}
+.ic-tg{width:40px;height:40px;right:12px;border-radius:10px}
+.ic-tg svg{width:22px;height:22px}
+:root[data-disp="telefono"] .ic-tren{padding-right:54px!important}
+:root[data-disp="telefono"] .ic-tg{width:36px;height:36px;right:10px}
+:root[data-disp="telefono"] .ic-tg svg{width:20px;height:20px}
+@media (orientation:landscape){
+:root[data-disp="telefono"] .ic-tren{padding-right:46px!important}
+:root[data-disp="telefono"] .ic-tg{width:32px;height:32px;right:8px}
+:root[data-disp="telefono"] .ic-tg svg{width:18px;height:18px}
+}
+.pop-ficha .tr-tiles{margin-top:0}
+/* iPad: el cuadro «Tren» más ancho (número, Viajeros/Mercancías y el botón de la ficha) */
+:root[data-disp="tablet"] .info{grid-template-columns:minmax(0,1.5fr) minmax(0,1fr) minmax(0,1fr)}
+/* iPhone apaisado: reproductor y velocidades de la simulación en una sola fila */
+@media (orientation:landscape){
+:root[data-disp="telefono"] .simbar{flex-wrap:nowrap}
+:root[data-disp="telefono"] .sb-tr{flex:2 1 0}
+:root[data-disp="telefono"] .sb-f{flex:1 1 0}
+:root[data-disp="telefono"] .simbar button{height:38px}
 }

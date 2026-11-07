@@ -135,8 +135,14 @@
   <div class="pie">
    <div id="simbar" class="simbar" hidden>
     <span class="sb-t">Simulación</span>
-    <button id="sb-ini" aria-label="Volver al inicio de la ruta" title="Al inicio"></button>
-    <button id="sb-pl" class="sb-pl" aria-label="Marcha"></button>
+    <span class="sb-tr" role="group" aria-label="Reproducción">
+     <button id="sb-ini" aria-label="Al principio de la ruta" title="Principio"></button>
+     <button id="sb-atr" aria-label="Rebobinar 1 km" title="Rebobinar 1 km"></button>
+     <button id="sb-play" aria-label="Marcha" title="Marcha"></button>
+     <button id="sb-pausa" aria-label="Pausa" title="Pausa"></button>
+     <button id="sb-ade" aria-label="Adelantar 1 km" title="Adelantar 1 km"></button>
+     <button id="sb-fin" aria-label="Al final de la ruta" title="Final"></button>
+    </span>
     <span class="sb-f" role="group" aria-label="Velocidad de la simulación"><button data-f="1">×1</button><button data-f="10">×10</button><button data-f="40">×40</button><button data-f="100">×100</button></span>
    </div>
   </div>

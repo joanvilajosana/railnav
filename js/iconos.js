@@ -48,6 +48,9 @@ export const ICO = {
   play: '<path d="M7 4.5v15l12.5-7.5z" fill="currentColor"/>',
   pausa: '<rect x="6" y="5" width="4" height="14" rx="1" fill="currentColor"/><rect x="14" y="5" width="4" height="14" rx="1" fill="currentColor"/>',
   inicio: '<path d="M6 5v14"/><path d="M19 5.5v13L9 12z" fill="currentColor"/>',
+  rebobinar: '<path d="M11.5 6v12L3.5 12z M20.5 6v12l-8-6z" fill="currentColor"/>',
+  adelantar: '<path d="M3.5 6v12l8-6z M12.5 6v12l8-6z" fill="currentColor"/>',
+  final: '<path d="M18 5v14"/><path d="M5 5.5v13L15 12z" fill="currentColor"/>',
 };
 
 export const linea = (k, tam = 26) =>

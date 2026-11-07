@@ -34,15 +34,16 @@ export function pintarFicha(ruta) {
   const tec = ruta.eventos.filter((e) => e.tipo === "parada_tecnica");
   const tile = (ico, lab, val, tit) => `<div class="tt" title="${esc(tit || lab)}">${ico}<div><b>${lab}</b><span>${val}</span></div></div>`;
   const cvm = p.cvm ? (p.cvm.tramos.length ? `CVM: ${p.cvm.tramos.length} a revisar` : "coincide con el CVM") : null;
+  // Número, clase y trayecto ya están en el cuadro «Tren» de arriba: aquí, solo el resto.
   $("kv").innerHTML =
-    `<div class="tr-cab"><span class="tr-ico">${lineal("tren", 30)}</span><div class="tr-txt"><div class="tr-num">${esc(t.numero)}${t.clase ? ` <span class="tr-cl">${CLASE[t.clase] || esc(t.clase)}</span>` : ""}</div>` +
-    `<div class="tr-ruta">${esc(t.origen || "?")} <span>→</span> ${esc(t.destino || "?")}</div>${cvm ? `<div class="tr-cvm">${esc(cvm)}</div>` : ""}</div></div><div class="tr-tiles">` +
+    `<div class="tr-tiles">` +
     tile(`<span class="tl">${lineal("fecha")}</span>`, "Fecha", fecha(t.fecha) || "?") +
     tile(`<span class="tl">${lineal("loco")}</span>`, "Locomotora", esc(t.locomotora || "?")) +
     tile(`<span class="tl">${lineal("peso")}</span>`, "Peso", t.masa_t ? nf(t.masa_t, 0) + " t" : "?") +
     tile(`<span class="tl">${lineal("tipo")}</span>`, "Tipo de tren", esc(t.tipo || "?")) +
     tile(icono(pic("ltv"), 34, { v: ap }), "LTV que aplican", dl ? ap : "Sin DLTV") +
     (dl ? tile('<span class="tl rv">?</span>', "LTV a revisar", rv) : "") +
+    (p.cvm ? tile(icono(pic("aviso_cvm"), 34, { v: "" }), "CVM", p.cvm.tramos.length ? `${p.cvm.tramos.length} a revisar` : "Coincide", cvm) : "") +
     tile(icono(pic("parada_tecnica"), 34, { min: "" }), "Paradas técnicas", tec.length ? tec.map((e) => `${esc(e.datos.nombre)} (${String(e.datos.min).replace(".", ",")} min)`).join(", ") : "Ninguna") +
     `</div>`;
 }
