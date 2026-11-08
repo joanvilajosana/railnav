@@ -2,7 +2,7 @@
 // zonas sin cobertura). Las rutas no pasan por aquí: están en IndexedDB.
 // Al publicar una versión nueva hay que cambiar VERSION (y la de js/version.js).
 
-const VERSION = "0.22.0";
+const VERSION = "0.23.0";
 const CACHE = "railnav-" + VERSION;
 const ARCHIVOS = [
   "./",
@@ -61,7 +61,6 @@ const ARCHIVOS = [
   "vendor/pdfjs/pdf.worker.min.mjs",
   "datos/pictogramas.json",
   "datos/demo.railnav.json",
-  "datos/tramos.json",
   "datos/estaciones.json",
   "datos/trazados.json",
   "img/logo_horizontal_dia.png",

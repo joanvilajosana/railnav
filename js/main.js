@@ -1,7 +1,7 @@
 // Arranque de la app: barra superior, vistas, carga de rutas y bucle de pintado.
 
 import { VERSION_APP } from "./version.js";
-import { esc, fecha } from "./util.js";
+import { esc, fecha, may } from "./util.js";
 import { Ruta, validar } from "./ruta.js";
 import { MODOS, Posicion, metrosPorPixel } from "./posicion.js";
 import { cvms, datos, dltvs, firmaRuta, geos, obsoleta, persistir, prefs, recorridos, rutas, telefonemas, tramos } from "./almacen.js";
@@ -281,13 +281,13 @@ function formTf(ev) {
   const l = TF.lugar(t, ruta.p, pos.d);
   if (l.error) {
     el.className = "tf-r mal";
-    el.textContent = l.error;
+    el.textContent = may(l.error);
     return;
   }
   const r = TF.rango(l.desde, l.hasta);
   if (!r) {
     el.className = "tf-r mal";
-    el.textContent = "el inicio y el final son el mismo punto";
+    el.textContent = "El inicio y el final son el mismo punto.";
     return;
   }
   const km = r[0] - pos.d, lejos = km < -0.05 ? (r[1] > pos.d ? "estás dentro" : "ya pasado") : `empieza a ${dmTf(km)}`;
@@ -584,7 +584,6 @@ async function abrir(paquete, guardarla = true) {
   ruta.ponerRevisiones(prefs.leer("revision." + ruta.id, {}));
   pintarBotonTf();
   $("aviso-ruta").hidden = !obsoleta(paquete);
-  $("aviso-prueba").hidden = !paquete.prueba;
   via = paquete.geo?.puntos?.length ? new Via(paquete.geo) : null;
   prefs.escribir("activa", guardarla ? ruta.id : null);
   pos = new Posicion({
@@ -640,7 +639,6 @@ async function cargarArchivos(lista) {
 // Cargado al pulsar: pdf.js y los lectores solo se descargan de la caché cuando se usan.
 const gen = () => import("./generador.js");
 let hojaPdf = null;
-let tablasDeSerie = null;
 
 const mensaje = (html, tipo = "") => {
   $("gen-msg").className = "gen-msg " + tipo;
@@ -713,14 +711,8 @@ async function leerCvms(archivos) {
   mensaje(`✓ CVM guardado${hechos.length > 1 ? "s" : ""}: ${hechos.map((c) => `${esc(c.titulo || c.id)} (${c.lineas} líneas)`).join(", ")}. Las rutas que generes se cotejarán con ${hechos.length > 1 ? "ellos" : "él"}.${faltan.join("")}`, faltan.length ? "aviso" : "ok");
 }
 
-async function tablasConocidas() {
-  if (!tablasDeSerie)
-    tablasDeSerie = await fetch("datos/tramos.json")
-      .then((r) => r.json())
-      .then((d) => d.tablas)
-      .catch(() => []);
-  return [...(await tramos.listar()), ...tablasDeSerie];
-}
+// Solo las tablas de este dispositivo: la app ya no trae tablas de serie (Joan, 08-11-2026).
+const tablasConocidas = () => tramos.listar();
 
 async function generarRuta() {
   if (!hojaPdf) return;
@@ -832,23 +824,16 @@ async function compartirRuta(id) {
 let tablasVistas = [];
 
 async function pintarTablas() {
-  const propias = await tramos.listar();
-  await tablasConocidas();
-  const nombres = new Set(propias.map((t) => t.ruta));
-  tablasVistas = [
-    ...propias.map((t) => ({ t, propia: true })),
-    ...(tablasDeSerie || []).filter((t) => !nombres.has(t.ruta)).map((t) => ({ t, propia: false })),
-  ].sort((a, b) => (a.t.ruta < b.t.ruta ? -1 : 1));
-  const propiasN = tablasVistas.filter((x) => x.propia).length;
-  $("tablas-n").textContent = `${tablasVistas.length} tablas` + (propiasN ? ` (${propiasN} de este dispositivo)` : "");
+  tablasVistas = (await tramos.listar()).map((t) => ({ t, propia: true })).sort((a, b) => (a.t.ruta < b.t.ruta ? -1 : 1));
+  $("tablas-n").textContent = tablasVistas.length === 1 ? "1 tabla" : `${tablasVistas.length} tablas`;
   $("tablas").innerHTML = tablasVistas.length
     ? tablasVistas
-        .map(({ t, propia }, i) => {
+        .map(({ t }, i) => {
           const sin = t.tramos.filter((x) => !x.linea || x.linea === "?").length;
           return (
-            `<div class="ru"><div><b>${esc(t.ruta)}</b><small>${t.tramos.length} tramos · ${propia ? "guardada en este dispositivo" : "de serie"}` +
+            `<div class="ru"><div><b>${esc(t.ruta)}</b><small>${t.tramos.length} tramos` +
             (sin ? ` · <span class="aviso">${sin} sin línea</span>` : "") +
-            `</small></div><div><button data-ted="${i}">Editar</button><button data-tcomp="${i}">Compartir</button>${propia ? `<button data-tborrar="${i}">Borrar</button>` : ""}</div></div>`
+            `</small></div><div><button data-ted="${i}">Editar</button><button data-tcomp="${i}">Compartir</button><button data-tborrar="${i}">Borrar</button></div></div>`
           );
         })
         .join("")
@@ -971,7 +956,7 @@ async function pintarAjustes() {
   pintarRecorridos();
   $("op-despierto").checked = despierto.activado();
   // Solo se explica si no se puede: si está activa ya lo dice el interruptor.
-  $("est-despierto").textContent = despierto.activado() && despierto.estado() === "no disponible" ? "este navegador no lo permite" : "";
+  $("est-despierto").textContent = despierto.activado() && despierto.estado() === "no disponible" ? "Este navegador no lo permite" : "";
   $("est-despierto").className = "estado";
   $("op-sonar").checked = conSonido();
   pintarBordes();
@@ -1149,7 +1134,7 @@ function activarGps() {
   desactivarGps();
   if (!via) return;
   seguidor = new Seguidor(via);
-  errorGps = hayUbicacion() ? null : "este navegador no da la posición";
+  errorGps = hayUbicacion() ? null : "Este navegador no da la posición";
   pos.fiable = false;
   quitarGps = escucharUbicacion((p, e) => {
     if (p) {
@@ -1193,8 +1178,8 @@ function pintarEstadoGps() {
   const e = $("est-gps");
   if (pos?.modo !== "gps") return void (e.textContent = "");
   const u = seguidor?.ultima;
-  e.textContent = errorGps ? errorGps : !u ? "esperando la primera lectura…" : `última lectura ±${Math.round(u.precision)} m · ${u.motivo}`;
-  if (gpsSim && seguidor?.d != null) e.textContent += ` · error respecto al tren simulado: ${Math.round(Math.abs(seguidor.d - gpsSim.d) * 1000)} m`;
+  e.textContent = errorGps ? may(errorGps) : !u ? "Esperando la primera lectura…" : `Última lectura ±${Math.round(u.precision)} m · ${may(u.motivo)}`;
+  if (gpsSim && seguidor?.d != null) e.textContent += ` · Error respecto al tren simulado: ${Math.round(Math.abs(seguidor.d - gpsSim.d) * 1000)} m`;
   e.className = "estado " + (seguidor?.fiable ? "ok" : "mal");
 }
 
@@ -1605,7 +1590,7 @@ function pintarGrabacion(r, e) {
     return;
   }
   const u = g.puntos.at(-1);
-  $("est-grabar").textContent = `● grabando · ${g.puntos.length} posiciones` + (u ? ` · última ±${u[3]} m` : "") + (e ? ` · ${e}` : "");
+  $("est-grabar").textContent = `● Grabando · ${g.puntos.length} posiciones` + (u ? ` · Última ±${u[3]} m` : "") + (e ? ` · ${may(e)}` : "");
   $("est-grabar").className = "estado " + (e ? "mal" : "ok");
 }
 
@@ -1615,10 +1600,10 @@ async function pintarRecorridos() {
     .map((r) => {
       const x = grabar.resumen(r), enCurso = grabar.enCurso()?.id === r.id;
       return (
-        `<div class="rec"><div><b>${esc(new Date(r.id).toLocaleString("es-ES", { dateStyle: "short", timeStyle: "short" }))}</b> · tren ${esc(r.tren ?? "?")}` +
+        `<div class="rec"><div><b>${esc(new Date(r.id).toLocaleString("es-ES", { dateStyle: "short", timeStyle: "short" }))}</b> · Tren ${esc(r.tren ?? "?")}` +
         `<small>${x.puntos} posiciones · ${x.minutos.toFixed(0)} min` +
-        (x.mediana != null ? ` · precisión típica ±${x.mediana} m, peor ±${x.peor} m` : "") +
-        (enCurso ? " · en curso" : "") +
+        (x.mediana != null ? ` · Precisión típica ±${x.mediana} m, peor ±${x.peor} m` : "") +
+        (enCurso ? " · En curso" : "") +
         `</small></div><div><button data-gpx="${esc(r.id)}">GPX</button><button data-json="${esc(r.id)}">JSON</button>${enCurso ? "" : `<button data-borrar-rec="${esc(r.id)}">Borrar</button>`}</div></div>`
       );
     })
@@ -1630,7 +1615,7 @@ function iniciarGrabacion() {
     if (e.target.checked) {
       if (!hayUbicacion()) {
         e.target.checked = false;
-        $("est-grabar").textContent = "este navegador no da la posición";
+        $("est-grabar").textContent = "Este navegador no da la posición";
         return;
       }
       grabar.empezar({ ruta: ruta?.id, tren: ruta?.tren?.numero, posicion: () => pos?.d, modo: () => pos?.modo + (esSimulado() ? " simulado" : "") }, (r, err) => {

@@ -359,7 +359,9 @@ export function pintarMarchaMovil(ruta, pos, { desvio: conDesvio = false, residu
   const nx = ruta.siguiente(d);
   // Velocidad y siguiente cambio
   const vista = ruta.vistaEn?.(d);
-  let v = `<div class="mv-v${lt ? " ltv" : ""}">`;
+  const etiqueta = lt || tramo?.fuente === "cvm" || tramo?.revisar;
+  // Con tres cifras, la etiqueta (LTV, CVM, A REVISAR) se pegaba al número en el iPhone (Joan).
+  let v = `<div class="mv-v${lt ? " ltv" : ""}${etiqueta && vp != null && String(vp).length > 2 ? " largo" : ""}">`;
   if (vp != null) v += `<span class="mv-n">${vp}</span><span class="mv-u">km/h</span>`;
   else v += `<span class="mv-sin">Sin V Max<small>${ruta.p.prueba ? "ruta de prueba: el CVM no la da aquí" : "la hoja no la da en este tramo"}</small></span>`;
   const cv = tramo?.fuente === "cvm";

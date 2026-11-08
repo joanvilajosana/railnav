@@ -209,7 +209,7 @@
       "glifo": "",
       "svg": "",
       "aviso": 1.0,
-      "accion": "Fin de LTV · {nombre}",
+      "accion": "Fin de LTV {v} km/h · {nombre}",
       "marca": "",
       "prioridad": "informativo",
       "tipos": [

@@ -16,6 +16,11 @@ export const V_MAX_KMS = 200 / 3600; // por encima, la lectura es un salto impos
 // de dos lecturas no vale). Visto en los viajes Salou ↔ Tarragona del 05-11-2026.
 export const PRECISION_VELOCIDAD_M = 50;
 export const V_EN_MARCHA_KMS = 3 / 1000; // 3 m/s (11 km/h): el tren va hacia delante
+// Sin posición fiable, las lecturas aproximadas (hasta ±3 km, Wi-Fi o antenas) solo adelantan el
+// tren. Viajes Vila-seca ↔ Sant Vicenç del 08-11-2026: al arrancar sin GPS la app se quedaba en
+// la estación y llegó a ir 10 km por detrás. Estas lecturas suelen ser antiguas (quedan detrás
+// del tren), así que no se usan para retrasarlo.
+export const PRECISION_APROX_M = 3000;
 
 export class Via {
   constructor(geo) {
@@ -80,8 +85,21 @@ export class Seguidor {
    * @returns "aceptada" | "imprecisa" | "fuera de la vía" | "salto"
    */
   lectura({ lat, lon, precision, t, velocidad = null }) {
-    const r = (motivo) => ((this.ultima = { precision, motivo, t }), motivo);
-    if (!(precision <= PRECISION_MAX_M)) return r("imprecisa");
+    const r = (motivo) => {
+      this.ultima = { precision, motivo, t };
+      // Posición descartada pero con velocidad del GPS (Doppler): la velocidad sí vale. Viaje
+      // Sant Vicenç → Vila-seca (08-11-2026): cerca de Tarragona llegaron lecturas de ±25 m a
+      // 300 m de la vía mientras el tren frenaba de 140 a 45 km/h, y la app seguía a 110.
+      if (motivo !== "aceptada" && this.d != null && velocidad != null && velocidad >= 0 && precision <= PRECISION_MAX_M) {
+        this.estimar(t);
+        this.v = Math.min(V_MAX_KMS, 0.6 * this.v + 0.4 * (velocidad / 1000));
+      }
+      return motivo;
+    };
+    if (!(precision <= PRECISION_MAX_M)) {
+      if (precision <= PRECISION_APROX_M) this.aproximada(lat, lon, precision, t);
+      return r("imprecisa");
+    }
     const iniciado = this.d != null;
     if (iniciado) this.estimar(t);
     const ventana = iniciado ? Math.max(2, Math.abs(this.v) * ((t - this.tFix) / 1000) * 3 + 1) : Infinity;
@@ -130,6 +148,24 @@ export class Seguidor {
     this.t = this.tFix = t;
     this.dFix = c.d;
     return r("aceptada");
+  }
+
+  /**
+   * Lectura aproximada (más de ±150 m) sin posición fiable: si cae más adelante que lo que da la
+   * última lectura buena con la velocidad estimada, el tren pasa allí (nunca más deprisa que
+   * V_MAX_KMS desde esa lectura). Se calcula siempre desde la última buena, no desde la anterior
+   * aproximada: con el tren parado, el ruido no lo va empujando hacia delante. Sigue sin ser fiable.
+   */
+  aproximada(lat, lon, precision, t) {
+    if (this.d == null) return;
+    this.estimar(t);
+    if (this.fiable) return;
+    const c = this.via.proyectar(lat, lon);
+    if (!c || c.lateral > (precision / 1000) * 1.5) return;
+    const dt = (t - this.tFix) / 1000;
+    const base = this.dFix + this.v * Math.min(PARADA_S, dt);
+    const tope = this.dFix + V_MAX_KMS * dt;
+    this.d = Math.min(this.via.fin, Math.max(base, Math.min(tope, c.d)));
   }
 
   /** Posición estimada en el instante t (ms): avanza con la velocidad estimada. */

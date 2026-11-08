@@ -23,9 +23,22 @@ export async function cargarPictos(url = "datos/pictogramas.json") {
       guardar();
     }
     prefs.escribir("pictos.vistos", SERIE.map((p) => p.id));
+    // Mensajes de serie que han cambiado: si el usuario no los había tocado, pasan al nuevo.
+    let cambiado = false;
+    for (const p of D) {
+      const nuevo = SERIE.find((x) => x.id === p.id);
+      if (nuevo && MENSAJES_ANTIGUOS[p.id]?.includes(p.accion) && p.accion !== nuevo.accion) {
+        p.accion = nuevo.accion;
+        cambiado = true;
+      }
+    }
+    if (cambiado) guardar();
   }
   return D;
 }
+
+// v0.22 → (Joan, 08-11-2026): el fin de LTV dice su velocidad, para saber a qué LTV se refiere.
+const MENSAJES_ANTIGUOS = { fin_ltv: ["Fin de LTV · {nombre}"] };
 
 const clonar = (x) => JSON.parse(JSON.stringify(x));
 const NUEVOS_V020 = ["aviso_cvm"];

@@ -4,6 +4,9 @@ export const esc = (s) =>
   String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
 
 /** Rellena «{campo}» con los datos del evento; los campos que faltan quedan vacíos. */
+/** Primera letra en mayúscula (textos de estado: «Última lectura…», «Aceptada»). */
+export const may = (s) => (s ? String(s).charAt(0).toUpperCase() + String(s).slice(1) : s);
+
 export const rellenar = (plantilla, datos) =>
   String(plantilla || "").replace(/\{(\w+)\}/g, (_, k) => (datos && datos[k] != null ? datos[k] : ""));
 

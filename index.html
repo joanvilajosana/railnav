@@ -119,7 +119,6 @@
 <div class="vw">
  <!-- Pantalla de marcha -->
  <div id="v-marcha">
-  <div id="aviso-prueba" class="aviso-ruta" role="note" hidden><b>Ruta de prueba</b> generada desde el CVM, sin hoja de ruta: no sirve para circular.</div>
   <div id="aviso-ruta" class="aviso-ruta" role="alert" hidden>Esta ruta se generó con una versión anterior de RailNav y sus velocidades pueden ir desplazadas una fila. <b>Vuelve a generarla</b> desde los PDF en Ajustes.</div>
   <div class="scr">
    <div class="sup">
@@ -243,7 +242,7 @@
   </section>
   <section class="pn aj">
    <h2 data-i="tabla">Tablas de tramos</h2>
-   <div class="sec-ley">La línea de ADIF de cada tramo, para cruzar la hoja con el DLTV. Al editar una de serie se guarda una copia en este dispositivo.</div>
+   <div class="sec-ley">La línea de ADIF de cada tramo, para cruzar la hoja con el DLTV. Se crean al generar una ruta nueva (la app propone las líneas y tú las confirmas) o se cargan de un archivo.</div>
    <details class="mas" id="tablas-d"><summary id="tablas-n">Tablas</summary><div id="tablas"></div></details>
    <div id="tabla-ed" class="tr-rev" hidden></div>
    <div class="botones"><label class="boton"><input id="f-tabla" type="file" accept=".json,application/json">Cargar tabla</label></div>

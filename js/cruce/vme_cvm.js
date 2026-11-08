@@ -3,8 +3,8 @@
 //
 // Criterio de Joan (06-11-2026): siempre predomina la más restrictiva; una VME sin vía o de la
 // vía del tren (I impar, II par) rige; la de otra vía solo se avisa (al tren le pueden cambiar de
-// vía). En vía única (BAU, BLAU) la vía I rige para todos fuera de las estaciones. Las vías de
-// estación sin PK rigen en el eje de su estación ± 500 m.
+// vía). En vía única (BAU, BLAU) la vía I rige para todos fuera de las estaciones. Las VME de una
+// estación (y sus vías sin PK) rigen desde su PK hasta 500 m después.
 
 import { tramosMarcha } from "./cotejo_cvm.js";
 import { redondear, W } from "../pdf/py.js";
@@ -98,7 +98,8 @@ export function zonaVme(ln, v) {
   const c = creciente(ln.filas, fila);
   if (c === null) return null;
   const m = c ? MARGEN_ESTACION_KM : -MARGEN_ESTACION_KM;
-  return [redondear(f.km - m, 3), redondear(sal + m, 3)];
+  // Empieza en el PK de la estación (el de la hoja y el CVM) y acaba 500 m después (Joan, 08-11-2026).
+  return [redondear(f.km, 3), redondear(sal + m, 3)];
 }
 
 // --- Las VME de la ruta (cruce/vme_cvm.py) ----------------------------------------------------

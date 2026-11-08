@@ -116,8 +116,10 @@ export function textoVoz({ fase, e, metros }) {
       if (fase === "accion") return v ? `Inicio de limitación, ${v}${via}` : `Inicio de limitación${via}`;
       return (v ? `Limitación temporal a ${v}${en}` : `Limitación temporal${en}, velocidad a revisar`) + via + (e.estado === "revisar" ? ", a revisar" : "");
     }
-    case "ltv_fin":
-      return `Fin de limitación${en}`;
+    case "ltv_fin": {
+      const v = num(d.v);
+      return `Fin de limitación${v ? ` de ${v}` : ""}${en}`;
+    }
     case "csv":
       if (fase === "accion") return num(d.a) ? `Velocidad ${d.a}` : "";
       return `Cambio significativo de velocidad${num(d.a) ? ` a ${d.a}` : ""}${en}`;

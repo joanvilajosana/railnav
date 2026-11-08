@@ -1,6 +1,6 @@
 // Vista Datos: ficha del tren y pestañas «Hoja de ruta» (original completa), «DLTV» y «CVM».
 
-import { esc, fecha, nf } from "./util.js";
+import { esc, fecha, may, nf } from "./util.js";
 import { rango, resumen } from "./telefonemas.js";
 import { icono, pic } from "./pictos.js";
 import { cuadroViaHtml } from "./marcha.js";
@@ -33,7 +33,7 @@ export function pintarFicha(ruta) {
   const rv = dl ? dl.ltv.filter((x) => x.res !== "APLICA" && !dec(x)).length : 0;
   const tec = ruta.eventos.filter((e) => e.tipo === "parada_tecnica");
   const tile = (ico, lab, val, tit) => `<div class="tt" title="${esc(tit || lab)}">${ico}<div><b>${lab}</b><span>${val}</span></div></div>`;
-  const cvm = p.cvm ? (p.cvm.tramos.length ? `CVM: ${p.cvm.tramos.length} a revisar` : "coincide con el CVM") : null;
+  const cvm = p.cvm ? (p.cvm.tramos.length ? `CVM: ${p.cvm.tramos.length} a revisar` : "Coincide con el CVM") : null;
   // Número, clase y trayecto ya están en el cuadro «Tren» de arriba: aquí, solo el resto.
   $("kv").innerHTML =
     `<div class="tr-tiles">` +
@@ -244,7 +244,7 @@ function pintarCvm(ruta) {
       const n = (x.puntos || 1) - 1;
       const estado = x.cvm
         ? `${x.ok || 0} de ${n} tramos coinciden${x.sin ? ` · ${x.sin} sin cotejo (vale la hoja)` : ""}`
-        : `sin cotejo: ${esc(x.mot || "")}`;
+        : `Sin cotejo: ${esc(x.mot || "")}`;
       return `<div class="cv-it${x.cvm ? "" : " sin"}"><b>${esc(x.de || "?")} → ${esc(x.a || "?")}</b><span>Línea ${esc(x.lin || "?")}${x.sen ? " " + esc(x.sen) : ""} · ${estado}</span>${x.cvm ? `<small>${esc(x.cvm)}${x.pags ? ` · págs. ${x.pags.join(", ")}` : ""}</small>` : ""}</div>`;
     })
     .join("");
@@ -265,14 +265,14 @@ function pintarVme(c) {
   let h = `<h3>VME del CVM</h3>`;
   if (!vs.length) return h + `<p class="cv-nada">Ninguna VME del CVM en esta ruta (o el CVM se cargó antes de la v0.20.0: vuelve a cargarlo).</p>`;
   const avisan = vs.filter((x) => x.ef === "RIGE" || x.ef === "AVISO_VIA"), resto = vs.filter((x) => !avisan.includes(x));
-  const zona = (x) => (x.pki == null ? "sin PK" : x.pki === x.pkf ? `PK ${nf(x.pki)}` : pkTxt(x.pki, x.pkf));
+  const zona = (x) => (x.pki == null ? "Sin PK" : x.pki === x.pkf ? `PK ${nf(x.pki)}` : pkTxt(x.pki, x.pkf));
   const item = (x) => {
     const [txt, cl] = EFECTO_VME[x.ef] || [x.ef, ""];
     const rige = x.ef === "RIGE" && c.prevalece === "hoja" ? "aviso · prevalece la hoja" : txt;
     return (
       `<div class="cv-it${cl ? (cl.startsWith(" ") ? cl : " " + cl) : ""}"><b>${zona(x)} · línea ${esc(x.lin)} ${esc(SENTIDO[x.sen] || x.sen || "")} · ${rige}</b>` +
       `<span>${esc(x.txt)}</span>` +
-      `<small>${x.v != null ? `VME ${x.v} · ` : ""}${x.ya != null ? `ya rige ${x.ya} · ` : ""}${esc(x.mot || "")}${x.pag ? ` · pág. ${x.pag}` : ""}</small></div>`
+      `<small>${may(`${x.v != null ? `VME ${x.v} · ` : ""}${x.ya != null ? `ya rige ${x.ya} · ` : ""}${esc(x.mot || "")}${x.pag ? ` · pág. ${x.pag}` : ""}`)}</small></div>`
     );
   };
   h += avisan.length ? avisan.map(item).join("") : `<p class="cv-nada">Ninguna baja de lo que ya rige.</p>`;

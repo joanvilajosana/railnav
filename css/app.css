@@ -345,6 +345,7 @@ code{font:12px ui-monospace,Menlo,monospace;background:var(--in);padding:0 4px;b
 .mv-v{position:relative;display:flex;align-items:baseline;gap:6px;min-width:0}
 .mv-n{font-size:84px;font-weight:700;line-height:.95;font-variant-numeric:tabular-nums;letter-spacing:-.02em}
 .mv-v.ltv .mv-n{color:var(--lt)}
+.mv-v.largo .mv-n{transform:scale(.82);transform-origin:30% 75%}
 .mv-u{font-size:15px;color:var(--gy)}
 .mv-sin{font-size:24px;font-weight:700;color:var(--gy);line-height:1.15}
 .mv-sin small{display:block;font-size:13px;font-weight:400;margin-top:2px}

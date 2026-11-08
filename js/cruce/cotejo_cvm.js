@@ -141,8 +141,6 @@ function comparar(ruta, sc, i0, i1, columna, tope) {
 export function cotejar(ruta, tramos, cvms) {
   const [columna, tope] = tipoTren(ruta.tren.tipo);
   const [segs] = segmentos(ruta, tramos);
-  const numero = String(ruta.tren.numero || "").replace(/\D/g, "");
-  const paridad = numero ? (Number(numero.at(-1)) % 2 === 0 ? "par" : "impar") : null;
   const res = [];
   for (const seg of segs) {
     const sc = { segmento: seg, linea: seg.linea, sentido: null, cvm: null, archivo: null, filas: new Map(), puntos: seg.iFin - seg.iIni + 1, comparaciones: [], motivo: "" };
@@ -151,13 +149,17 @@ export function cotejar(ruta, tramos, cvms) {
       sc.motivo = "tramo sin línea en la tabla de tramos";
       continue;
     }
+    // Sentido de la marcha (Joan, 08-11-2026): de A a B (par) o de B a A (impar) por la línea,
+    // el del cuadro que casa con la hoja en el mismo orden. No se mira el número del tren.
     let mejor = null;
+    const cands = [];
     for (const { doc, archivo } of cvms)
       for (const ln of doc.lineas) {
         if (lineaNormalizada(ln.linea) !== sc.linea) continue;
         const filas = emparejar(ruta, seg, ln);
-        const cand = { n: filas.size, par: ln.sentido === paridad, ln, archivo, filas };
-        if (!mejor || cand.n > mejor.n || (cand.n === mejor.n && cand.par && !mejor.par)) mejor = cand;
+        const cand = { n: filas.size, ln, archivo, filas };
+        cands.push(cand);
+        if (!mejor || cand.n > mejor.n) mejor = cand;
       }
     if (!mejor) {
       sc.motivo = `la línea ${sc.linea} no está en los CVM dados`;
@@ -165,6 +167,10 @@ export function cotejar(ruta, tramos, cvms) {
     }
     if (mejor.n < 2) {
       sc.motivo = `la línea ${sc.linea} del CVM no comparte dos filas con la hoja`;
+      continue;
+    }
+    if (cands.some((x) => x.n === mejor.n && x.ln.sentido !== mejor.ln.sentido)) {
+      sc.motivo = `en la línea ${sc.linea} las filas de la hoja casan igual con los dos sentidos: no se sabe si va de A a B o de B a A`;
       continue;
     }
     Object.assign(sc, { cvm: mejor.ln, archivo: mejor.archivo, sentido: mejor.ln.sentido, filas: mejor.filas });
