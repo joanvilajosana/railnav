@@ -170,7 +170,7 @@
    <div class="cargas">
     <label class="carga"><span class="carga-i" data-i="doc"></span><span><b>Hoja de ruta</b><small class="carga-n" data-vacio="Elegir PDF">Elegir PDF</small></span><input id="f-hoja" type="file" accept="application/pdf,.pdf"></label>
     <label class="carga"><span class="carga-i" data-i="ltv"></span><span><b>DLTV de la semana</b><small class="carga-n" data-vacio="Elegir PDF">Elegir PDF</small></span><input id="f-dltv" type="file" accept="application/pdf,.pdf"></label>
-    <label class="carga"><span class="carga-i" data-i="doc"></span><span><b>CVM</b><small class="carga-n" data-vacio="Elegir .cvm.json">Elegir .cvm.json</small></span><input id="f-cvm" type="file" accept=".json,application/json" multiple></label>
+    <label class="carga"><span class="carga-i" data-i="doc"></span><span><b>CVM</b><small class="carga-n" data-vacio="Elegir PDF">Elegir PDF</small></span><input id="f-cvm" type="file" accept=".pdf,application/pdf,.json,application/json" multiple></label>
    </div>
    <div id="cvm-lista" class="cvm-lista"></div>
    <label class="fila" id="fila-prevalece" hidden><span>Si la hoja y el CVM no coinciden<small>Se aplica al generar la ruta</small></span><select id="sel-prevalece"><option value="restrictiva">La más restrictiva</option><option value="hoja">La hoja de ruta</option><option value="cvm">El CVM</option></select></label>
@@ -255,11 +255,16 @@
    <div id="datos-cad" class="caduca-aviso" role="status" hidden></div>
    <div class="botones copia">
     <button id="b-copia">Descargar copia de seguridad</button>
-    <label class="boton"><input id="f-copia" type="file" accept=".json,application/json">Restaurar una copia</label>
+    <label class="boton"><input id="f-copia" type="file" accept=".json,application/json">Importar una copia</label>
+   </div>
+   <div id="imp" class="imp" hidden>
+    <div id="imp-cab" class="imp-cab"></div>
+    <div id="imp-lista"></div>
+    <div class="botones copia"><button id="imp-si" class="pri">Incorporar lo marcado</button><button id="imp-no">Cancelar</button></div>
    </div>
    <button id="b-borrar-todo" class="peligro ancho">Borrar todos los datos</button>
    <div id="msg-datos" class="gen-msg" aria-live="polite"></div>
-   <div class="note">Todo se guarda solo en este dispositivo. Las grabaciones de recorrido se guardan hasta que las borras.</div>
+   <div class="note">Todo se guarda solo en este dispositivo. La copia es un solo archivo: sirve para cambiar de dispositivo, pasar rutas, DLTV, CVM o tablas de tramos a un compañero o enviarla al desarrollo de la app. Al importarla eliges qué se incorpora.</div>
   </section>
   <section class="pn aj">
    <h2 data-i="legal">Información legal</h2>

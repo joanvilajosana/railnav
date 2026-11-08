@@ -277,6 +277,7 @@ button:disabled{opacity:.45;cursor:default}
 .gen-msg:empty{display:none}
 .gen-msg.ok{color:var(--up)}
 .gen-msg.mal{color:var(--lt);font-weight:600}
+.gen-msg.aviso{color:var(--dn)}
 .gen-msg ul{margin:6px 0 0;padding-left:18px;color:var(--tx);font-size:12px}
 .tr-rev{margin-top:10px;border:1px solid var(--ln);border-radius:10px;padding:12px;background:var(--in);overflow:hidden;max-width:100%}
 .tr-t{width:100%;border-collapse:collapse;font-size:13px}
@@ -1081,9 +1082,31 @@ html:has(body.app){background:var(--pn)}
 }
 /* Librar por cola (teléfono): cuenta desde que la cabeza rebasa el aumento (v0.20.4) */
 .mv-libra{display:block;margin-top:6px;padding:4px 8px;border:1.5px solid var(--gy);border-radius:8px;font-size:13px;font-weight:800;letter-spacing:.03em;text-align:center;color:var(--tx);white-space:nowrap}
+.mv-libra.vacio{visibility:hidden}
+:root .mv-vel .mv-sig .mv-libra{grid-column:1/-1;margin-top:8px;padding:3px 6px;display:flex;flex-direction:column;align-items:center;line-height:1.15;overflow:hidden}
+:root .mv-vel .mv-sig .mv-libra small{flex:none;font-size:clamp(9px,8cqw,13px);color:var(--tx);white-space:nowrap}
+:root .mv-vel .mv-sig .mv-libra b{font-size:clamp(15px,12cqw,20px);font-weight:800;font-variant-numeric:tabular-nums}
 /* Aviso de datos que caducan pronto (Ajustes y punto en el botón de Ajustes) */
 .caduca{color:var(--dn);font-weight:700}
 .caduca-aviso{margin:8px 0 0;padding:8px 10px;border:1.5px dashed var(--dn);border-radius:10px;font-size:14px;color:var(--tx)}
 .caduca-aviso[hidden]{display:none}
+/* Importar una copia: lo que trae, para elegir qué se incorpora */
+.imp{margin:10px 0 0;padding:10px;border:1.5px solid var(--ln);border-radius:12px;background:var(--in)}
+.imp[hidden]{display:none}
+.imp-cab{font-size:14px;margin:0 0 8px;overflow-wrap:anywhere}
+.imp-g{margin:0 0 8px;padding:6px 8px;border:1px solid var(--ln);border-radius:10px;background:var(--pn)}
+.imp-g label{display:flex;align-items:flex-start;gap:10px;min-height:40px;padding:4px 0;cursor:pointer;min-width:0}
+.imp-g input[type=checkbox]{flex:none;width:22px;height:22px;margin:2px 0 0;accent-color:var(--ac)}
+.imp-g label>span{min-width:0;overflow-wrap:anywhere}
+.imp-g label small{display:block;font-size:12px;color:var(--gy)}
+.imp-g label small .ya{color:var(--dn)}
+.imp-gt{font-size:16px;border-bottom:1px solid var(--ln)}
+.imp-g.solo .imp-gt{border-bottom:0}
+.imp-it{font-size:14px;padding-left:4px!important}
 #m-ajustes{position:relative}
 #m-ajustes.caduca::before{content:"";position:absolute;top:6px;right:6px;width:10px;height:10px;border-radius:50%;background:var(--dn)}
+/* iPhone apaisado: margen lateral suficiente para que la cámara (Dynamic Island) no tape el borde
+   de los cuadros, gire hacia donde gire el teléfono (Joan, 08-11-2026) */
+@media (orientation:landscape){
+:root[data-disp="telefono"] body{padding-left:max(calc(env(safe-area-inset-left,0px) + 6px),56px);padding-right:max(calc(env(safe-area-inset-right,0px) + 6px),56px)}
+}

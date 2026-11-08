@@ -1,12 +1,14 @@
 // Lo que la app guarda en el dispositivo:
 //   rutas  → IndexedDB (paquetes de ruta cargados o generados; sin límite práctico de tamaño)
 //   dltv   → IndexedDB (DLTV leídos de su PDF: se leen una vez por semana)
-//   cvm    → IndexedDB (CVM leídos en el ordenador, .cvm.json reducido: para cotejar la hoja)
+//   cvm    → IndexedDB (CVM leídos del PDF o del .cvm.json, versión reducida: para cotejar la hoja)
 //   tramos → IndexedDB (tablas de tramos confirmadas por el maquinista en este iPad)
 //   geo    → IndexedDB (trazados de la vía ya preparados, por ruta: se reutilizan cada día)
 //   recorridos → IndexedDB (grabaciones de la posición del iPad)
 //   prefs  → localStorage (ruta activa, posición por ruta, tema, modo de posición, pictogramas)
 // Si el navegador no deja guardar (modo privado…), todo sigue funcionando en memoria.
+
+import { FORMATO_COPIA } from "./copia.js";
 
 const PREFIJO = "railnav.";
 const memoria = new Map();
@@ -223,7 +225,7 @@ export const persistir = () => navigator.storage?.persist?.().catch(() => false)
 // ---------------------------------------------------------------- tus datos
 // Copia de seguridad (un archivo con todo lo guardado en el dispositivo), restaurarla y borrarlo
 // todo. Las preferencias son las claves «railnav.*» de localStorage.
-export const FORMATO_COPIA = "railnav-copia";
+export { FORMATO_COPIA };
 
 function clavesPrefs() {
   try {
@@ -239,6 +241,12 @@ export const datos = {
     for (const k of Object.keys(ALMACENES)) n[k] = (await A[k].todas()).length;
     return n;
   },
+  /** Claves de lo que ya hay en cada almacén: {almacén: Set}. */
+  async claves() {
+    const out = {};
+    for (const [k, c] of Object.entries(ALMACENES)) out[k] = new Set((await A[k].todas()).map((f) => f[c]));
+    return out;
+  },
   async exportar() {
     const almacenes = {};
     for (const k of Object.keys(ALMACENES)) almacenes[k] = await A[k].todas();
@@ -246,7 +254,8 @@ export const datos = {
     for (const k of clavesPrefs()) preferencias[k.slice(PREFIJO.length)] = localStorage.getItem(k);
     return { formato: FORMATO_COPIA, version: 1, fecha: new Date().toISOString(), almacenes, preferencias };
   },
-  /** Añade lo que trae la copia (lo que ya hay con la misma clave se sustituye). */
+  /** Añade lo que trae la copia (lo que ya hay con la misma clave se sustituye). Para elegir
+   * qué se incorpora, se le pasa la copia filtrada (copia.js: filtrarCopia). */
   async importar(copia) {
     if (copia?.formato !== FORMATO_COPIA) throw new Error("no es una copia de seguridad de RailNav");
     let n = 0;

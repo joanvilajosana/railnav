@@ -76,11 +76,13 @@ const ESPACIO = 0.15;
 const MAX_ESPACIO = 0.8;
 
 /**
- * Lee una página de pdf.js. `OPS` es pdfjsLib.OPS.
+ * Lee una página de pdf.js. `OPS` es pdfjsLib.OPS. `metricas`: [ascendente, descendente]
+ * fijos para todas las fuentes (alto de las cajas de texto, en tamaños de letra). `simbolo`:
+ * (fuente, glifo) → texto de un glifo de una fuente de símbolos, o null.
  * @returns {{ancho, alto, textos: {texto, caja, fuente, color}[], rellenos: {caja, rgb}[],
  *            trazos: Caja[], lineas: [y, x0, x1][], dibujos}}
  */
-export async function leerPagina(page, OPS) {
+export async function leerPagina(page, OPS, { metricas = null, simbolo = null } = {}) {
   // Coordenadas de la página tal como se ve (con su giro, como PyMuPDF): las DLTV vienen
   // giradas 90° (apaisadas).
   const vp = page.getViewport({ scale: 1 });
@@ -103,15 +105,15 @@ export async function leerPagina(page, OPS) {
         f = null;
       }
       const nombre = nombreFuente(f?.name || id);
-      let met = METRICAS.find(([re]) => re.test(nombre))?.slice(1);
+      let met = metricas ?? METRICAS.find(([re]) => re.test(nombre))?.slice(1);
       if (!met) met = f && f.ascent ? [f.ascent, -f.descent] : [1, 0.25];
-      fuentes.set(id, { nombre, fm: f?.fontMatrix || [0.001, 0, 0, 0.001, 0, 0], met, simbolo: FUENTES_SIMBOLO.some((s) => nombre.startsWith(s)) });
+      fuentes.set(id, { nombre, objeto: f, fm: f?.fontMatrix || [0.001, 0, 0, 0.001, 0, 0], met, simbolo: FUENTES_SIMBOLO.some((s) => nombre.startsWith(s)) });
     }
     return fuentes.get(id);
   };
 
   // ---- estado gráfico
-  let g = { ctm: IDENT, fill: [0, 0, 0], stroke: [0, 0, 0], font: null, size: 0, cs: 0, ws: 0, hs: 1, lead: 0, rise: 0 };
+  let g = { ctm: IDENT, fill: [0, 0, 0], stroke: [0, 0, 0], font: null, size: 0, cs: 0, ws: 0, hs: 1, lead: 0, rise: 0, tr: 0 };
   const pila = [];
   let tm = IDENT, tlm = IDENT;
   let nuevoObjeto = true; // PyMuPDF empieza otro span en cada objeto de texto (BT … ET)
@@ -130,7 +132,8 @@ export async function leerPagina(page, OPS) {
   };
   const caracter = (ch, o, fin, tam, fu, nuevaOrden) => {
     // o, fin: origen y final del carácter en coordenadas de página (y hacia abajo)
-    const estilo = fu.nombre + "|" + tam.toFixed(2) + "|" + g.fill.join(",");
+    // Un span por objeto de fuente (dos fuentes con el mismo nombre son dos spans, como en PyMuPDF).
+    const estilo = g.font + "|" + tam.toFixed(2) + "|" + g.fill.join(",") + "|" + g.tr;
     let enLinea = false, espacio = false;
     if (pluma && Math.abs(o[1] - pluma.y) < 0.1 * tam) {
       const d = (o[0] - pluma.x) / tam;
@@ -143,7 +146,7 @@ export async function leerPagina(page, OPS) {
     if (!(s && enLinea && !nuevaOrden && s.estilo === estilo)) {
       espacio = false; // el espacio solo se añade dentro de un mismo span
       cerrar();
-      s = { texto: "", chars: [], x0: o[0], x1: fin[0], base: o[1], tam, fuente: fu.nombre, met: fu.met, color: g.fill, estilo, linea };
+      s = { texto: "", chars: [], x0: o[0], x1: fin[0], base: o[1], tam, fuente: fu.nombre, met: fu.met, color: g.fill, estilo, linea, invisible: g.tr === 3 || g.tr === 7 };
     }
     if (espacio) {
       s.texto += " ";
@@ -171,7 +174,9 @@ export async function leerPagina(page, OPS) {
       const avance = gl.width * escala + g.cs + (gl.isSpace ? g.ws : 0);
       const o = P(m, x * g.hs, g.rise), fin = P(m, (x + gl.width * escala) * g.hs, g.rise);
       let ch = gl.unicode ?? "";
-      if (fu.simbolo || !ch || ch === "\u0000") ch = String.fromCharCode(gl.originalCharCode ?? 32);
+      const sim = fu.simbolo && simbolo ? simbolo(fu.objeto, gl) : null;
+      if (sim) ch = sim;
+      else if (fu.simbolo || !ch || ch === "\u0000") ch = String.fromCharCode(gl.originalCharCode ?? 32);
       for (const c of ch) {
         caracter(c, o, fin, tam, fu, nuevoObjeto);
         nuevoObjeto = false;
@@ -268,6 +273,10 @@ export async function leerPagina(page, OPS) {
       case OPS.setTextRise:
         g = { ...g, rise: args[0] };
         break;
+      // Modo 3 (o 7): texto invisible, como la capa que añade un OCR sobre una página escaneada.
+      case OPS.setTextRenderingMode:
+        g = { ...g, tr: args[0] };
+        break;
       case OPS.showText:
       case OPS.showSpacedText:
         mostrar(args[0]);
@@ -341,6 +350,7 @@ export async function leerPagina(page, OPS) {
       caja: new Caja(sp.x0, y0, sp.x1, y1),
       fuente: sp.fuente,
       color: sp.color,
+      invisible: sp.invisible,
       linea: sp.linea,
       base: sp.base,
       tam: sp.tam,
@@ -384,5 +394,5 @@ function dibujo(tipo, items, g) {
       ver([it[1].x1, it[1].y1]);
     } else for (const p of it.slice(1)) if (p) ver(p);
   }
-  return { tipo, relleno: tipo.includes("f") ? g.fill : null, items, caja: new Caja(x0, y0, x1, y1) };
+  return { tipo, relleno: tipo.includes("f") ? g.fill : null, trazo: tipo.includes("s") ? g.stroke : null, items, caja: new Caja(x0, y0, x1, y1) };
 }

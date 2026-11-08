@@ -365,7 +365,6 @@ export function pintarMarchaMovil(ruta, pos, { desvio: conDesvio = false, residu
   const cv = tramo?.fuente === "cvm";
   if (lt || cv || tramo?.revisar)
     v += `<span class="mv-et">${lt ? '<span class="mv-ltv">LTV</span>' : cv ? '<span class="rvchip">CVM</span>' : ""}${tramo?.revisar ? '<span class="rvchip">A REVISAR</span>' : ""}</span>`;
-  if (tramo?.por_cola) v += `<span class="mv-libra">LIBRAR POR COLA · ${dm((tramo.libera - d) * 1000)}</span>`;
   v += `</div><div class="mv-sig"><small>Siguiente</small>`;
   const vc = ruta.tramoCabeza(d)?.v ?? vp; // librando por cola: la de la cabeza
   if (nx) {
@@ -373,6 +372,10 @@ export function pintarMarchaMovil(ruta, pos, { desvio: conDesvio = false, residu
     v += `<b class="${baja ? "baja" : "sube"}">${baja ? "▼" : "▲"} ${nx.v}</b><span class="mv-dist">${dm(m)}</span>`;
     v += `<i class="mv-bar"><i class="${baja ? "baja" : "sube"}" style="width:${(100 * (1 - Math.min(m, 3000) / 3000)).toFixed(1)}%"></i></i>`;
   } else v += `<b class="mv-nada">Sin más cambios</b>`;
+  // «Librar por cola», debajo de «Siguiente». Su hueco está siempre (vacío si no toca): así el
+  // cuadro no cambia de tamaño ni se mueve nada cuando aparece.
+  if (tramo?.por_cola) v += `<span class="mv-libra"><small>LIBRAR POR COLA</small><b>${dm((tramo.libera - d) * 1000)}</b></span>`;
+  else v += `<span class="mv-libra vacio" aria-hidden="true"><small>LIBRAR POR COLA</small><b>000 m</b></span>`;
   v += `</div>`;
   poner("mv-vel", v);
   // Próximos avisos

@@ -10,6 +10,7 @@ import { AVISO_DIAS, caducados, caducaPronto, diasRestantes, dltvAntiguo, DIAS, 
 import { htmlLegal } from "./legal.js";
 import { cargarPictos, deSerie, picDe, restaurar as restaurarPictos } from "./pictos.js";
 import { confirmar } from "./confirmar.js";
+import { describirCopia, filtrarCopia } from "./copia.js";
 import { ajustarDibujo, alcance, altoDibujo, altoLinea, limitesLineaMovil, pintarMarcha, pintarMarchaMovil, reiniciarHistorial } from "./marcha.js";
 import { irAqui, mostrarPestana, movil, pintarDatos, pintarFicha } from "./datos.js";
 import { iniciarEditor, pintarEditor } from "./editor.js";
@@ -681,19 +682,29 @@ async function pintarCvms() {
     };
 }
 
+// CVM: el PDF de ADIF (se lee aquí) o el .cvm.json leído en el ordenador.
 async function leerCvms(archivos) {
   const g = await gen();
-  const hechos = [];
+  const hechos = [], faltan = [];
   for (const f of archivos)
     try {
       mensaje(`Leyendo el CVM <b>${esc(f.name)}</b>…`);
-      hechos.push(await cvms.guardar(g.leerCvmJson(await f.text())));
+      if (/\.pdf$/i.test(f.name) || f.type === "application/pdf") {
+        const r = await g.leerCvmPdf(f, (n, total) => mensaje(`Leyendo el CVM <b>${esc(f.name)}</b>: página ${n} de ${total}…`));
+        hechos.push(await cvms.guardar(r.doc));
+        if (r.sinTexto.length)
+          faltan.push(
+            `<br>⚠ <b>${esc(f.name)}</b>: ${r.sinTexto.length === 1 ? "la página " + r.sinTexto[0] + " está dibujada" : "las páginas " + r.sinTexto.join(", ") + " están dibujadas"} (sin texto) y no se ${r.sinTexto.length === 1 ? "ha" : "han"} podido leer` +
+              (r.incompletas.length ? `: a ${r.incompletas.length === 1 ? "la línea" : "las líneas"} ${r.incompletas.map(esc).join(", ")} les faltan tramos` : "") +
+              ". Donde falte el CVM, vale la hoja.",
+          );
+      } else hechos.push(await cvms.guardar(g.leerCvmJson(await f.text())));
     } catch (e) {
       mensaje(`✗ ${esc(f.name)}: ${esc(e.message || String(e))}`, "mal");
       return pintarCvms();
     }
   await pintarCvms();
-  mensaje(`✓ CVM guardado${hechos.length > 1 ? "s" : ""}: ${hechos.map((c) => esc(c.titulo || c.id)).join(", ")}. Las rutas que generes se cotejarán con ${hechos.length > 1 ? "ellos" : "él"}.`, "ok");
+  mensaje(`✓ CVM guardado${hechos.length > 1 ? "s" : ""}: ${hechos.map((c) => `${esc(c.titulo || c.id)} (${c.lineas} líneas)`).join(", ")}. Las rutas que generes se cotejarán con ${hechos.length > 1 ? "ellos" : "él"}.${faltan.join("")}`, faltan.length ? "aviso" : "ok");
 }
 
 async function tablasConocidas() {
@@ -1396,16 +1407,53 @@ function iniciarTusDatos() {
     const r = await compartirArchivo(`RailNav copia ${c.fecha.slice(0, 10)}.json`, JSON.stringify(c), "application/json");
     msg(r === "descargado" ? "Copia descargada. Guárdala en un sitio seguro: lleva tus rutas y grabaciones." : r === "compartido" ? "Copia enviada." : "", "ok");
   };
+  // Importar: primero se enseña lo que trae la copia y se elige qué se incorpora.
+  let pendiente = null;
+  const cerrarImp = () => {
+    pendiente = null;
+    $("imp").hidden = true;
+    $("imp-lista").innerHTML = "";
+  };
   $("f-copia").onchange = async (e) => {
     const f = e.target.files?.[0];
     e.target.value = "";
     if (!f) return;
     try {
-      const n = await datos.importar(JSON.parse(await f.text()));
-      msg(`✓ Copia restaurada (${n} elementos). Se vuelve a abrir la app…`, "ok");
+      const copia = JSON.parse(await f.text());
+      const d = describirCopia(copia, await datos.claves());
+      if (!d.grupos.length && !d.preferencias) throw new Error("la copia está vacía");
+      pendiente = { copia, d };
+      pintarImportar(d, f.name);
+      msg("");
+      $("imp").scrollIntoView({ block: "nearest" });
+    } catch (err) {
+      cerrarImp();
+      msg(`✗ No se ha podido leer la copia: ${err.message}`, "mal");
+    }
+  };
+  $("imp-no").onclick = cerrarImp;
+  $("imp-si").onclick = async () => {
+    if (!pendiente) return;
+    const { copia, d } = pendiente;
+    const L = $("imp-lista");
+    const almacenes = {};
+    d.grupos.forEach((g, gi) => {
+      const si = new Set();
+      if (g.soloGrupo) {
+        if (L.querySelector(`input[data-g="${gi}"]`)?.checked) g.items.forEach((x) => si.add(x.clave));
+      } else for (const c of L.querySelectorAll(`input[data-g="${gi}"][data-i]`)) if (c.checked) si.add(g.items[+c.dataset.i].clave);
+      almacenes[g.k] = si;
+    });
+    const preferencias = !!L.querySelector("input[data-pref]")?.checked;
+    const n = Object.values(almacenes).reduce((s, x) => s + x.size, 0);
+    if (!n && !preferencias) return msg("No has marcado nada.", "mal");
+    try {
+      const hechos = await datos.importar(filtrarCopia(copia, { almacenes, preferencias }));
+      cerrarImp();
+      msg(`✓ Incorporado: ${hechos} elemento${hechos === 1 ? "" : "s"}${preferencias ? " y los ajustes" : ""}. Se vuelve a abrir la app…`, "ok");
       setTimeout(() => location.reload(), 1200);
     } catch (err) {
-      msg(`✗ No se ha podido restaurar: ${err.message}`, "mal");
+      msg(`✗ No se ha podido importar: ${err.message}`, "mal");
     }
   };
   $("b-borrar-todo").onclick = async () => {
@@ -1415,6 +1463,50 @@ function iniciarTusDatos() {
     await datos.borrarTodo();
     location.reload();
   };
+}
+
+/** Lista de lo que trae una copia, con una casilla por grupo y por elemento. */
+function pintarImportar(d, nombre) {
+  const plural = (n, uno, varios) => `${n} ${n === 1 ? uno : varios}`;
+  const L = $("imp-lista");
+  $("imp-cab").innerHTML = `<b>${esc(nombre)}</b>${d.fecha ? ` · hecha el ${fecha(d.fecha.slice(0, 10))}` : ""}. Marca lo que quieres incorporar. Lo que ya tienes con el mismo nombre se sustituye; lo caducado (más de ${DIAS} días) va desmarcado porque se borraría al abrir la app.`;
+  let h = "";
+  d.grupos.forEach((g, gi) => {
+    if (g.soloGrupo) {
+      const marcado = g.items.some((x) => x.marcado);
+      h += `<div class="imp-g solo"><label class="imp-gt"><input type="checkbox" data-g="${gi}"${marcado ? " checked" : ""}><span><b>${esc(g.titulo)}</b><small>${plural(g.items.length, "trazado ya preparado", "trazados ya preparados")}: ahorran volver a prepararlos</small></span></label></div>`;
+      return;
+    }
+    h += `<div class="imp-g"><label class="imp-gt"><input type="checkbox" data-g="${gi}"><span><b>${esc(g.titulo)}</b><small data-cuenta="${gi}"></small></span></label>`;
+    g.items.forEach((x, i) => {
+      const notas = [x.detalle && esc(x.detalle), x.existe && `<span class="ya">ya lo tienes: se sustituye</span>`, x.caducado && `<span class="ya">caducado</span>`].filter(Boolean).join(" · ");
+      h += `<label class="imp-it"><input type="checkbox" data-g="${gi}" data-i="${i}"${x.marcado ? " checked" : ""}><span>${esc(x.titulo)}${notas ? `<small>${notas}</small>` : ""}</span></label>`;
+    });
+    h += `</div>`;
+  });
+  if (d.preferencias)
+    h += `<div class="imp-g solo"><label class="imp-gt"><input type="checkbox" data-pref><span><b>Ajustes</b><small>Los de quien hizo la copia: tema, sonido, ruta abierta, emisor de telefonemas… Márcalo solo si la copia es tuya.</small></span></label></div>`;
+  L.innerHTML = h;
+  $("imp").hidden = false;
+  // La casilla de cada grupo marca o desmarca todo el grupo y refleja lo marcado.
+  const cuenta = (gi) => {
+    const its = [...L.querySelectorAll(`input[data-g="${gi}"][data-i]`)];
+    const cab = L.querySelector(`input[data-g="${gi}"]:not([data-i])`);
+    const n = its.filter((c) => c.checked).length;
+    cab.checked = n === its.length;
+    cab.indeterminate = n > 0 && n < its.length;
+    L.querySelector(`[data-cuenta="${gi}"]`).textContent = `${n} de ${its.length} marcado${its.length === 1 ? "" : "s"}`;
+  };
+  d.grupos.forEach((g, gi) => {
+    if (g.soloGrupo) return;
+    const cab = L.querySelector(`input[data-g="${gi}"]:not([data-i])`);
+    cab.onchange = () => {
+      for (const c of L.querySelectorAll(`input[data-g="${gi}"][data-i]`)) c.checked = cab.checked;
+      cuenta(gi);
+    };
+    for (const c of L.querySelectorAll(`input[data-g="${gi}"][data-i]`)) c.onchange = () => cuenta(gi);
+    cuenta(gi);
+  });
 }
 
 // ---------- información legal ----------

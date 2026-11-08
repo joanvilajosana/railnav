@@ -2,7 +2,8 @@
 //
 //   hoja de ruta (PDF) ─┐
 //                        ├─ cruce (tabla de tramos) ─ eventos ─ paquete ─ app
-//   DLTV (PDF) ──────────┘
+//   DLTV (PDF) ──────────┤
+//   CVM (PDF) ───────────┘ (cotejo de la V Max y VME)
 //
 // Es el mismo proceso que `python -m cruce.paquete`, traducido a JavaScript; las pruebas
 // comparan los dos con el corpus. pdf.js analiza el PDF en su propio Worker; la lectura de
@@ -10,6 +11,7 @@
 
 import { leerHoja } from "./pdf/hoja.js";
 import { leerLtv } from "./pdf/ltv.js";
+import { leerCvm } from "./pdf/cvm.js";
 import { cruzar } from "./cruce/cruce.js";
 import { segmentos } from "./cruce/lineas.js";
 import { construir } from "./cruce/paquete.js";
@@ -88,9 +90,21 @@ export function generarPaquete(ruta, ltv, tabla, pictos, { ignorarFechas = false
   if (cvms.length && !tabla) avisos.push("Sin tabla de tramos no se puede cotejar la hoja con el CVM.");
   // Los CVM guardados antes de la v0.20.0 no traen las VME (C3): hay que volver a cargarlos.
   if (cotejo && cvms.some(({ doc }) => doc.lineas.some((ln) => !Array.isArray(ln.vme))))
-    avisos.push("Un CVM guardado no trae las VME: quítalo y vuelve a cargar su .cvm.json en Ajustes.");
+    avisos.push("Un CVM guardado no trae las VME: quítalo y vuelve a cargarlo en Ajustes.");
   const paquete = construir(ruta, ltv, cruce, tabla, pictos, cotejo, prevalece);
   return { paquete, cruce, avisos };
+}
+
+/**
+ * CVM en PDF, leído en el propio dispositivo → lo que guarda la app. Las páginas dibujadas (sin
+ * texto) no se pueden leer: se devuelven para avisar, con las líneas a las que les faltan páginas.
+ * @returns {{doc, sinTexto: number[], incompletas: string[]}}
+ */
+export async function leerCvmPdf(archivo, progreso) {
+  const doc = await leerCvm(await bytes(archivo), archivo.name, await cargarPdfjs(), progreso);
+  const sinTexto = doc.avisos.filter((a) => a.codigo === "SIN_TEXTO").map((a) => a.origen.pagina);
+  const incompletas = [...new Set(doc.lineas.filter((l) => l.avisos.some((a) => a.codigo === "PAGINAS" || a.codigo === "SIN_ENLACE")).map((l) => l.linea))];
+  return { doc: reducirCvm(doc), sinTexto, incompletas };
 }
 
 /** Un .cvm.json (de `python -m parsers.cvm`) → lo que guarda la app. */
