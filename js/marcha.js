@@ -232,7 +232,7 @@ export function pintarMarcha(ruta, pos, { desvio: conDesvio = false, residuo = n
   if (tramo?.revisar) s += `<rect x="14" y="12" width="96" height="20" rx="5" fill="none" stroke="var(--dn)" stroke-dasharray="3 2"/><text x="62" y="26" font-size="12" font-weight="800" text-anchor="middle" fill="var(--dn)">A REVISAR</text>`;
   s += vp != null
     ? `<text x="${CX}" y="178" font-size="${String(vp).length > 2 ? 182 : 190}" font-weight="700" text-anchor="middle" fill="${lt ? "var(--lt)" : "var(--tx)"}">${vp}</text>`
-    : `<text x="${CX}" y="120" font-size="26" font-weight="700" text-anchor="middle" fill="var(--gy)">Sin V Max</text><text x="${CX}" y="148" font-size="14" text-anchor="middle" fill="var(--gy)">${ruta.p.prueba ? "ruta de prueba: sin datos de ADIF" : "la hoja no la da en este tramo"}</text>`;
+    : `<text x="${CX}" y="120" font-size="26" font-weight="700" text-anchor="middle" fill="var(--gy)">Sin V Max</text><text x="${CX}" y="148" font-size="14" text-anchor="middle" fill="var(--gy)">${ruta.p.prueba ? "ruta de prueba: el CVM no la da aquí" : "la hoja no la da en este tramo"}</text>`;
   s += vp != null ? `<text x="${CX}" y="199" font-size="13" text-anchor="middle" fill="var(--gy)">km/h</text>` : "";
   // Hueco fijo entre la velocidad y «Siguiente» para las franjas de texto (marcha a la vista,
   // limitación que se mantiene por la cola): no tapan la velocidad ni mueven lo demás.
@@ -361,7 +361,7 @@ export function pintarMarchaMovil(ruta, pos, { desvio: conDesvio = false, residu
   const vista = ruta.vistaEn?.(d);
   let v = `<div class="mv-v${lt ? " ltv" : ""}">`;
   if (vp != null) v += `<span class="mv-n">${vp}</span><span class="mv-u">km/h</span>`;
-  else v += `<span class="mv-sin">Sin V Max<small>${ruta.p.prueba ? "ruta de prueba: sin datos de ADIF" : "la hoja no la da en este tramo"}</small></span>`;
+  else v += `<span class="mv-sin">Sin V Max<small>${ruta.p.prueba ? "ruta de prueba: el CVM no la da aquí" : "la hoja no la da en este tramo"}</small></span>`;
   const cv = tramo?.fuente === "cvm";
   if (lt || cv || tramo?.revisar)
     v += `<span class="mv-et">${lt ? '<span class="mv-ltv">LTV</span>' : cv ? '<span class="rvchip">CVM</span>' : ""}${tramo?.revisar ? '<span class="rvchip">A REVISAR</span>' : ""}</span>`;

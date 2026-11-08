@@ -2,7 +2,7 @@
 // zonas sin cobertura). Las rutas no pasan por aquí: están en IndexedDB.
 // Al publicar una versión nueva hay que cambiar VERSION (y la de js/version.js).
 
-const VERSION = "0.21.0";
+const VERSION = "0.22.0";
 const CACHE = "railnav-" + VERSION;
 const ARCHIVOS = [
   "./",
@@ -17,6 +17,7 @@ const ARCHIVOS = [
   "js/posicion.js",
   "js/almacen.js",
   "js/copia.js",
+  "js/ruta_cvm.js",
   "js/pictos.js",
   "js/marcha.js",
   "js/datos.js",
@@ -63,13 +64,6 @@ const ARCHIVOS = [
   "datos/tramos.json",
   "datos/estaciones.json",
   "datos/trazados.json",
-  "datos/pruebas/indice.json",
-  "datos/pruebas/reus-tarragona.railnav.json",
-  "datos/pruebas/tarragona-reus.railnav.json",
-  "datos/pruebas/salou-port-aventura-tarragona.railnav.json",
-  "datos/pruebas/tarragona-salou-port-aventura.railnav.json",
-  "datos/pruebas/vila-seca-tortosa.railnav.json",
-  "datos/pruebas/tortosa-vila-seca.railnav.json",
   "img/logo_horizontal_dia.png",
   "img/logo_horizontal_noche.png",
   "img/icon-192.png",

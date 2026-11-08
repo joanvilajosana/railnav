@@ -119,6 +119,7 @@
 <div class="vw">
  <!-- Pantalla de marcha -->
  <div id="v-marcha">
+  <div id="aviso-prueba" class="aviso-ruta" role="note" hidden><b>Ruta de prueba</b> generada desde el CVM, sin hoja de ruta: no sirve para circular.</div>
   <div id="aviso-ruta" class="aviso-ruta" role="alert" hidden>Esta ruta se generó con una versión anterior de RailNav y sus velocidades pueden ir desplazadas una fila. <b>Vuelve a generarla</b> desde los PDF en Ajustes.</div>
   <div class="scr">
    <div class="sup">
@@ -204,10 +205,15 @@
    <label class="fila sub"><span>Velocidad del tiempo</span><select id="sel-simgps"><option value="1">Real</option><option value="5">×5</option><option value="10">×10</option><option value="20">×20</option></select></label>
    <label class="sw"><span>Grabar recorrido<small id="est-grabar" class="estado">Para medir la precisión en un viaje</small></span><input type="checkbox" id="op-grabar" role="switch"></label>
    <div id="recorridos"></div>
-   <details class="mas"><summary>Rutas de prueba (sin hoja de ADIF)</summary>
-    <div class="sec-ley">Para probar el GPS de pasajero: recorrido por la vía de OpenStreetMap con sus estaciones. Sin velocidades, horario, radio ni bloqueo.</div>
-    <div id="pruebas"></div>
-    <div id="msg-pruebas" class="note"></div>
+   <details class="mas" id="prueba-cvm"><summary>Ruta de prueba desde el CVM</summary>
+    <div class="sec-ley">Sin hoja de ruta: los PK, la V Max, los CSV, las VME, el bloqueo y la radio salen del CVM que has cargado y, si has elegido un DLTV, se cruzan sus LTV. No lleva horario ni paradas. <b>Solo para pruebas.</b></div>
+    <label class="fila"><span>Línea</span><select id="pc-linea"></select></label>
+    <label class="fila"><span>Desde</span><select id="pc-desde"></select></label>
+    <label class="fila"><span>Hasta</span><select id="pc-hasta"></select></label>
+    <label class="fila"><span>Tipo de tren<small>Columna del CVM</small></span><select id="pc-tipo"><option value="n">N</option><option value="a">A</option><option value="b">B</option></select></label>
+    <label class="fila"><span>Velocidad máxima del tren<small>Vacío: la del CVM</small></span><input id="pc-tope" type="number" inputmode="numeric" min="10" max="400" step="5" placeholder="km/h"></label>
+    <button id="pc-generar" class="pri ancho">Generar y abrir</button>
+    <div id="pc-msg" class="gen-msg" aria-live="polite"></div>
    </details>
    <details class="mas"><summary>Cómo funciona el GPS</summary>
     <div class="note">El trazado de la vía sale de OpenStreetMap (© colaboradores de OpenStreetMap, licencia ODbL), con las estaciones de la hoja como referencia de los PK. Las rutas conocidas ya lo traen; para una nueva se prepara una vez con conexión y luego funciona sin ella. Sin lecturas buenas, la app avisa «posición no fiable». Un iPad solo Wi-Fi no tiene GPS: toma la posición de las redes Wi-Fi cercanas.</div>
@@ -278,7 +284,7 @@
  </div>
  <!-- Telefonemas -->
  <div id="v-tf" hidden>
-  <div class="tf-cab"><button id="bk-tf">← Marcha</button><h2>Telefonemas</h2><span id="tf-tren" class="tf-tren"></span></div>
+  <div class="tf-cab"><h2>Telefonemas</h2><span id="tf-tren" class="tf-tren"></span></div>
   <button id="tf-nuevo" class="tf-nuevo">+ Nuevo telefonema</button>
   <datalist id="tf-emisores"></datalist>
   <div id="tf-lista"></div>

@@ -11,6 +11,7 @@ import { htmlLegal } from "./legal.js";
 import { cargarPictos, deSerie, picDe, restaurar as restaurarPictos } from "./pictos.js";
 import { confirmar } from "./confirmar.js";
 import { describirCopia, filtrarCopia } from "./copia.js";
+import { dependenciasCvm, lineasCvm, rutaDesdeCvm } from "./ruta_cvm.js";
 import { ajustarDibujo, alcance, altoDibujo, altoLinea, limitesLineaMovil, pintarMarcha, pintarMarchaMovil, reiniciarHistorial } from "./marcha.js";
 import { irAqui, mostrarPestana, movil, pintarDatos, pintarFicha } from "./datos.js";
 import { iniciarEditor, pintarEditor } from "./editor.js";
@@ -189,11 +190,15 @@ function iniciarFicha() {
   addEventListener("resize", () => !$("pop-ficha").hidden && colocarFicha());
 }
 
+// Ventana desde la que se abrió Telefonemas (triángulo): al cerrarlo se vuelve a ella.
+let vistaAntesTf = "marcha";
+
 function mostrar(v) {
+  if (v === "tf" && vista !== "tf") vistaAntesTf = vista;
   vista = v;
   ponerFicha(false);
   for (const k of ["marcha", "datos", "ajustes", "pictos", "legal", "tf"]) $("v-" + k).hidden = k !== v;
-  for (const k of ["marcha", "datos", "ajustes"]) $("m-" + k).classList.toggle("on", k === v || ((v === "pictos" || v === "legal") && k === "ajustes") || (v === "tf" && k === "marcha"));
+  for (const k of ["marcha", "datos", "ajustes"]) $("m-" + k).classList.toggle("on", k === v || ((v === "pictos" || v === "legal") && k === "ajustes") || (v === "tf" && k === ({ pictos: "ajustes", legal: "ajustes" }[vistaAntesTf] ?? vistaAntesTf)));
   $("m-tf").classList.toggle("on", v === "tf");
   if (v === "tf") pintarTf();
   if (v === "datos" && ruta) {
@@ -303,7 +308,6 @@ const dmTf = (km) => (km >= 1 ? `${km.toFixed(1).replace(".", ",")} km` : `${Mat
 function abrirFormTf(t = null, { manual = false } = {}) {
   manual = manual || !!t?.manual;
   $("tf-form").dataset.manual = manual ? "1" : "";
-  $("bk-tf").textContent = manual ? "← DLTV" : "← Marcha";
   $("tf-titulo").textContent = manual ? (t ? "Editar LTV añadida a mano" : "Añadir una LTV a mano") : t ? "Editar telefonema" : "Nuevo telefonema";
   const hoy = tfs.filter((x) => !x.manual && x.fecha === new Date().toISOString().slice(0, 10));
   const ult = tfs[tfs.length - 1];
@@ -422,7 +426,6 @@ function iniciarRevision() {
 
 /** Desde el formulario de una LTV a mano se vuelve a Datos → DLTV, no a la marcha. */
 function volverADltv() {
-  $("bk-tf").textContent = "← Marcha";
   mostrar("datos");
   mostrarPestana("dltv");
 }
@@ -514,15 +517,16 @@ function iniciarLtvManual() {
 function iniciarTelefonemas() {
   iniciarLtvManual();
   iniciarRevision();
-  $("m-tf").onclick = () => mostrar(vista === "tf" ? "marcha" : "tf");
-  $("bk-tf").onclick = () => {
+  // El triángulo abre y cierra Telefonemas: al cerrarlo se vuelve a la ventana de antes.
+  $("m-tf").onclick = () => {
+    if (vista !== "tf") return mostrar("tf");
     if ($("tf-form").dataset.manual === "1") {
       $("tf-form").hidden = true;
       $("tf-nuevo").hidden = false;
       $("tf-form").dataset.manual = "";
       return volverADltv();
     }
-    mostrar("marcha");
+    mostrar(vistaAntesTf);
   };
   $("tf-nuevo").onclick = () => abrirFormTf();
   $("tf-cancelar").onclick = cerrarFormTf;
@@ -580,6 +584,7 @@ async function abrir(paquete, guardarla = true) {
   ruta.ponerRevisiones(prefs.leer("revision." + ruta.id, {}));
   pintarBotonTf();
   $("aviso-ruta").hidden = !obsoleta(paquete);
+  $("aviso-prueba").hidden = !paquete.prueba;
   via = paquete.geo?.puntos?.length ? new Via(paquete.geo) : null;
   prefs.escribir("activa", guardarla ? ruta.id : null);
   pos = new Posicion({
@@ -670,6 +675,7 @@ async function leerDltv(archivo) {
 
 async function pintarCvms() {
   const lista = await cvms.listar();
+  pintarPruebas();
   $("cvm-lista").innerHTML = lista.length
     ? `<small>Se coteja la hoja con:</small>` +
       lista.map((c) => `<span class="cvm-it">${esc(c.titulo || c.id)}${c.anejo ? " · anejo " + esc(c.anejo) : ""} · ${c.lineas} líneas<button data-quitar="${esc(c.id)}" aria-label="Quitar">✕</button></span>`).join("")
@@ -948,7 +954,7 @@ async function pintarAjustes() {
     ? lista
         .map(
           (r) =>
-            `<div class="ru${ruta && r.id === ruta.id ? " on" : ""}"><div><b>${esc(r.tren)}</b> · ${esc(r.origen || "?")} → ${esc(r.destino || "?")}<small>${r.tren === "PRUEBA" ? "ruta de prueba del GPS (sin datos de ADIF)" : fecha(r.fecha) + (r.ltv ? " · DLTV nº " + esc(r.ltv) : " · sin DLTV")}${r.obsoleta ? '<br><span class="aviso">Generada con una versión anterior: vuelve a generarla</span>' : ""}${!(ruta && r.id === ruta.id) && caducaPronto(r.guardado) ? `<br><span class="caduca">${textoCaduca(diasRestantes(r.guardado))}</span>` : ""}</small></div>` +
+            `<div class="ru${ruta && r.id === ruta.id ? " on" : ""}"><div><b>${esc(r.tren)}</b> · ${esc(r.origen || "?")} → ${esc(r.destino || "?")}<small>${r.tren === "PRUEBA" ? "ruta de prueba desde el CVM (sin hoja de ruta)" : fecha(r.fecha) + (r.ltv ? " · DLTV nº " + esc(r.ltv) : " · sin DLTV")}${r.obsoleta ? '<br><span class="aviso">Generada con una versión anterior: vuelve a generarla</span>' : ""}${!(ruta && r.id === ruta.id) && caducaPronto(r.guardado) ? `<br><span class="caduca">${textoCaduca(diasRestantes(r.guardado))}</span>` : ""}</small></div>` +
             `<div>${ruta && r.id === ruta.id ? "" : `<button data-abrir="${esc(r.id)}">Abrir</button>`}<button data-comp="${esc(r.id)}" title="Enviar la ruta (AirDrop, Mensajes, Correo…)">Compartir</button><button data-borrar="${esc(r.id)}" title="Borrar del dispositivo">Borrar</button></div></div>`,
         )
         .join("")
@@ -1080,21 +1086,7 @@ function iniciarAjustes() {
   $("b-probar-aviso").onclick = probarAviso;
   $("b-geo").onclick = prepararGps;
   iniciarGpsSimulado();
-  $("pruebas").onclick = async (e) => {
-    const b = e.target.closest("button[data-prueba]");
-    if (!b) return;
-    b.disabled = true;
-    try {
-      const p = await fetch("datos/pruebas/" + b.dataset.prueba).then((r) => (r.ok ? r.json() : Promise.reject(new Error(`HTTP ${r.status}`))));
-      await abrir(p, true);
-      $("msg-pruebas").textContent = `Abierta: ${p.tren.origen} → ${p.tren.destino}. Elige «GPS» en «Posición del tren».`;
-    } catch (err) {
-      $("msg-pruebas").textContent = `No se ha podido abrir: ${err.message}`;
-    } finally {
-      b.disabled = false;
-      pintarAjustes();
-    }
-  };
+  iniciarPruebaCvm();
   iniciarGrabacion();
   $("oi").onclick = () => mostrar("pictos");
   // Restablecer los pictogramas de serie: solo los pictogramas, el resto de ajustes no cambia.
@@ -1223,12 +1215,10 @@ function pintarGeo() {
   }
   const dud = g.dudosos || [], km = dud.reduce((s, [a, b]) => s + (b - a), 0);
   $("geo-info").innerHTML =
-    ruta.p.prueba
-      ? `<b>Ruta de prueba</b>: recorrido por la vía de OpenStreetMap con ${g.anclas.length} estaciones y apeaderos` + (g.tuneles?.length ? ` · ${g.tuneles.length} túneles (sin señal en el GPS simulado).` : ".")
-      : `<b>Trazado preparado</b> (${fecha(g.fecha)}): ${g.anclas.length} de ${g.estaciones} dependencias de la hoja situadas en el mapa` +
+    `<b>Trazado preparado</b> (${fecha(g.fecha)}): ${g.anclas.length} de ${g.estaciones} dependencias de la hoja situadas en el mapa` +
     (dud.length ? ` · <b>${km.toFixed(1)} km dudosos</b> (allí la posición sale «no fiable»):<ul>${dud.slice(0, 5).map((d) => `<li>${esc(d[2])}</li>`).join("")}</ul>` : " · sin tramos dudosos.");
   $("b-geo").textContent = "Volver a preparar el trazado";
-  $("b-geo").hidden = !!ruta.p.prueba; // el de una ruta de prueba sale de la vía misma
+  $("b-geo").hidden = false;
 }
 
 async function prepararGps() {
@@ -1327,14 +1317,91 @@ function pararGpsSimulado() {
   if (pos?.modo === "gps") activarGps();
 }
 
-// ---------- rutas de prueba del GPS ----------
-let pruebas = null;
+// ---------- ruta de prueba desde el CVM (sin hoja de ruta; Joan, 08-11-2026) ----------
+let cvmsPrueba = [];
 
 async function pintarPruebas() {
-  pruebas ??= await fetch("datos/pruebas/indice.json").then((r) => (r.ok ? r.json() : null)).catch(() => null);
-  $("pruebas").innerHTML = pruebas?.rutas?.length
-    ? pruebas.rutas.map((r) => `<div class="ru"><div><b>${esc(r.nombre)}</b><small>${String(r.km).replace(".", ",")} km</small></div><div><button data-prueba="${esc(r.archivo)}">Abrir</button></div></div>`).join("")
-    : '<div class="note">No hay rutas de prueba en esta versión.</div>';
+  cvmsPrueba = await cvms.todos();
+  const ls = lineasCvm(cvmsPrueba);
+  const antes = prefs.leer("prueba.linea", "");
+  $("pc-linea").innerHTML = ls.map((l) => `<option value="${esc(l.clave)}">${esc(l.linea)} · ${esc(l.de)} – ${esc(l.a)}</option>`).join("");
+  if (ls.some((l) => l.clave === antes)) $("pc-linea").value = antes;
+  $("pc-generar").disabled = !ls.length;
+  for (const id of ["pc-linea", "pc-desde", "pc-hasta", "pc-tipo", "pc-tope"]) $(id).disabled = !ls.length;
+  if (!ls.length) {
+    $("pc-desde").innerHTML = $("pc-hasta").innerHTML = "";
+    $("pc-msg").className = "gen-msg";
+    $("pc-msg").textContent = "Carga antes un CVM (Ajustes → Nueva ruta → CVM).";
+    return;
+  }
+  pintarDependenciasPrueba();
+}
+
+function pintarDependenciasPrueba() {
+  const [archivo, linea] = splitClave($("pc-linea").value);
+  const doc = cvmsPrueba.find((c) => c.archivo === archivo)?.doc;
+  const deps = doc ? dependenciasCvm(doc, linea) : [];
+  const op = deps.map((d) => `<option>${esc(d)}</option>`).join("");
+  const [d0, h0] = [prefs.leer("prueba.desde", ""), prefs.leer("prueba.hasta", "")];
+  $("pc-desde").innerHTML = $("pc-hasta").innerHTML = op;
+  $("pc-desde").value = deps.includes(d0) ? d0 : deps[0] ?? "";
+  $("pc-hasta").value = deps.includes(h0) ? h0 : deps.at(-1) ?? "";
+}
+
+const splitClave = (c) => {
+  const i = (c || "").lastIndexOf("|");
+  return i < 0 ? ["", ""] : [c.slice(0, i), c.slice(i + 1)];
+};
+
+function iniciarPruebaCvm() {
+  $("pc-linea").onchange = () => {
+    prefs.escribir("prueba.linea", $("pc-linea").value);
+    pintarDependenciasPrueba();
+  };
+  $("pc-tipo").value = prefs.leer("prueba.tipo", "n");
+  $("pc-tope").value = prefs.leer("prueba.tope", "") || "";
+  $("pc-generar").onclick = async () => {
+    const msg = (t, c = "") => {
+      $("pc-msg").className = "gen-msg " + c;
+      $("pc-msg").innerHTML = t;
+    };
+    const [archivo, linea] = splitClave($("pc-linea").value);
+    const doc = cvmsPrueba.find((c) => c.archivo === archivo)?.doc;
+    const desde = $("pc-desde").value, hasta = $("pc-hasta").value;
+    const columna = $("pc-tipo").value;
+    const tope = Number($("pc-tope").value) > 0 ? Number($("pc-tope").value) : null;
+    if (!doc || !desde || !hasta) return;
+    if (desde === hasta) return msg("Elige dos dependencias distintas.", "mal");
+    for (const [k, v] of [["linea", $("pc-linea").value], ["desde", desde], ["hasta", hasta], ["tipo", columna], ["tope", tope ?? ""]]) prefs.escribir("prueba." + k, v);
+    $("pc-generar").disabled = true;
+    try {
+      const g = await gen();
+      const idDltv = $("sel-dltv").value;
+      const ltv = idDltv ? await dltvs.cargar(idDltv) : null;
+      // Con DLTV, la ruta es de su semana (así sus LTV se aplican); sin él, de hoy.
+      const dia = ltv?.semana?.desde || new Date().toISOString().slice(0, 10);
+      const r = rutaDesdeCvm(doc, archivo, linea, desde, hasta, { columna, tope, fecha: dia });
+      const { paquete, cruce, avisos } = g.generarPaquete(r.ruta, ltv, r.tabla, { version: 1, pictogramas: deSerie() }, { cvms: cvmsPrueba, prevalece: prefs.leer("prevalece", "restrictiva") });
+      paquete.id = `prueba-cvm-${linea}-${desde}-${hasta}-${columna}${tope ?? ""}`.replace(/[^\p{L}\p{N}]+/gu, "-");
+      paquete.prueba = `Ruta de prueba desde el CVM (línea ${linea}, ${desde} → ${hasta}, tipo ${paquete.tren.tipo}): sin hoja de ruta, no sirve para circular.`;
+      await abrir(paquete);
+      if (!paquete.geo && navigator.onLine) prepararGps();
+      const n = g.recuento(cruce);
+      const km = paquete.fin ?? r.ruta.puntos.at(-1).pk_acum;
+      msg(
+        `✓ Abierta: <b>${esc(desde)} → ${esc(hasta)}</b> (línea ${esc(linea)}, tipo ${esc(paquete.tren.tipo)}, ${String(Math.round(km * 10) / 10).replace(".", ",")} km)` +
+          (ltv ? ` · DLTV nº ${esc(ltv.numero ?? "?")}: <b>${n.APLICA}</b> LTV${n.INCIERTA ? `, <b>${n.INCIERTA}</b> a revisar` : ""}` : " · sin DLTV") +
+          ". Para el GPS, prepara el trazado si no se ha hecho solo." +
+          ([...r.avisos, ...avisos].length ? `<ul>${[...r.avisos, ...avisos].slice(0, 5).map((a) => `<li>${esc(a)}</li>`).join("")}</ul>` : ""),
+        "ok",
+      );
+    } catch (err) {
+      msg(`✗ No se ha podido generar: ${esc(err.message || String(err))}`, "mal");
+    } finally {
+      $("pc-generar").disabled = false;
+      pintarAjustes();
+    }
+  };
 }
 
 // ---------- tus datos: copia de seguridad, borrar, retención ----------

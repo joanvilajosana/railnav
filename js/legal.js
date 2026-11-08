@@ -20,7 +20,7 @@ export const SECCIONES = [
 <h3>2. La responsabilidad de la conducción es del maquinista</h3>
 <p>El maquinista sigue siendo el único responsable de la conducción y de cumplir el Reglamento General de Circulación y las normas de su empresa, incluidas las que regulan el uso de dispositivos electrónicos en cabina. Usa RailNav solo donde y cuando esté permitido, y nunca de forma que te distraiga de la conducción.</p>
 <h3>3. Puede contener errores</h3>
-<p>RailNav lee los PDF de forma automática y cruza sus datos. Puede leer mal, omitir o situar mal información: velocidades, limitaciones, puntos kilométricos, horarios o la posición del tren. Lo dudoso lo marca «a revisar», pero no garantiza detectar todos los errores. El trazado de la vía, la posición por GPS y las rutas de prueba salen de OpenStreetMap y del propio dispositivo, y también pueden ser inexactos.</p>
+<p>RailNav lee los PDF de forma automática y cruza sus datos. Puede leer mal, omitir o situar mal información: velocidades, limitaciones, puntos kilométricos, horarios o la posición del tren. Lo dudoso lo marca «a revisar», pero no garantiza detectar todos los errores. El trazado de la vía y la posición por GPS salen de OpenStreetMap y del propio dispositivo, y también pueden ser inexactos. Las rutas de prueba generadas desde el CVM no llevan hoja de ruta y no sirven para circular.</p>
 <h3>4. Sin garantía</h3>
 <p>RailNav se ofrece gratis y «tal cual», sin garantía de exactitud, de disponibilidad ni de funcionamiento. En la medida en que la ley lo permite, el autor no responde de los daños que puedan derivarse de su uso.</p>
 <h3>5. Tus documentos</h3>

@@ -214,7 +214,8 @@ export function tramosMarcha(cot) {
  * más pequeño. `vme` y `bloqueo` faltan en los guardados antes de la v0.20.0.
  */
 export function reducirCvm(doc) {
-  const celdas = (ts) => (ts || []).map((t) => ({ desde: t.desde, hasta: t.hasta, valor: t.valor ?? null, origen: { pagina: t.origen.pagina } }));
+  // csv: celda en gris oscuro (la usa la ruta de prueba desde el CVM, ruta_cvm.js).
+  const celdas = (ts) => (ts || []).map((t) => ({ desde: t.desde, hasta: t.hasta, valor: t.valor ?? null, csv: !!t.csv, origen: { pagina: t.origen.pagina } }));
   const vme = (vs) =>
     (vs || []).map((v) => ({
       tras_fila: v.tras_fila,
@@ -238,11 +239,12 @@ export function reducirCvm(doc) {
       de: ln.de,
       a: ln.a,
       paginas: ln.paginas,
-      filas: ln.filas.map((f) => ({ km: f.km ?? null, km_salida: f.km_salida ?? null, dependencia: f.dependencia ?? null })),
+      filas: ln.filas.map((f) => ({ km: f.km ?? null, km_salida: f.km_salida ?? null, dependencia: f.dependencia ?? null, pag: f.origen?.pagina ?? null })),
       vn: celdas(ln.vn),
       va: celdas(ln.va),
       vb: celdas(ln.vb),
       bloqueo: (ln.bloqueo || []).map((t) => ({ desde: t.desde, hasta: t.hasta, texto: t.texto ?? null })),
+      radio: (ln.radio || []).map((t) => ({ desde: t.desde, hasta: t.hasta, texto: t.texto ?? null })),
       vme: vme(ln.vme),
     })),
   };
