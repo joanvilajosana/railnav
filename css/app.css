@@ -9,12 +9,12 @@ body{margin:0;overflow:hidden;background:var(--bg);color:var(--tx);font:15px/1.3
 .row{display:flex;flex-direction:column;gap:8px;align-items:stretch;height:100%}
 .vw{flex:1;min-width:0;min-height:0;width:100%}
 [hidden]{display:none!important}
-#v-marcha,#v-datos,#v-ajustes,#v-pictos{height:100%;overflow:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain}
+#v-marcha,#v-datos,#v-ajustes{height:100%;overflow:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain}
 #v-marcha{display:flex;flex-direction:column}
 #v-datos{display:flex;flex-direction:column;overflow:hidden}
 #v-datos>.pn:last-child{flex:1;min-height:0;display:flex;flex-direction:column;margin-bottom:0}
 #t-hoja,#t-dltv,#t-cvm{flex:1;min-height:0;display:flex;flex-direction:column}
-#v-ajustes>.pn:last-child,#v-pictos>.pn:last-child{margin-bottom:0}
+#v-ajustes>.pn:last-child,#pictos .modal-c>.pn:last-child{margin-bottom:0}
 .menu{display:flex;align-items:center;justify-content:space-between;gap:12px;width:100%}
 .info{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
 .ic{display:flex;align-items:center;justify-content:space-between;gap:10px;min-width:0;border:1.5px solid var(--ln);border-radius:10px;background:var(--pn);padding:6px 14px}
@@ -181,7 +181,7 @@ table.hj{border-collapse:separate;border-spacing:0;width:100%;font-size:14px;fon
 :root:not([data-theme="light"]) .lg-n{display:block!important}
 }
 .grid2 .c img{margin:9px auto 6px;max-width:88px;height:auto!important}
-#v-datos,#v-ajustes,#v-pictos{padding:0 14px}
+#v-datos,#v-ajustes{padding:0 14px}
 .dlc td{padding:5px 8px}
 .dlc td small{display:inline;margin-left:4px}
 .dlc tr.por td{padding:0 8px 5px 8px;font-size:11.5px}
@@ -331,7 +331,7 @@ code{font:12px ui-monospace,Menlo,monospace;background:var(--in);padding:0 4px;b
 :root[data-disp="telefono"] .nav button svg{width:26px;height:26px}
 :root[data-disp="telefono"] .nav button.on{outline:0;background:var(--in);color:var(--ac)}
 /* vistas con scroll: el margen lateral ya lo da el cuerpo */
-:root[data-disp="telefono"] #v-datos,:root[data-disp="telefono"] #v-ajustes,:root[data-disp="telefono"] #v-pictos{padding:0}
+:root[data-disp="telefono"] #v-datos,:root[data-disp="telefono"] #v-ajustes{padding:0}
 :root[data-disp="telefono"] .pn{padding:12px;border-radius:14px}
 
 /* --- marcha --- */
@@ -345,7 +345,6 @@ code{font:12px ui-monospace,Menlo,monospace;background:var(--in);padding:0 4px;b
 .mv-v{position:relative;display:flex;align-items:baseline;gap:6px;min-width:0}
 .mv-n{font-size:84px;font-weight:700;line-height:.95;font-variant-numeric:tabular-nums;letter-spacing:-.02em}
 .mv-v.ltv .mv-n{color:var(--lt)}
-.mv-v.largo .mv-n{transform:scale(.82);transform-origin:30% 75%}
 .mv-u{font-size:15px;color:var(--gy)}
 .mv-sin{font-size:24px;font-weight:700;color:var(--gy);line-height:1.15}
 .mv-sin small{display:block;font-size:13px;font-weight:400;margin-top:2px}
@@ -459,7 +458,7 @@ code{font:12px ui-monospace,Menlo,monospace;background:var(--in);padding:0 4px;b
 :root[data-disp="telefono"] label.op input[type=radio],:root[data-disp="telefono"] label.op input[type=checkbox]{width:22px;height:22px;margin-top:0;flex:none}
 :root[data-disp="telefono"] label.carga{font-size:16px}
 :root[data-disp="telefono"] input,:root[data-disp="telefono"] select,:root[data-disp="telefono"] textarea{font-size:16px;padding:10px 12px}
-:root[data-disp="telefono"] #v-ajustes button,:root[data-disp="telefono"] #v-pictos button{min-height:44px;padding:9px 14px;font-size:16px}
+:root[data-disp="telefono"] #v-ajustes button,:root[data-disp="telefono"] #pictos .modal-c button:not(.modal-x){min-height:44px;padding:9px 14px;font-size:16px}
 :root[data-disp="telefono"] .note,:root[data-disp="telefono"] .sec-ley{font-size:13px}
 :root[data-disp="telefono"] .gen-msg,:root[data-disp="telefono"] .geo-info{font-size:15px}
 :root[data-disp="telefono"] label.op{display:grid;grid-template-columns:auto minmax(0,1fr);align-items:start}
@@ -1025,14 +1024,14 @@ html:has(body.app){background:var(--pn)}
 :root[data-disp="telefono"] .tt:last-child,:root[data-disp="telefono"] .tt:nth-last-child(2):nth-child(odd){grid-column:auto}
 :root[data-disp="telefono"] .tt:last-child{grid-column:span 2}
 /* Datos, Ajustes y telefonemas: un poco de margen a los lados (las vistas no tienen relleno en el teléfono) */
-:root[data-disp="telefono"] #v-datos,:root[data-disp="telefono"] #v-ajustes,:root[data-disp="telefono"] #v-pictos{padding:0 2px}
+:root[data-disp="telefono"] #v-datos,:root[data-disp="telefono"] #v-ajustes{padding:0 2px}
 :root[data-disp="telefono"] .modal{padding:8px 16px}
 :root[data-disp="telefono"] .modal-c{max-height:calc(100% - 8px)}
 }
 
 /* ===================================================================== v0.20.2 (capturas 004–008)
    iPad: Datos, Ajustes y Pictogramas con los mismos márgenes que los cuadros de arriba. */
-:root[data-disp="tablet"] :is(#v-datos,#v-ajustes,#v-pictos){padding:0}
+:root[data-disp="tablet"] :is(#v-datos,#v-ajustes){padding:0}
 /* Cuadro «Tren»: Viajeros/Mercancías junto al número y el botón de la ficha (triángulo grande) */
 .ic-tren{position:relative;padding-right:58px!important}
 .ic-cl{display:inline-block;margin-left:8px;padding:0 8px;border:1px solid var(--ln);border-radius:20px;background:var(--in);color:var(--gy);font-size:11px;font-weight:700;line-height:1.6;vertical-align:middle;letter-spacing:0}
@@ -1150,3 +1149,37 @@ button.dlc-n.on{border-color:var(--ac);box-shadow:inset 0 0 0 1.5px var(--ac);ba
 .dlc tr.sel td{background:color-mix(in srgb,var(--ac) 14%,transparent)}
 .dlc td.dl-vacio{padding:14px;color:var(--gy)}
 #imp-si{background:var(--ac);color:var(--sobre-ac);border:0}
+/* v0.25 — Cambio de radio y de bloqueo en los cuadros de arriba: borde y texto parpadean con
+   «antes → después» (radio, en el color de su pictograma; bloqueo, en naranja). Ya no van en
+   «Próximos» ni en «Pasados». */
+.ic-rd{--cambio:#35c2b5}
+.ic-bq{--cambio:var(--dn)}
+.ic.cambia{border-color:var(--cambio);box-shadow:inset 0 0 0 1.5px var(--cambio);animation:ic-cambia 1.2s ease-in-out infinite}
+.ic.cambia b{color:color-mix(in srgb,var(--cambio) 80%,var(--tx));font-variant-numeric:tabular-nums;animation:ic-cambia-tx 1.2s ease-in-out infinite}
+.ic.cambia small{color:color-mix(in srgb,var(--cambio) 80%,var(--tx))}
+@keyframes ic-cambia{50%{border-color:var(--ln);box-shadow:inset 0 0 0 0 transparent}}
+@keyframes ic-cambia-tx{50%{opacity:.35}}
+/* iPad: Tren, Bloqueo y Radiotelefonía iguales: mismo ancho, márgenes, letra y alineación (el
+   rótulo arriba y el valor debajo, a la misma altura en los tres) */
+:root[data-disp="tablet"] .info{grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+:root[data-disp="tablet"] .ic{flex-direction:column;align-items:flex-start;justify-content:flex-start;gap:3px;min-height:72px;padding:9px 14px 10px;border-radius:12px}
+:root[data-disp="tablet"] .ic small{font-size:11px;line-height:1.2}
+:root[data-disp="tablet"] .ic b{max-width:100%;font-size:clamp(20px,2.4vw,26px);line-height:1.15}
+:root[data-disp="tablet"] .ic-tren{padding-right:62px!important}
+:root[data-disp="tablet"] .ic-tren .ic-r{margin-top:2px}
+/* iPhone: la etiqueta del velocímetro (LTV, CVM, A REVISAR) en su fila, encima del número */
+:root[data-disp="telefono"] .mv-v .mv-et{position:static;order:-1;flex-direction:row;justify-content:center;align-items:center;flex-wrap:wrap;gap:6px;min-height:20px;margin:0 0 6px;font-size:13px;line-height:1.2}
+/* Editor de pictogramas en ventana flotante: más ancha, para el editor y la rejilla lado a lado */
+.pictos-c{width:min(1040px,100%)}
+#pictos .pn{margin:0 0 10px}
+/* El cambio no agranda los cuadros: radio en una línea; bloqueo, hasta dos líneas más pequeñas */
+.ic-rd.cambia b{white-space:nowrap;overflow:hidden;text-overflow:clip}
+.ic-bq.cambia b{white-space:normal;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow-wrap:normal}
+:root[data-disp="tablet"] .ic-bq.cambia b{font-size:17px;line-height:1.1}
+:root[data-disp="telefono"] .ic-bq.cambia b{font-size:13px;line-height:1.1}
+:root[data-disp="telefono"] .ic-rd.cambia b{font-size:17px}
+/* iPad: Viajeros/Mercancías en la línea del trayecto */
+:root[data-disp="tablet"] .ic-r .ic-cl{margin:0 6px 0 0;vertical-align:0}
+:root[data-disp="telefono"] .ic.cambia:not(:first-child) b{white-space:normal;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow-wrap:normal;font-size:15px;line-height:1.1}
+:root[data-disp="telefono"] .ic.ic-bq.cambia:not(:first-child) b{font-size:13px}
+:root[data-disp="telefono"] .ic.cambia #in-rd{font-size:15px;line-height:1.1}

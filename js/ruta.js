@@ -213,6 +213,18 @@ export class Ruta {
     return valorEn(this.p.bloqueos, d);
   }
 
+  /**
+   * Cambio de radio o de bloqueo que se está avisando en d (cuadros de arriba de la marcha): desde
+   * `antes(e)` km antes de su punto hasta `despues` km después. { de, a, e } o null. Si hay dos,
+   * el primero.
+   */
+  cambioCerca(d, tipo, antes, despues = 0.5) {
+    const e = this.eventos.find((x) => x.tipo === tipo && x.pk_acum - d <= antes(x) + 1e-6 && d - x.pk_acum <= despues + 1e-6);
+    if (!e) return null;
+    if (tipo === "cambio_radio") return { de: this.radioEn(e.pk_acum - 1e-3), a: e.datos?.canal ?? this.radioEn(e.pk_acum + 1e-3), e };
+    return { de: e.datos?.de ?? this.bloqueoEn(e.pk_acum - 1e-3), a: e.datos?.a ?? this.bloqueoEn(e.pk_acum + 1e-3), e };
+  }
+
   /** Hora estimada (minutos) en d, interpolando el horario de la hoja. */
   eta(d) {
     const h = this.horario;

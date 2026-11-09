@@ -145,13 +145,28 @@ function estado() {
   poner("in-tren", ruta?.tren?.numero ?? null);
   const t = ruta?.tren;
   // Viajeros/Mercancías junto al número y el botón de la ficha (v0.20.2)
-  if (t?.clase) $("in-tren").insertAdjacentHTML("beforeend", `<span class="ic-cl">${esc(CLASE[t.clase] || t.clase)}</span>`);
+  // En el iPad, con los tres cuadros del mismo ancho, va en la línea del trayecto (v0.25).
+  const clase = t?.clase ? `<span class="ic-cl">${esc(CLASE[t.clase] || t.clase)}</span>` : "";
+  const tablet = document.documentElement.dataset.disp === "tablet";
+  if (clase && !tablet) $("in-tren").insertAdjacentHTML("beforeend", clase);
   $("in-ficha").hidden = !ruta;
-  $("in-ruta").textContent = t ? `${t.origen || "?"} → ${t.destino || "?"}` : "";
-  $("in-ruta").title = $("in-ruta").textContent;
-  poner("in-bq", bq || null);
-  poner("in-rd", rd != null ? `Canal ${rd}` : null);
-  if (rd != null) $("in-rd").innerHTML = `<span class="larga">Canal </span>${esc(rd)}`;
+  const tray = t ? `${t.origen || "?"} → ${t.destino || "?"}` : "";
+  $("in-ruta").innerHTML = (tablet ? clase : "") + esc(tray);
+  $("in-ruta").title = tray;
+  // Cambios de radio y de bloqueo: en vez de ir a «Próximos» y «Pasados», el cuadro de arriba
+  // parpadea (radio en el color de su pictograma, bloqueo en naranja) con «antes → después», desde
+  // que se avisa hasta 500 m después del punto. Radio: solo el número del canal.
+  ponerCambio("in-rd", ruta?.cambioCerca(pos.d, "cambio_radio", alcance), rd);
+  ponerCambio("in-bq", ruta?.cambioCerca(pos.d, "cambio_bloqueo", alcance), bq || null);
+}
+
+function ponerCambio(id, c, actual) {
+  const b = $(id), ic = b.closest(".ic"), txt = c ? `${c.de ?? "?"} → ${c.a ?? "?"}` : (actual ?? "—");
+  if (b.textContent !== String(txt)) b.textContent = txt;
+  b.classList.toggle("vacio", !c && actual == null);
+  if (ic.classList.contains("cambia") !== !!c) ic.classList.toggle("cambia", !!c);
+  if (c && id === "in-rd") ic.style.setProperty("--cambio", picDe(c.e)?.borde || "#35c2b5");
+  ic.title = c ? `Cambio de ${id === "in-rd" ? "canal de radio" : "bloqueo"}: ${txt}` : "";
 }
 
 // ---------- vistas ----------
@@ -224,14 +239,13 @@ function mostrar(v) {
   if (v !== "datos") vistaDltv.sel = null;
   ponerFicha(false);
   ponerTf(false);
-  for (const k of ["marcha", "datos", "ajustes", "pictos"]) $("v-" + k).hidden = k !== v;
-  for (const k of ["marcha", "datos", "ajustes"]) $("m-" + k).classList.toggle("on", k === v || (v === "pictos" && k === "ajustes"));
+  for (const k of ["marcha", "datos", "ajustes"]) $("v-" + k).hidden = k !== v;
+  for (const k of ["marcha", "datos", "ajustes"]) $("m-" + k).classList.toggle("on", k === v);
   if (v === "datos" && ruta) {
     pintarDatos(ruta, pos.d);
     requestAnimationFrame(() => irAqui(pos.d));
   }
   if (v === "ajustes") pintarAjustes();
-  if (v === "pictos") pintarEditor();
   sucio = true;
 }
 
@@ -1176,7 +1190,20 @@ function iniciarAjustes() {
   iniciarGpsSimulado();
   iniciarPruebaCvm();
   iniciarGrabacion();
-  $("oi").onclick = () => mostrar("pictos");
+  // Editor de pictogramas: ventana flotante como la de la información legal, con X para cerrar.
+  const cerrarPictos = () => {
+    $("pictos").hidden = true;
+    document.activeElement?.blur?.();
+    sucio = true;
+  };
+  $("oi").onclick = () => {
+    pintarEditor();
+    $("pictos").hidden = false;
+    $("pictos").querySelector(".modal-c").scrollTop = 0;
+  };
+  $("pictos-x").onclick = cerrarPictos;
+  $("pictos").addEventListener("click", (e) => e.target === $("pictos") && cerrarPictos());
+  addEventListener("keydown", (e) => e.key === "Escape" && !$("pictos").hidden && $("conf").hidden && cerrarPictos());
   // Restablecer los pictogramas de serie: solo los pictogramas, el resto de ajustes no cambia.
   $("b-pic-reset").onclick = async () => {
     const si = await confirmar({
@@ -1190,7 +1217,6 @@ function iniciarAjustes() {
     $("msg-pic").className = "gen-msg ok";
     $("msg-pic").innerHTML = "✓ Pictogramas restablecidos: son los originales de la aplicación.";
   };
-  $("bk").onclick = () => mostrar("ajustes");
 }
 
 // ---------- avisos sonoros ----------

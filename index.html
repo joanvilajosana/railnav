@@ -37,8 +37,8 @@
 </div>
 <div class="info" aria-live="polite">
   <div class="ic ic-tren"><small>Tren</small><b id="in-tren">—</b><span id="in-ruta" class="ic-r"></span><button id="in-ficha" class="ic-tg" aria-expanded="false" aria-controls="pop-ficha" aria-label="Ver los datos del tren" title="Datos del tren" hidden></button></div>
-  <div class="ic"><small>Bloqueo</small><b id="in-bq">—</b></div>
-  <div class="ic"><small><span class="larga">Radiotelefonía</span><span class="corta">Radio</span></small><b id="in-rd">—</b></div>
+  <div class="ic ic-bq"><small>Bloqueo</small><b id="in-bq">—</b></div>
+  <div class="ic ic-rd"><small><span class="larga">Radiotelefonía</span><span class="corta">Radio</span></small><b id="in-rd">—</b></div>
 </div>
 <!-- Datos del tren: desplegable flotante desde el cuadro «Tren», en todas las pantallas (v0.20.2) -->
 <div id="pop-ficha" class="pop-ficha" role="dialog" aria-label="Datos del tren" hidden><div id="kv" class="ficha"></div></div>
@@ -67,6 +67,17 @@
   <div class="modal-cab"><h2 id="legal-t">Información legal</h2><button id="legal-x" class="modal-x" aria-label="Cerrar">×</button></div>
   <div class="tabs" id="tabs-legal"><button data-legal="condiciones">Condiciones</button><button data-legal="privacidad">Privacidad</button><button data-legal="contacto">Contacto</button></div>
   <div id="legal-txt"></div>
+ </div>
+</div>
+<!-- Pictogramas de los avisos: editor en ventana flotante (Ajustes → Editar pictogramas) -->
+<div id="pictos" class="modal" hidden>
+ <div class="modal-c tf-modal-c pictos-c" role="dialog" aria-modal="true" aria-labelledby="pictos-t">
+  <div class="modal-cab"><h2 id="pictos-t">Pictogramas de los avisos</h2><button id="pictos-x" class="modal-x" aria-label="Cerrar">×</button></div>
+  <div class="g">
+   <div class="pn"><div class="sec-ley">Avisos de la pantalla de marcha: salen de la hoja de ruta y, los marcados DLTV, del documento de LTV. Se pueden editar.</div><div id="grid"></div><button id="nw">Nuevo</button><button id="du">Duplicar</button><button id="de">Eliminar</button></div>
+   <div class="pn" id="ed"></div>
+  </div>
+  <div class="pn"><b>JSON de pictogramas</b><br><button id="ex">Exportar</button><button id="im">Aplicar JSON</button><button id="rr">Restaurar</button><textarea id="js" spellcheck="false" style="margin-top:8px"></textarea></div>
  </div>
 </div>
 <div id="rev" class="modal" hidden>
@@ -306,14 +317,6 @@
   <div id="acerca" class="acerca"></div>
  </div>
  <!-- Pictogramas -->
- <div id="v-pictos" hidden>
-  <button id="bk" style="margin:0 0 8px">← Ajustes</button>
-  <div class="g">
-   <div class="pn"><h2>Pictogramas de los avisos</h2><div class="sec-ley">Avisos de la pantalla de marcha: salen de la hoja de ruta y, los marcados DLTV, del documento de LTV. Se pueden editar.</div><div id="grid"></div><button id="nw">Nuevo</button><button id="du">Duplicar</button><button id="de">Eliminar</button></div>
-   <div class="pn" id="ed"></div>
-  </div>
-  <div class="pn"><b>JSON de pictogramas</b><br><button id="ex">Exportar</button><button id="im">Aplicar JSON</button><button id="rr">Restaurar</button><textarea id="js" spellcheck="false" style="margin-top:8px"></textarea></div>
- </div>
 </div>
 </div></div>
 <script type="module" src="js/main.js"></script>

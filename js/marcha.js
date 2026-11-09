@@ -93,6 +93,13 @@ function tituloPk(ruta, e) {
   const pk = ruta.pkEn?.(e.pk_acum);
   return [t, pk == null ? "" : "PK " + fmtPk(pk)];
 }
+/**
+ * Los cambios de radio y de bloqueo se avisan en los cuadros de arriba (parpadean con «antes →
+ * después»), no en las listas de «Próximos» y «Pasados». La línea de tiempo sí los dibuja.
+ */
+const EN_CUADRO = new Set(["cambio_radio", "cambio_bloqueo"]);
+export const enLista = (e) => !EN_CUADRO.has(e.tipo);
+
 /** Número grande a la derecha del aviso (el canal, en los cambios de radio). */
 const numeroGrande = (e) => (e.tipo === "cambio_radio" && e.datos?.canal != null ? String(e.datos.canal) : "");
 
@@ -248,11 +255,11 @@ export function pintarMarcha(ruta, pos, { desvio: conDesvio = false, residuo = n
     s += `<rect x="16" y="318" width="${WL - 22}" height="5" rx="2" fill="var(--blu2)"/><rect x="16" y="318" width="${(WL - 22) * (1 - Math.min(m, 3000) / 3000)}" height="5" rx="2" fill="${c}"/>`;
   } else s += `<text x="16" y="302" font-size="24" font-weight="700" fill="var(--gy)">Sin más cambios</text>`;
   // Avisos próximos (el residuo va abajo de los pasados). En el iPad en vertical, en su cuadro.
-  const ev = soloVel ? [] : ruta.proximos(d, alcance);
+  const ev = soloVel ? [] : ruta.proximos(d, alcance), lista = ev.filter(enLista);
   if (soloVel) pintarProximos(ruta, d, null);
   else s += `<text x="14" y="343" font-size="11" font-weight="800" letter-spacing=".08em" fill="var(--gy)">PRÓXIMOS</text>`;
-  if (!soloVel && !ev.length) s += `<text x="16" y="366" font-size="13" fill="var(--gy)">Ninguno en los próximos 3 km</text>`;
-  ev.slice(0, Math.max(1, Math.floor((H - 8 - 350) / 62))).forEach((e, i) => {
+  if (!soloVel && !lista.length) s += `<text x="16" y="366" font-size="13" fill="var(--gy)">Ninguno en los próximos 3 km</text>`;
+  lista.slice(0, Math.max(1, Math.floor((H - 8 - 350) / 62))).forEach((e, i) => {
     const k = picDe(e) || {}, y = 350 + i * 62, [tit, pk] = tituloPk(ruta, e), num = numeroGrande(e), [t, at] = ajustar(tit, num ? WL - 130 : WL - 74, 30);
     s += `<rect x="10" y="${y}" width="${WL - 12}" height="55" rx="6" fill="none" stroke="${esc(k.borde || "var(--ln)")}" stroke-width="${i ? 1.5 : 2.5}"${e.estado === "revisar" ? ' stroke-dasharray="5 3"' : ""}/>`;
     s += `<g transform="translate(15 ${y + 8}) scale(.8)">${forma(k, e.datos)}</g><text x="60" y="${y + 23}" font-size="16" font-weight="700" fill="var(--tx)"${at}>${t}</text>`;
@@ -294,7 +301,7 @@ export const reiniciarHistorial = () => {
 };
 
 function pintarHistorial(ruta, d) {
-  const ahora = performance.now(), H = ruta.pasados(d);
+  const ahora = performance.now(), H = ruta.pasados(d).filter(enLista);
   if (H.length === hN && ruta === hRuta && ahora - hT < 500) return;
   hN = H.length;
   hT = ahora;
@@ -309,7 +316,7 @@ function pintarHistorial(ruta, d) {
 
 /** Cuadro de próximos avisos en HTML (teléfono e iPad en vertical). */
 function pintarProximos(ruta, d, vista) {
-  const ev = ruta.proximos(d, alcance);
+  const ev = ruta.proximos(d, alcance).filter(enLista);
   // Franjas de texto (marcha a la vista): entre la velocidad y los avisos, sin tapar nada.
   poner("mv-prox", (vista ? `<div class="mv-vista">MARCHA A LA VISTA · TF ${vista.numero} · ${dm((vista.fin - d) * 1000)}</div>` : "") + (ev.length
     ? ev
@@ -359,14 +366,13 @@ export function pintarMarchaMovil(ruta, pos, { desvio: conDesvio = false, residu
   const nx = ruta.siguiente(d);
   // Velocidad y siguiente cambio
   const vista = ruta.vistaEn?.(d);
-  const etiqueta = lt || tramo?.fuente === "cvm" || tramo?.revisar;
-  // Con tres cifras, la etiqueta (LTV, CVM, A REVISAR) se pegaba al número en el iPhone (Joan).
-  let v = `<div class="mv-v${lt ? " ltv" : ""}${etiqueta && vp != null && String(vp).length > 2 ? " largo" : ""}">`;
+  // La etiqueta (LTV, CVM, A REVISAR) va en su fila, encima del número y siempre con su hueco:
+  // no se pega al número (tenga dos o tres cifras) ni lo mueve al aparecer (v0.25, Joan).
+  const cv = tramo?.fuente === "cvm";
+  let v = `<div class="mv-v${lt ? " ltv" : ""}">`;
+  v += `<span class="mv-et">${lt ? '<span class="mv-ltv">LTV</span>' : cv ? '<span class="rvchip">CVM</span>' : ""}${tramo?.revisar ? '<span class="rvchip">A REVISAR</span>' : ""}</span>`;
   if (vp != null) v += `<span class="mv-n">${vp}</span><span class="mv-u">km/h</span>`;
   else v += `<span class="mv-sin">Sin V Max<small>${ruta.p.prueba ? "ruta de prueba: el CVM no la da aquí" : "la hoja no la da en este tramo"}</small></span>`;
-  const cv = tramo?.fuente === "cvm";
-  if (lt || cv || tramo?.revisar)
-    v += `<span class="mv-et">${lt ? '<span class="mv-ltv">LTV</span>' : cv ? '<span class="rvchip">CVM</span>' : ""}${tramo?.revisar ? '<span class="rvchip">A REVISAR</span>' : ""}</span>`;
   v += `</div><div class="mv-sig"><small>Siguiente</small>`;
   const vc = ruta.tramoCabeza(d)?.v ?? vp; // librando por cola: la de la cabeza
   if (nx) {
