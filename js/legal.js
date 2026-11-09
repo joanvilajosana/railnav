@@ -3,7 +3,7 @@
 // Si cambia lo que hace la app con los datos (conexiones, lo que se guarda, plazos), hay que
 // cambiar también este texto y la fecha.
 
-export const ACTUALIZADO = "2 de noviembre de 2026";
+export const ACTUALIZADO = "9 de noviembre de 2026";
 export const CORREO = "joanvi.quesada@gmail.com";
 export const REPOSITORIO = "https://github.com/joanvilajosana/railnav";
 
@@ -42,7 +42,7 @@ export const SECCIONES = [
 <li>Las rutas generadas o cargadas, los DLTV leídos, los CVM que cargues, las tablas de tramos que edites y los trazados de la vía.</li>
 <li>Las grabaciones de recorrido, si las activas: la posición del dispositivo con la hora, segundo a segundo.</li>
 <li>Los telefonemas que registres: número, hora, emisor, receptor, mensaje y firma (el apellido de quien lo da), y lo que prescriben. Solo salen del dispositivo si compartes el registro.</li>
-<li>Tus preferencias: tema, volumen, disposición de la pantalla, modo de posición, avisos, longitud del tren, pictogramas editados.</li>
+<li>Tus preferencias: tema, silencio, disposición de la pantalla, modo de posición, avisos, longitud del tren, pictogramas editados.</li>
 </ul>
 <p>Se guardan en el almacenamiento del navegador (IndexedDB y localStorage) de este dispositivo. Nadie más puede verlos, tampoco el autor. Se borran desde Ajustes → Tus datos, o al eliminar la app del dispositivo.</p>
 <h3>Ubicación</h3>

@@ -1,4 +1,4 @@
-// Sonido de la app: volumen y silencio (se recuerdan en el dispositivo), tonos de los avisos y
+// Sonido de la app: silencio (se recuerda en el dispositivo), tonos de los avisos y
 // voz (síntesis del propio iPad, funciona sin conexión).
 // Safari solo deja sonar y hablar después de un toque del usuario: en el primer toque se
 // «desbloquean» el audio y la voz.
@@ -8,11 +8,11 @@ import { prefs } from "./almacen.js";
 let ctx = null;
 let maestro = null;
 const estado = {
-  volumen: Math.min(1, Math.max(0, prefs.leer("volumen", 0.7))),
+  // Sin volumen propio (Joan, 09-11-2026): siempre al máximo; manda el volumen del dispositivo.
+  volumen: 1,
   silencio: !!prefs.leer("silencio", false),
 };
 
-export const volumen = () => estado.volumen;
 export const silenciado = () => estado.silencio;
 
 function aplicar() {
@@ -32,12 +32,6 @@ function contexto() {
   return ctx;
 }
 
-export function ponerVolumen(v) {
-  estado.volumen = Math.min(1, Math.max(0, v));
-  prefs.escribir("volumen", estado.volumen);
-  aplicar();
-}
-
 export function ponerSilencio(s) {
   estado.silencio = !!s;
   prefs.escribir("silencio", estado.silencio);
@@ -45,7 +39,7 @@ export function ponerSilencio(s) {
   if (estado.silencio) callar();
 }
 
-const audible = () => !estado.silencio && estado.volumen > 0;
+const audible = () => !estado.silencio;
 
 // Tonos: [frecuencia Hz, inicio s, duración s, intensidad 0–1]. Avisos sencillos, como una
 // notificación del teléfono (campanita de notas cortas, sin voz).

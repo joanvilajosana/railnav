@@ -16,7 +16,7 @@ import { ajustarDibujo, alcance, altoDibujo, altoLinea, limitesLineaMovil, pinta
 import { irAqui, ltvVisibles, mostrarPestana, movil, pintarDatos, pintarFicha, vistaDltv } from "./datos.js";
 import { iniciarEditor, pintarEditor } from "./editor.js";
 import { LOGO, linea } from "./iconos.js";
-import { desbloquear, ponerSilencio, ponerVolumen, probar, silenciado, tono, volumen, MUESTRA } from "./sonido.js";
+import { desbloquear, ponerSilencio, probar, silenciado, tono, MUESTRA } from "./sonido.js";
 import { Avisador } from "./avisos.js";
 import { Residuo } from "./residuo.js";
 import * as despierto from "./despierto.js";
@@ -55,75 +55,23 @@ function barra() {
   iniciarSonido();
 }
 
-// ---------- volumen y silencio ----------
+// ---------- silencio ----------
+// Sin control de volumen propio (Joan, 09-11-2026): manda el volumen del dispositivo. Solo se
+// puede silenciar la app.
 function pintarSonido() {
-  const v = Math.round(volumen() * 100), mudo = silenciado();
-  $("m-vol").innerHTML = linea(v < 50 ? "volumen_bajo" : "volumen");
-  $("m-vol").title = `Volumen: ${v} %`;
+  const mudo = silenciado();
   $("m-mute").innerHTML = linea("silencio");
   $("m-mute").title = mudo ? "Sonido desactivado: pulsa para activarlo" : "Silenciar";
   $("m-mute").setAttribute("aria-pressed", String(mudo));
   $("m-mute").classList.toggle("mudo", mudo);
-  $("vol").style.setProperty("--v", v + "%");
-  $("vol").setAttribute("aria-valuenow", String(v));
-  $("vol").classList.toggle("mudo", mudo);
-  $("vol-n").textContent = mudo ? "Silencio" : `${v} %`;
 }
 
 function iniciarSonido() {
-  const pop = $("pop-vol");
-  const cerrar = () => {
-    pop.hidden = true;
-    $("m-vol").setAttribute("aria-expanded", "false");
-    $("m-vol").classList.remove("on");
-  };
-  $("m-vol").onclick = (e) => {
-    e.stopPropagation();
-    if (!pop.hidden) return cerrar();
-    const r = $("m-vol").getBoundingClientRect();
-    pop.hidden = false;
-    pop.style.top = `${r.bottom + 8}px`;
-    pop.style.left = `${Math.max(8, Math.min(innerWidth - pop.offsetWidth - 8, r.left + r.width / 2 - pop.offsetWidth / 2))}px`;
-    $("m-vol").setAttribute("aria-expanded", "true");
-    $("m-vol").classList.add("on");
-  };
-  // Barra vertical: arriba, más volumen. Se arrastra o se toca; al soltar suena la campanita.
-  const barraVol = $("vol");
-  const poner = (y) => {
-    const r = barraVol.getBoundingClientRect();
-    const v = Math.round(Math.min(1, Math.max(0, (r.bottom - y) / r.height)) * 20) / 20;
-    ponerVolumen(v);
-    if (silenciado() && v > 0) ponerSilencio(false);
-    pintarSonido();
-  };
-  let arrastrando = false;
-  barraVol.onpointerdown = (e) => {
-    arrastrando = true;
-    barraVol.setPointerCapture(e.pointerId);
-    poner(e.clientY);
-  };
-  barraVol.onpointermove = (e) => arrastrando && poner(e.clientY);
-  barraVol.onpointerup = () => {
-    if (!arrastrando) return;
-    arrastrando = false;
-    probar();
-  };
-  barraVol.onpointercancel = () => (arrastrando = false);
-  barraVol.onkeydown = (e) => {
-    const d = { ArrowUp: 0.05, ArrowRight: 0.05, ArrowDown: -0.05, ArrowLeft: -0.05 }[e.key];
-    if (!d) return;
-    e.preventDefault();
-    ponerVolumen(volumen() + d);
-    pintarSonido();
-  };
   $("m-mute").onclick = () => {
     ponerSilencio(!silenciado());
     pintarSonido();
     if (!silenciado()) probar();
   };
-  document.addEventListener("pointerdown", (e) => {
-    if (!pop.hidden && !pop.contains(e.target) && !$("m-vol").contains(e.target)) cerrar();
-  });
   pintarSonido();
 }
 const oscuro = () => {

@@ -589,12 +589,6 @@ code{font:12px ui-monospace,Menlo,monospace;background:var(--in);padding:0 4px;b
 .acerca{font-size:11px;opacity:.75;text-align:center;margin:6px 0 14px;line-height:1.4}
 
 /* volumen: barra vertical */
-:root .pop.pop-vol{width:96px!important;display:flex;flex-direction:column;align-items:center;gap:10px;padding:14px 10px}
-.vol-n{font-size:15px;font-variant-numeric:tabular-nums}
-.vslider{--v:70%;position:relative;width:56px;height:210px;border-radius:16px;background:var(--in);border:1.5px solid var(--ln);overflow:hidden;touch-action:none;cursor:ns-resize}
-.vs-fill{position:absolute;left:0;right:0;bottom:0;height:var(--v);background:var(--ac)}
-.vslider.mudo .vs-fill{background:var(--gy);opacity:.5}
-.vs-thumb{position:absolute;left:8px;right:8px;bottom:calc(var(--v) - 3px);height:6px;border-radius:3px;background:var(--pn);box-shadow:0 1px 3px rgba(0,0,0,.35)}
 
 /* origen → destino bajo el número del tren */
 .ic-r{display:block;max-width:100%;font-size:11px;font-weight:600;color:var(--gy);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
