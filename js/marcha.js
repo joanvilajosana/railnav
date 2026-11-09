@@ -100,6 +100,26 @@ function tituloPk(ruta, e) {
 const EN_CUADRO = new Set(["cambio_radio", "cambio_bloqueo"]);
 export const enLista = (e) => !EN_CUADRO.has(e.tipo);
 
+/**
+ * PK de la cabecera del velocímetro (v0.26, Joan): el de ahora, siempre; cerca de un cambio de
+ * línea o de kilometración, «antes → después», parpadeando, como los cambios de radio y bloqueo.
+ */
+function pkCabecera(ruta, d) {
+  const c = ruta.cambioCerca?.(d, "cambio_linea", alcance);
+  const f = (x) => (x == null ? "?" : fmtPk(x));
+  if (c) return { txt: `${f(c.de)} → ${f(c.a)}`, cambia: true, linea: c.linea };
+  const pk = ruta.pkEn?.(d);
+  return { txt: pk == null ? "—" : fmtPk(pk), cambia: false, linea: null };
+}
+
+/**
+ * Lo que parpadea se vuelve a pintar a menudo: se le da la fase del reloj para que el parpadeo
+ * siga su ritmo y no vuelva a empezar en cada repintado.
+ */
+function sincronizar(el) {
+  for (const x of el.querySelectorAll(".parpadea")) x.style.animationDelay = `-${Math.round(performance.now() % 1200)}ms`;
+}
+
 /** Número grande a la derecha del aviso (el canal, en los cambios de radio). */
 const numeroGrande = (e) => (e.tipo === "cambio_radio" && e.datos?.canal != null ? String(e.datos.canal) : "");
 
@@ -234,9 +254,24 @@ export function pintarMarcha(ruta, pos, { desvio: conDesvio = false, residuo = n
   for (const [x, y, w, h] of [[4, 4, WL, H - 8], [XR, 4, WR, H - 48 - R], [XR, H - 38 - R, WR, 34]])
     s += `<rect x="${x}" y="${y}" width="${w}" height="${h}" rx="6" fill="none" stroke="var(--ln)" stroke-width="1.5"/>`;
   // Velocidad
-  if (lt) s += `<g transform="translate(${WL - 48} 10) scale(.5)">${forma(pic("ltv") || {}, { v: vp })}</g><text x="${WL - 54}" y="27" font-size="13" font-weight="700" text-anchor="end" fill="var(--lt)">LTV</text>`;
-  else if (tramo?.fuente === "cvm") s += `<text x="${WL - 14}" y="27" font-size="13" font-weight="800" text-anchor="end" fill="var(--dn)">CVM</text>`;
-  if (tramo?.revisar) s += `<rect x="14" y="12" width="96" height="20" rx="5" fill="none" stroke="var(--dn)" stroke-dasharray="3 2"/><text x="62" y="26" font-size="12" font-weight="800" text-anchor="middle" fill="var(--dn)">A REVISAR</text>`;
+  // Cabecera de la velocidad: a la izquierda el PK (y su cambio); a la derecha LTV o CVM y «A
+  // REVISAR», en etiquetas como las del iPhone (v0.26, Joan).
+  const pkc = pkCabecera(ruta, d), cpk = pkc.cambia ? "var(--yl)" : "var(--tx)";
+  s += `<g${pkc.cambia ? ' class="parpadea"' : ""}><text x="16" y="28" font-size="17" font-weight="800" fill="${cpk}"><tspan font-size="11" letter-spacing=".06em" fill="${pkc.cambia ? cpk : "var(--gy)"}">PK </tspan>${esc(pkc.txt)}${pkc.linea ? `<tspan font-size="12"> · L ${esc(pkc.linea)}</tspan>` : ""}</text></g>`;
+  let xr = WL - 8;
+  const chip = (t, lleno) => {
+    const w = anchoTexto(t, "800 12px sans-serif") + 22;
+    xr -= w;
+    const r = lleno
+      ? `<rect x="${xr}" y="13" width="${w}" height="20" rx="5" fill="var(--lt)"/>`
+      : `<rect x="${xr}" y="13" width="${w}" height="20" rx="5" fill="none" stroke="var(--dn)" stroke-dasharray="3 2"/>`;
+    const x = xr + w / 2;
+    xr -= 6;
+    return r + `<text x="${x}" y="27.5" font-size="12" font-weight="800" text-anchor="middle" fill="${lleno ? "#fff" : "var(--dn)"}">${t}</text>`;
+  };
+  if (tramo?.revisar) s += chip("A REVISAR", false);
+  if (lt) s += chip("LTV", true);
+  else if (tramo?.fuente === "cvm") s += chip("CVM", false);
   s += vp != null
     ? `<text x="${CX}" y="178" font-size="${String(vp).length > 2 ? 182 : 190}" font-weight="700" text-anchor="middle" fill="${lt ? "var(--lt)" : "var(--tx)"}">${vp}</text>`
     : `<text x="${CX}" y="120" font-size="26" font-weight="700" text-anchor="middle" fill="var(--gy)">Sin V Max</text><text x="${CX}" y="148" font-size="14" text-anchor="middle" fill="var(--gy)">${ruta.p.prueba ? "ruta de prueba: el CVM no la da aquí" : "la hoja no la da en este tramo"}</text>`;
@@ -292,6 +327,8 @@ export function pintarMarcha(ruta, pos, { desvio: conDesvio = false, residuo = n
   if (residuo) s += botonResiduo(residuo, XR, H - 46, WR, 42);
   $("sa").innerHTML = s;
   $("sc").innerHTML = s;
+  sincronizar($("sa"));
+  sincronizar($("sc"));
   pintarHistorial(ruta, d);
 }
 
@@ -353,6 +390,7 @@ function poner(id, html) {
   if (hecho.get(id) === html) return;
   hecho.set(id, html);
   $(id).innerHTML = html;
+  sincronizar($(id));
 }
 const texto_ = (el, t) => {
   if (el.textContent !== t) el.textContent = t;
@@ -370,7 +408,8 @@ export function pintarMarchaMovil(ruta, pos, { desvio: conDesvio = false, residu
   // no se pega al número (tenga dos o tres cifras) ni lo mueve al aparecer (v0.25, Joan).
   const cv = tramo?.fuente === "cvm";
   let v = `<div class="mv-v${lt ? " ltv" : ""}">`;
-  v += `<span class="mv-et">${lt ? '<span class="mv-ltv">LTV</span>' : cv ? '<span class="rvchip">CVM</span>' : ""}${tramo?.revisar ? '<span class="rvchip">A REVISAR</span>' : ""}</span>`;
+  const pkc = pkCabecera(ruta, d);
+  v += `<span class="mv-et"><span class="mv-pk${pkc.cambia ? " cambia parpadea" : ""}"><i>PK</i> ${esc(pkc.txt)}</span><span class="mv-chips">${lt ? '<span class="mv-ltv">LTV</span>' : cv ? '<span class="rvchip">CVM</span>' : ""}${tramo?.revisar ? '<span class="rvchip">A REVISAR</span>' : ""}</span></span>`;
   if (vp != null) v += `<span class="mv-n">${vp}</span><span class="mv-u">km/h</span>`;
   else v += `<span class="mv-sin">Sin V Max<small>${ruta.p.prueba ? "ruta de prueba: el CVM no la da aquí" : "la hoja no la da en este tramo"}</small></span>`;
   v += `</div><div class="mv-sig"><small>Siguiente</small>`;

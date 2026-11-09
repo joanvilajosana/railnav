@@ -1232,12 +1232,20 @@ const avisador = new Avisador(alcance);
 const conSonido = () => prefs.leer("sonar", "si") !== "no";
 
 /** Campanita de cada aviso (null: ese aviso no suena). */
+// Cada uno con su campanita (Joan, 09-11-2026): inicio del aviso, LTV, LTV que es CSV, CSV, radio
+// y residuo (este, aparte, al quedar libre).
 function sonDe(x) {
-  if (x.e.tipo === "ltv_inicio" || x.e.tipo === "csv") return x.fase === "accion" ? "ltv_paso" : "ltv_aviso";
-  if (x.e.tipo === "cambio_radio" && x.fase === "accion") return "radio";
+  const e = x.e;
+  if (e.tipo === "ltv_inicio" || e.tipo === "csv") {
+    if (x.fase !== "accion") return "ltv_aviso";
+    if (e.tipo === "csv") return "csv";
+    return e.pictograma === "ltv_csv" || e.datos?.csv ? "ltv_csv" : "ltv_paso";
+  }
+  if (e.tipo === "cambio_radio" && x.fase === "accion") return "radio";
   return null;
 }
-const ORDEN_SON = ["ltv_aviso", "ltv_paso", "radio"];
+// Si coinciden varios, suena el más importante: una LTV que es CSV puede traer también su CSV.
+const ORDEN_SON = ["ltv_csv", "csv", "ltv_paso", "ltv_aviso", "radio"];
 
 function sonarAvisos() {
   const salida = avisador.revisar(ruta, pos.d);

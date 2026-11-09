@@ -214,7 +214,7 @@ export class Ruta {
   }
 
   /**
-   * Cambio de radio o de bloqueo que se está avisando en d (cuadros de arriba de la marcha): desde
+   * Cambio de radio, de bloqueo o de PK (cambio de línea) que se está avisando en d: desde
    * `antes(e)` km antes de su punto hasta `despues` km después. { de, a, e } o null. Si hay dos,
    * el primero.
    */
@@ -222,6 +222,11 @@ export class Ruta {
     const e = this.eventos.find((x) => x.tipo === tipo && x.pk_acum - d <= antes(x) + 1e-6 && d - x.pk_acum <= despues + 1e-6);
     if (!e) return null;
     if (tipo === "cambio_radio") return { de: this.radioEn(e.pk_acum - 1e-3), a: e.datos?.canal ?? this.radioEn(e.pk_acum + 1e-3), e };
+    if (tipo === "cambio_linea") {
+      // PK de antes y de después del cambio de línea o de kilometración
+      const a = parseFloat(String(e.datos?.pk ?? "").replace(",", "."));
+      return { de: this.pkEn(e.pk_acum - 1e-3), a: Number.isFinite(a) ? a : this.pkEn(e.pk_acum), linea: e.datos?.linea ?? null, e };
+    }
     return { de: e.datos?.de ?? this.bloqueoEn(e.pk_acum - 1e-3), a: e.datos?.a ?? this.bloqueoEn(e.pk_acum + 1e-3), e };
   }
 
