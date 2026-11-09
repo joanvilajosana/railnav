@@ -42,9 +42,36 @@
 </div>
 <!-- Datos del tren: desplegable flotante desde el cuadro «Tren», en todas las pantallas (v0.20.2) -->
 <div id="pop-ficha" class="pop-ficha" role="dialog" aria-label="Datos del tren" hidden><div id="kv" class="ficha"></div></div>
+<!-- Telefonemas: desplegable desde el triángulo, como el de los datos del tren -->
+<div id="pop-tf" class="pop-ficha pop-tf" role="dialog" aria-label="Telefonemas" hidden>
+  <div class="tf-cab"><h2>Telefonemas</h2><span id="tf-tren" class="tf-tren"></span></div>
+  <button id="tf-nuevo" class="tf-nuevo">+ Nuevo telefonema</button>
+  <datalist id="tf-emisores"></datalist>
+  <div id="tf-lista"></div>
+  <div class="tf-exp"><button id="tf-csv-exp">Exportar CSV para la empresa</button><button id="tf-compartir">Compartir el registro (texto)</button></div>
+  <p class="tf-nota">Los telefonemas se guardan 30 días en este dispositivo y luego se borran solos. El CSV lleva todos los guardados, de todas las rutas.</p>
+</div>
+<!-- Importar una copia: lo que trae, para elegir qué se incorpora -->
+<div id="imp" class="modal" hidden>
+ <div class="modal-c tf-modal-c" role="dialog" aria-modal="true" aria-labelledby="imp-t">
+  <div class="modal-cab"><h2 id="imp-t">Importar una copia</h2><button id="imp-x" class="modal-x" aria-label="Cerrar">×</button></div>
+  <div id="imp-cab" class="imp-cab"></div>
+  <div id="imp-lista"></div>
+  <div id="imp-err" class="tf-err" role="alert"></div>
+  <div class="tf-bot modal-bot"><button id="imp-si" class="pri">Incorporar lo marcado</button><button id="imp-no">Cancelar</button></div>
+ </div>
+</div>
+<!-- Información legal: condiciones, privacidad y contacto -->
+<div id="legal" class="modal" hidden>
+ <div class="modal-c tf-modal-c" role="dialog" aria-modal="true" aria-labelledby="legal-t">
+  <div class="modal-cab"><h2 id="legal-t">Información legal</h2><button id="legal-x" class="modal-x" aria-label="Cerrar">×</button></div>
+  <div class="tabs" id="tabs-legal"><button data-legal="condiciones">Condiciones</button><button data-legal="privacidad">Privacidad</button><button data-legal="contacto">Contacto</button></div>
+  <div id="legal-txt"></div>
+ </div>
+</div>
 <div id="rev" class="modal" hidden>
  <div class="modal-c" role="dialog" aria-modal="true" aria-labelledby="rev-t">
-  <h2 id="rev-t">Revisar LTV</h2>
+  <h2 id="rev-t">Estado de la LTV</h2>
   <div id="rev-d" class="rev-d"></div>
   <label class="rev-v" id="rev-vl">Velocidad para este tren<span><input id="rev-v" type="text" inputmode="numeric" pattern="[0-9]*" maxlength="3" autocomplete="off"><b>km/h</b></span></label>
   <div class="rev-b">
@@ -52,7 +79,7 @@
    <button id="rev-no">No aplica</button>
   </div>
   <div class="rev-b2"><button id="rev-quitar">Volver a «a revisar»</button><button id="rev-x">Cancelar</button></div>
-  <div class="rev-nota">La decisión es tuya: se guarda en este dispositivo, solo para esta ruta. Si aplica, cuenta en la velocidad máxima de la marcha; si no, deja de avisarse.</div>
+  <div class="rev-nota">La decisión es tuya: se guarda en este dispositivo, solo para esta ruta, y el DLTV no cambia. Si aplica, cuenta en la velocidad máxima de la marcha; si no aplica (p. ej. una vía de apartado), deja de avisarse y no baja la velocidad.</div>
  </div>
 </div>
 <div id="tf-modal" class="modal tf-modal" hidden>
@@ -109,6 +136,7 @@
  <div class="modal-c conf-c" role="alertdialog" aria-modal="true" aria-labelledby="conf-t" aria-describedby="conf-m">
   <h2 id="conf-t"></h2>
   <p id="conf-m" class="conf-m"></p>
+  <input id="conf-in" class="conf-in" type="text" autocomplete="off" hidden>
   <div class="rev-b"><button id="conf-no">Cancelar</button><button id="conf-si" class="pri"></button></div>
  </div>
 </div>
@@ -157,7 +185,8 @@
    </div>
    <div id="t-cvm" hidden><div id="cv" class="cv"></div></div>
    <div id="t-dltv" hidden>
-    <div class="dl-top"><div class="hj-ley" id="dl-cab"></div><button class="ltvm-mas" data-ltvman="nueva">+ Añadir LTV</button></div>
+    <div class="dl-top"><div class="hj-ley" id="dl-cab"></div><div class="dl-bts"><button id="dl-selb" class="dl-selb" data-dlsel="modo">Seleccionar</button><button class="ltvm-mas" data-ltvman="nueva">+ Añadir LTV</button></div></div>
+    <div id="dl-sel" class="dl-sel" hidden></div>
     <div id="dl-man"></div>
     <div class="hj-w" id="dl-w"><table id="dl" class="hj dlc"></table></div>
    </div>
@@ -262,11 +291,6 @@
     <button id="b-copia">Descargar copia de seguridad</button>
     <label class="boton"><input id="f-copia" type="file" accept=".json,application/json">Importar una copia</label>
    </div>
-   <div id="imp" class="imp" hidden>
-    <div id="imp-cab" class="imp-cab"></div>
-    <div id="imp-lista"></div>
-    <div class="botones copia"><button id="imp-si" class="pri">Incorporar lo marcado</button><button id="imp-no">Cancelar</button></div>
-   </div>
    <button id="b-borrar-todo" class="peligro ancho">Borrar todos los datos</button>
    <div id="msg-datos" class="gen-msg" aria-live="polite"></div>
    <div class="note">Todo se guarda solo en este dispositivo. La copia es un solo archivo: sirve para cambiar de dispositivo, pasar rutas, DLTV, CVM o tablas de tramos a un compañero o enviarla al desarrollo de la app. Al importarla eliges qué se incorpora.</div>
@@ -280,21 +304,6 @@
    </div>
   </section>
   <div id="acerca" class="acerca"></div>
- </div>
- <!-- Telefonemas -->
- <div id="v-tf" hidden>
-  <div class="tf-cab"><h2>Telefonemas</h2><span id="tf-tren" class="tf-tren"></span></div>
-  <button id="tf-nuevo" class="tf-nuevo">+ Nuevo telefonema</button>
-  <datalist id="tf-emisores"></datalist>
-  <div id="tf-lista"></div>
-  <div class="tf-exp"><button id="tf-csv-exp">Exportar CSV para la empresa</button><button id="tf-compartir">Compartir el registro (texto)</button></div>
-  <p class="tf-nota">Los telefonemas se guardan 30 días en este dispositivo y luego se borran solos. El CSV lleva todos los guardados, de todas las rutas.</p>
- </div>
- <!-- Información legal -->
- <div id="v-legal" hidden>
-  <button id="bk-legal" style="margin:0 0 8px">← Ajustes</button>
-  <div class="tabs" id="tabs-legal"><button data-legal="condiciones">Condiciones</button><button data-legal="privacidad">Privacidad</button><button data-legal="contacto">Contacto</button></div>
-  <div class="pn" id="legal-txt"></div>
  </div>
  <!-- Pictogramas -->
  <div id="v-pictos" hidden>

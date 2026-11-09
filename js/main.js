@@ -7,13 +7,13 @@ import { MODOS, Posicion, metrosPorPixel } from "./posicion.js";
 import { cvms, datos, dltvs, firmaRuta, geos, obsoleta, persistir, prefs, recorridos, rutas, telefonemas, tramos } from "./almacen.js";
 import * as TF from "./telefonemas.js";
 import { AVISO_DIAS, caducados, caducaPronto, diasRestantes, dltvAntiguo, DIAS, rutaAntigua } from "./retencion.js";
-import { htmlLegal } from "./legal.js";
+import { htmlLegal, SECCIONES } from "./legal.js";
 import { cargarPictos, deSerie, picDe, restaurar as restaurarPictos } from "./pictos.js";
 import { confirmar } from "./confirmar.js";
 import { describirCopia, filtrarCopia } from "./copia.js";
 import { dependenciasCvm, lineasCvm, rutaDesdeCvm } from "./ruta_cvm.js";
 import { ajustarDibujo, alcance, altoDibujo, altoLinea, limitesLineaMovil, pintarMarcha, pintarMarchaMovil, reiniciarHistorial } from "./marcha.js";
-import { irAqui, mostrarPestana, movil, pintarDatos, pintarFicha } from "./datos.js";
+import { irAqui, ltvVisibles, mostrarPestana, movil, pintarDatos, pintarFicha, vistaDltv } from "./datos.js";
 import { iniciarEditor, pintarEditor } from "./editor.js";
 import { LOGO, linea } from "./iconos.js";
 import { desbloquear, ponerSilencio, ponerVolumen, probar, silenciado, tono, volumen, MUESTRA } from "./sonido.js";
@@ -160,8 +160,9 @@ const CLASE = { mercancias: "Mercancías", viajeros: "Viajeros" };
 const TRIANGULO = (arriba) =>
   `<svg viewBox="0 0 24 24" width="26" height="26" aria-hidden="true"><polygon points="${arriba ? "4,16 20,16 12,6.5" : "4,8 20,8 12,17.5"}" fill="currentColor"/></svg>`;
 
-function colocarFicha() {
-  const pop = $("pop-ficha"), info = document.querySelector(".info").getBoundingClientRect(), vw = document.querySelector(".vw").getBoundingClientRect();
+/** Desplegables flotantes (datos del tren y telefonemas): bajo los cuadros de arriba, a todo el ancho. */
+function colocarPop(pop) {
+  const info = document.querySelector(".info").getBoundingClientRect(), vw = document.querySelector(".vw").getBoundingClientRect();
   const top = info.bottom + 6;
   Object.assign(pop.style, { top: top + "px", left: vw.left + "px", width: vw.width + "px", maxHeight: Math.max(160, innerHeight - top - 12) + "px" });
 }
@@ -169,8 +170,9 @@ function colocarFicha() {
 function ponerFicha(abrir) {
   abrir = !!abrir && !!ruta;
   if (abrir) {
+    ponerTf(false);
     pintarFicha(ruta);
-    colocarFicha();
+    colocarPop($("pop-ficha"));
   }
   $("pop-ficha").hidden = !abrir;
   const b = $("in-ficha");
@@ -183,24 +185,47 @@ function ponerFicha(abrir) {
 function iniciarFicha() {
   ponerFicha(false);
   $("in-ficha").onclick = () => ponerFicha($("pop-ficha").hidden);
+  // Se pliegan al tocar fuera, salvo en una ventana emergente abierta encima (nuevo telefonema,
+  // confirmación).
   document.addEventListener("pointerdown", (e) => {
+    if (e.target.closest?.(".modal")) return;
     if (!$("pop-ficha").hidden && !e.target.closest?.("#pop-ficha,#in-ficha")) ponerFicha(false);
+    if (!$("pop-tf").hidden && !e.target.closest?.("#pop-tf,#m-tf")) ponerTf(false);
   });
-  addEventListener("keydown", (e) => e.key === "Escape" && !$("pop-ficha").hidden && ponerFicha(false));
-  addEventListener("resize", () => !$("pop-ficha").hidden && colocarFicha());
+  addEventListener("keydown", (e) => {
+    if (e.key !== "Escape" || document.querySelector(".modal:not([hidden])")) return;
+    if (!$("pop-ficha").hidden) ponerFicha(false);
+    if (!$("pop-tf").hidden) ponerTf(false);
+  });
+  addEventListener("resize", () => {
+    if (!$("pop-ficha").hidden) colocarPop($("pop-ficha"));
+    if (!$("pop-tf").hidden) colocarPop($("pop-tf"));
+  });
 }
 
-// Ventana desde la que se abrió Telefonemas (triángulo): al cerrarlo se vuelve a ella.
-let vistaAntesTf = "marcha";
+/** Telefonemas: desplegable desde el triángulo, como el de los datos del tren. */
+function ponerTf(abrir) {
+  abrir = !!abrir && !!ruta;
+  if (abrir) {
+    ponerFicha(false);
+    colocarPop($("pop-tf"));
+  }
+  $("pop-tf").hidden = !abrir;
+  if (abrir) {
+    pintarTf();
+    $("pop-tf").scrollTop = 0;
+  }
+  $("m-tf").classList.toggle("on", abrir);
+  $("m-tf").setAttribute("aria-expanded", String(abrir));
+}
 
 function mostrar(v) {
-  if (v === "tf" && vista !== "tf") vistaAntesTf = vista;
   vista = v;
+  if (v !== "datos") vistaDltv.sel = null;
   ponerFicha(false);
-  for (const k of ["marcha", "datos", "ajustes", "pictos", "legal", "tf"]) $("v-" + k).hidden = k !== v;
-  for (const k of ["marcha", "datos", "ajustes"]) $("m-" + k).classList.toggle("on", k === v || ((v === "pictos" || v === "legal") && k === "ajustes") || (v === "tf" && k === ({ pictos: "ajustes", legal: "ajustes" }[vistaAntesTf] ?? vistaAntesTf)));
-  $("m-tf").classList.toggle("on", v === "tf");
-  if (v === "tf") pintarTf();
+  ponerTf(false);
+  for (const k of ["marcha", "datos", "ajustes", "pictos"]) $("v-" + k).hidden = k !== v;
+  for (const k of ["marcha", "datos", "ajustes"]) $("m-" + k).classList.toggle("on", k === v || (v === "pictos" && k === "ajustes"));
   if (v === "datos" && ruta) {
     pintarDatos(ruta, pos.d);
     requestAnimationFrame(() => irAqui(pos.d));
@@ -353,9 +378,13 @@ function cerrarFormTf() {
   if (manual) volverADltv();
 }
 
-// ---------- revisión de LTV «a revisar» (Datos → DLTV) ----------
+// ---------- estado de las LTV del DLTV (Datos → DLTV) ----------
+// Cualquier LTV se puede pasar a «Aplica» o «No aplica», una a una (tocándola) o varias a la vez
+// («Seleccionar»). La decisión se guarda en el dispositivo, por ruta; el DLTV no se toca.
 let revCod = null;
 const claveRev = () => "revision." + ruta.id;
+const ahoraIso = () => new Date().toISOString();
+const velDltv = (x) => x.v || Number((String(x.vel).match(/\d+/) || [""])[0]) || null;
 
 function abrirRevision(cod) {
   const x = (ruta?.p.dltv?.ltv || []).find((l) => l.cod === cod);
@@ -365,6 +394,7 @@ function abrirRevision(cod) {
   const dudas = (x.ev || []).filter((e) => e.startsWith("a revisar")).map((e) => e.replace(/^a revisar:\s*/, ""));
   const fila = (lab, v) => (v ? `<div><i>${lab}</i><span>${v}</span></div>` : "");
   const nf1 = (v) => String(v).replace(".", ","), pk3 = (v) => (v == null ? "?" : Number(v).toFixed(3).replace(".", ","));
+  const delDltv = x.res === "APLICA" ? "aplica" : "a revisar";
   $("rev-d").innerHTML =
     fila("Velocidad", `<b>${esc(x.vel)}</b>${x.csv ? ' <span class="cs">CSV</span>' : ""}`) +
     fila("Km ruta", x.pkai != null ? `${nf1(x.pkai)} → ${nf1(x.pkaf)}` : "no se sabe dónde cae en la ruta") +
@@ -374,13 +404,16 @@ function abrirRevision(cod) {
     fila("Motivo", esc(x.mot || "")) +
     fila("Observaciones", esc(x.obs || "")) +
     fila("Tren", `${esc(ruta.tren.numero)}${ruta.tren.clase ? " · " + ({ mercancias: "Mercancías", viajeros: "Viajeros" }[ruta.tren.clase] || esc(ruta.tren.clase)) : ""}`) +
+    fila("Según el DLTV", delDltv) +
     (dudas.length ? `<div class="rev-por">Por qué a revisar: ${esc(dudas.join(" · "))}</div>` : "") +
     (dec ? `<div class="rev-ya">Ya revisada: <b>${dec.decision === "aplica" ? "aplica a " + dec.v + " km/h" : "no aplica"}</b></div>` : "");
   const sinSitio = x.pkai == null;
-  $("rev-v").value = dec?.v || x.v || (String(x.vel).match(/\d+/) || [""])[0];
+  $("rev-v").value = dec?.v || velDltv(x) || "";
+  $("rev-v").classList.remove("mal");
   $("rev-vl").hidden = sinSitio;
   $("rev-si").disabled = sinSitio;
   $("rev-si").title = sinSitio ? "No se sabe dónde cae en la ruta: si aplica, añádela con «+ Añadir LTV»" : "";
+  $("rev-quitar").textContent = `Volver a «${delDltv}» (DLTV)`;
   $("rev-quitar").hidden = !dec;
   $("rev").hidden = false;
 }
@@ -391,36 +424,107 @@ function cerrarRevision() {
   document.activeElement?.blur?.();
 }
 
+/**
+ * Guarda la decisión sobre una LTV en `todas` (null: la quita). «Aplica» a la velocidad del
+ * DLTV en una LTV que el DLTV ya da como APLICA es lo mismo que no decidir nada.
+ */
+function anotar(todas, x, decision, v = null) {
+  if (decision === "aplica" && x.res === "APLICA" && v === x.v) decision = null;
+  if (decision === "aplica") todas[x.cod] = { decision, v, fecha: ahoraIso() };
+  else if (decision === "no") todas[x.cod] = { decision, fecha: ahoraIso() };
+  else delete todas[x.cod];
+}
+
+function guardarRevisiones(todas) {
+  prefs.escribir(claveRev(), todas);
+  ruta.ponerRevisiones(todas);
+  pintarDatos(ruta, pos.d);
+  sucio = true;
+}
+
 function decidir(decision) {
-  if (!revCod || !ruta) return;
+  const x = (ruta?.p.dltv?.ltv || []).find((l) => l.cod === revCod);
+  if (!x) return;
   const todas = { ...prefs.leer(claveRev(), {}) };
+  let v = null;
   if (decision === "aplica") {
-    const v = Math.round(Number($("rev-v").value));
+    v = Math.round(Number($("rev-v").value));
     if (!(v >= 5 && v <= 300)) {
       $("rev-v").focus();
       $("rev-v").classList.add("mal");
       return;
     }
-    todas[revCod] = { decision, v, fecha: new Date().toISOString() };
-  } else if (decision === "no") todas[revCod] = { decision, fecha: new Date().toISOString() };
-  else delete todas[revCod];
-  prefs.escribir(claveRev(), todas);
-  ruta.ponerRevisiones(todas);
+  }
+  anotar(todas, x, decision, v);
   cerrarRevision();
+  guardarRevisiones(todas);
+}
+
+/** Selección múltiple: entrar, marcar las que se ven, terminar o pasar las marcadas a un estado. */
+function accionSeleccion(acc) {
+  if (!ruta?.p.dltv) return;
+  vistaDltv.msg = "";
+  if (acc === "modo") vistaDltv.sel = new Set();
+  else if (acc === "fin") vistaDltv.sel = null;
+  else if (acc === "todas" && vistaDltv.sel) {
+    const vis = ltvVisibles(ruta).map((x) => x.cod);
+    const todas = vis.length && vis.every((c) => vistaDltv.sel.has(c));
+    for (const c of vis) todas ? vistaDltv.sel.delete(c) : vistaDltv.sel.add(c);
+  } else if (vistaDltv.sel?.size) {
+    const todas = { ...prefs.leer(claveRev(), {}) }, dl = ruta.p.dltv.ltv;
+    let hechas = 0, saltadas = 0;
+    for (const x of dl.filter((l) => vistaDltv.sel.has(l.cod))) {
+      if (acc === "ap") {
+        // Si ya aplica (por el DLTV o por una decisión), se queda como está, con su velocidad.
+        if (todas[x.cod]?.decision === "aplica" || (x.res === "APLICA" && !todas[x.cod])) {
+          hechas++;
+          continue;
+        }
+        const v = velDltv(x);
+        if (x.pkai == null || !(v >= 5 && v <= 300)) {
+          saltadas++;
+          continue;
+        }
+        anotar(todas, x, "aplica", x.res === "APLICA" ? x.v : v);
+      } else anotar(todas, x, acc === "no" ? "no" : null);
+      hechas++;
+    }
+    const a = { ap: "«Aplica»", no: "«No aplica»", quitar: "lo que dice el DLTV" }[acc];
+    vistaDltv.msg =
+      `${hechas} ${hechas === 1 ? "LTV pasada" : "LTV pasadas"} a ${a}.` +
+      (saltadas ? ` ${saltadas} sin sitio en la ruta o sin velocidad: tócala${saltadas > 1 ? "s una a una" : ""} para decidir.` : "");
+    vistaDltv.sel = new Set();
+    guardarRevisiones(todas);
+    return;
+  }
   pintarDatos(ruta, pos.d);
-  sucio = true;
 }
 
 function iniciarRevision() {
   $("v-datos").addEventListener("click", (e) => {
-    const r = e.target.closest("[data-rev]");
-    if (r && !e.target.closest("button")) abrirRevision(r.dataset.rev);
+    if (!ruta) return;
+    const f = e.target.closest("[data-filtro]");
+    if (f) {
+      vistaDltv.filtro = f.dataset.filtro === vistaDltv.filtro ? "" : f.dataset.filtro;
+      vistaDltv.msg = "";
+      return pintarDatos(ruta, pos.d);
+    }
+    const s = e.target.closest("[data-dlsel]");
+    if (s) return accionSeleccion(s.dataset.dlsel);
+    const r = e.target.closest("#dl [data-cod]");
+    if (!r || e.target.closest("button")) return;
+    if (!vistaDltv.sel) return abrirRevision(r.dataset.cod);
+    const c = r.dataset.cod;
+    vistaDltv.sel.has(c) ? vistaDltv.sel.delete(c) : vistaDltv.sel.add(c);
+    vistaDltv.msg = "";
+    pintarDatos(ruta, pos.d);
   });
   $("rev-si").onclick = () => decidir("aplica");
   $("rev-no").onclick = () => decidir("no");
   $("rev-quitar").onclick = () => decidir(null);
   $("rev-x").onclick = cerrarRevision;
   $("rev").addEventListener("click", (e) => e.target === $("rev") && cerrarRevision());
+  addEventListener("keydown", (e) => e.key === "Escape" && !$("rev").hidden && $("conf").hidden && cerrarRevision());
   $("rev-v").addEventListener("input", () => $("rev-v").classList.remove("mal"));
 }
 
@@ -469,7 +573,7 @@ async function guardarTf(ev) {
 }
 
 function pintarTf() {
-  if (!ruta || vista !== "tf") return;
+  if (!ruta || $("pop-tf").hidden) return;
   const tr = ruta.tren;
   $("tf-tren").textContent = `Tren ${tr.numero}${tr.fecha ? " · " + fecha(tr.fecha) : ""}`;
   const lista = tfs.filter((t) => !t.manual).sort((a, b) => a.fecha.localeCompare(b.fecha) || a.numero - b.numero);
@@ -506,7 +610,7 @@ function iniciarLtvManual() {
     if (id === "nueva") return abrirFormTf(null, { manual: true });
     if (!t) return;
     if (b.dataset.acc === "editar") return abrirFormTf(t, { manual: true });
-    if (b.dataset.acc === "borrar" && confirm("¿Borrar esta LTV añadida a mano?")) {
+    if (b.dataset.acc === "borrar" && (await confirmar({ titulo: "Borrar la LTV", mensaje: "¿Borrar esta LTV añadida a mano? No se puede deshacer.", si: "Borrar", peligro: true }))) {
       await telefonemas.borrar(t.id);
       await aplicarTf();
       if (vista === "datos") pintarDatos(ruta, pos.d);
@@ -517,20 +621,13 @@ function iniciarLtvManual() {
 function iniciarTelefonemas() {
   iniciarLtvManual();
   iniciarRevision();
-  // El triángulo abre y cierra Telefonemas: al cerrarlo se vuelve a la ventana de antes.
-  $("m-tf").onclick = () => {
-    if (vista !== "tf") return mostrar("tf");
-    if ($("tf-form").dataset.manual === "1") {
-      $("tf-form").hidden = true;
-      $("tf-nuevo").hidden = false;
-      $("tf-form").dataset.manual = "";
-      return volverADltv();
-    }
-    mostrar(vistaAntesTf);
-  };
+  // El triángulo despliega y pliega los telefonemas, sin salir de la pantalla en la que se está.
+  $("m-tf").setAttribute("aria-controls", "pop-tf");
+  $("m-tf").setAttribute("aria-haspopup", "true");
+  $("m-tf").onclick = () => ponerTf($("pop-tf").hidden);
   $("tf-nuevo").onclick = () => abrirFormTf();
   $("tf-cancelar").onclick = cerrarFormTf;
-  addEventListener("keydown", (e) => e.key === "Escape" && !$("tf-modal").hidden && cerrarFormTf());
+  addEventListener("keydown", (e) => e.key === "Escape" && !$("tf-modal").hidden && $("conf").hidden && cerrarFormTf());
   $("tf-form").onsubmit = guardarTf;
   $("tf-form").oninput = formTf;
   $("tf-form").onchange = formTf;
@@ -542,14 +639,19 @@ function iniciarTelefonemas() {
     if (b.dataset.tf === "anular") {
       if (t.anulado) t.anulado = null;
       else {
-        const r = prompt(`Anular el telefonema nº ${t.numero}.\n¿Lo anula otro telefonema? Escribe su número (o déjalo vacío).`, "");
+        const r = await confirmar({
+          titulo: `Anular el telefonema nº ${t.numero}`,
+          mensaje: "¿Lo anula otro telefonema? Escribe su número (o déjalo vacío).",
+          si: "Anular",
+          campo: { placeholder: "Nº del telefonema que lo anula", inputmode: "numeric" },
+        });
         if (r === null) return;
         const por = parseInt(r, 10);
         t.anulado = { hora: hhmm(), por: por >= 1 && por <= 99 ? por : null };
       }
     }
     if (b.dataset.tf === "borrar") {
-      if (!confirm(`¿Borrar el telefonema nº ${t.numero}? No se puede deshacer.`)) return;
+      if (!(await confirmar({ titulo: "Borrar el telefonema", mensaje: `¿Borrar el telefonema nº ${t.numero}? No se puede deshacer.`, si: "Borrar", peligro: true }))) return;
       await telefonemas.borrar(t.id);
     } else await telefonemas.guardar(t);
     await aplicarTf();
@@ -578,6 +680,7 @@ async function abrir(paquete, guardarla = true) {
   }
   if (guardarla) await rutas.guardar(paquete);
   ruta = new Ruta(paquete);
+  Object.assign(vistaDltv, { filtro: "", sel: null, msg: "" });
   ruta.ponerLongitud(prefs.leer("longitud", 0));
   tfs = await telefonemas.deRuta(ruta.id).catch(() => []);
   ruta.ponerTelefonemas(tfs);
@@ -908,7 +1011,7 @@ function iniciarTablas() {
     if (!v) return;
     if (b.dataset.ted != null) editarTabla(v.t);
     if (b.dataset.tcomp != null) compartirArchivo(`Tramos ${v.t.ruta.replace(/[^\p{L}\p{N} _-]+/gu, "-").replace(/-+$/, "")}.json`, JSON.stringify(v.t, null, 2));
-    if (b.dataset.tborrar != null && confirm(`¿Borrar la tabla «${v.t.ruta}» de este dispositivo?`)) {
+    if (b.dataset.tborrar != null && (await confirmar({ titulo: "Borrar la tabla", mensaje: `¿Borrar la tabla «${v.t.ruta}» de este dispositivo?`, si: "Borrar", peligro: true }))) {
       await tramos.borrar(v.t.ruta);
       pintarTablas();
     }
@@ -1006,7 +1109,7 @@ function iniciarAjustes() {
       await abrir(await rutas.cargar(a.dataset.abrir), true);
       pintarAjustes();
     }
-    if (b && confirm("¿Borrar esta ruta del dispositivo? Se puede volver a cargar desde su archivo.")) {
+    if (b && (await confirmar({ titulo: "Borrar la ruta", mensaje: "¿Borrar esta ruta del dispositivo? Se puede volver a cargar desde su archivo.", si: "Borrar", peligro: true }))) {
       await rutas.borrar(b.dataset.borrar);
       if (ruta && ruta.id === b.dataset.borrar) await abrir(await demo(), false);
       pintarAjustes();
@@ -1461,11 +1564,17 @@ function iniciarTusDatos() {
   };
   // Importar: primero se enseña lo que trae la copia y se elige qué se incorpora.
   let pendiente = null;
+  // Lo que trae la copia se enseña en una ventana emergente, como la de «Nuevo telefonema».
   const cerrarImp = () => {
     pendiente = null;
     $("imp").hidden = true;
     $("imp-lista").innerHTML = "";
+    $("imp-err").textContent = "";
+    document.activeElement?.blur?.();
   };
+  $("imp-x").onclick = cerrarImp;
+  $("imp").addEventListener("click", (e) => e.target === $("imp") && cerrarImp());
+  addEventListener("keydown", (e) => e.key === "Escape" && !$("imp").hidden && $("conf").hidden && cerrarImp());
   $("f-copia").onchange = async (e) => {
     const f = e.target.files?.[0];
     e.target.value = "";
@@ -1477,7 +1586,8 @@ function iniciarTusDatos() {
       pendiente = { copia, d };
       pintarImportar(d, f.name);
       msg("");
-      $("imp").scrollIntoView({ block: "nearest" });
+      $("imp-err").textContent = "";
+      $("imp").querySelector(".modal-c").scrollTop = 0;
     } catch (err) {
       cerrarImp();
       msg(`✗ No se ha podido leer la copia: ${err.message}`, "mal");
@@ -1498,18 +1608,24 @@ function iniciarTusDatos() {
     });
     const preferencias = !!L.querySelector("input[data-pref]")?.checked;
     const n = Object.values(almacenes).reduce((s, x) => s + x.size, 0);
-    if (!n && !preferencias) return msg("No has marcado nada.", "mal");
+    if (!n && !preferencias) return void ($("imp-err").textContent = "No has marcado nada.");
     try {
       const hechos = await datos.importar(filtrarCopia(copia, { almacenes, preferencias }));
       cerrarImp();
       msg(`✓ Incorporado: ${hechos} elemento${hechos === 1 ? "" : "s"}${preferencias ? " y los ajustes" : ""}. Se vuelve a abrir la app…`, "ok");
       setTimeout(() => location.reload(), 1200);
     } catch (err) {
-      msg(`✗ No se ha podido importar: ${err.message}`, "mal");
+      $("imp-err").textContent = `✗ No se ha podido importar: ${err.message}`;
     }
   };
   $("b-borrar-todo").onclick = async () => {
-    if (!confirm("¿Borrar TODOS los datos de RailNav en este dispositivo (rutas, DLTV, tablas, trazados, grabaciones y preferencias)? No se puede deshacer. Si quieres conservarlos, descarga antes una copia de seguridad.")) return;
+    const si = await confirmar({
+      titulo: "Borrar todos los datos",
+      mensaje: "¿Borrar TODOS los datos de RailNav en este dispositivo (rutas, DLTV, tablas, trazados, grabaciones y preferencias)? No se puede deshacer. Si quieres conservarlos, descarga antes una copia de seguridad.",
+      si: "Borrar todo",
+      peligro: true,
+    });
+    if (!si) return;
     await grabar.terminar();
     desactivarGps();
     await datos.borrarTodo();
@@ -1562,22 +1678,31 @@ function pintarImportar(d, nombre) {
 }
 
 // ---------- información legal ----------
+// Ventana emergente como la de «Nuevo telefonema», con pestañas y una X para cerrarla.
 function pintarLegal(id) {
+  $("legal-t").textContent = SECCIONES.find((s) => s.id === id)?.titulo || "Información legal";
   $("legal-txt").innerHTML = htmlLegal(id);
   for (const b of document.querySelectorAll("#tabs-legal button")) b.classList.toggle("on", b.dataset.legal === id);
-  $("v-legal").scrollTop = 0;
+  $("legal").querySelector(".modal-c").scrollTop = 0;
+}
+
+function cerrarLegal() {
+  $("legal").hidden = true;
+  document.activeElement?.blur?.();
 }
 
 function iniciarLegal() {
   const abrirLegal = (e) => {
     const b = e.target.closest("button[data-legal]");
     if (!b) return;
-    if (vista !== "legal") mostrar("legal");
     pintarLegal(b.dataset.legal);
+    $("legal").hidden = false;
   };
   document.querySelector(".legal-b").onclick = abrirLegal;
   $("tabs-legal").onclick = abrirLegal;
-  $("bk-legal").onclick = () => mostrar("ajustes");
+  $("legal-x").onclick = cerrarLegal;
+  $("legal").addEventListener("click", (e) => e.target === $("legal") && cerrarLegal());
+  addEventListener("keydown", (e) => e.key === "Escape" && !$("legal").hidden && cerrarLegal());
 }
 
 // ---------- grabar recorrido ----------
@@ -1638,7 +1763,7 @@ function iniciarGrabacion() {
     const base = `railnav-${r.tren ?? "recorrido"}-${r.id.slice(0, 16).replace(/[:T]/g, "-")}`;
     if (b.dataset.gpx) compartirArchivo(base + ".gpx", grabar.gpx(r), "application/gpx+xml");
     if (b.dataset.json) compartirArchivo(base + ".json", grabar.json(r));
-    if (b.dataset.borrarRec && confirm("¿Borrar esta grabación?")) {
+    if (b.dataset.borrarRec && (await confirmar({ titulo: "Borrar la grabación", mensaje: "¿Borrar esta grabación? No se puede deshacer.", si: "Borrar", peligro: true }))) {
       await recorridos.borrar(id);
       pintarRecorridos();
     }

@@ -91,7 +91,7 @@ export function iniciarEditor() {
       sel = 0;
       pintarEditor();
     } catch {
-      alert("JSON no válido");
+      confirmar({ titulo: "JSON no válido", mensaje: "El texto no es un JSON de pictogramas: no se ha aplicado nada.", no: null });
     }
   };
   $("rr").onclick = async () => {

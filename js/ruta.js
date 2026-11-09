@@ -53,9 +53,11 @@ export class Ruta {
    * avisos (LTV, marcha a la vista, incidencias) en la lista de eventos.
    */
   /**
-   * Decisiones del maquinista sobre las LTV «a revisar» (Datos → DLTV): { cod: { decision:
-   * "aplica" | "no", v } }. Las que aplican entran en la Vmax con su velocidad; las que no, se
-   * quitan de los avisos. Se guardan en el dispositivo, por ruta.
+   * Decisiones del maquinista sobre las LTV del DLTV (Datos → DLTV): { cod: { decision:
+   * "aplica" | "no", v } }. Valen para todas, no solo las «a revisar»: las que aplican entran en
+   * la Vmax con su velocidad; las que no aplican (p. ej. las de una vía de apartado) salen de los
+   * avisos y, si el DLTV las daba como APLICA, también de la Vmax, como si un telefonema las
+   * suprimiera. Los datos del DLTV no se tocan. Se guardan en el dispositivo, por ruta.
    */
   ponerRevisiones(r) {
     this.revisiones = r || {};
@@ -71,13 +73,20 @@ export class Ruta {
     this.telefonemas = lista || [];
     const { eventos, limites, vistas, suprimidas } = efectos(lista, this.p);
     this.vistas = vistas;
-    // LTV del DLTV suprimidas por telefonema: donde mandaban, vuelve la de la hoja (o la de otra
-    // LTV que siga en vigor).
+    const rev = this.revisiones || {}, dl = this.p.dltv?.ltv || [];
+    // LTV del DLTV suprimidas por telefonema, o que el DLTV da como APLICA y el maquinista ha
+    // marcado «No aplica» o con otra velocidad: donde mandaban, vuelve la de la hoja (o la de
+    // otra LTV que siga en vigor).
+    const fuera = new Set(suprimidas.keys());
+    for (const l of dl) {
+      const r = rev[l.cod];
+      if (l.res === "APLICA" && r && (r.decision === "no" || (r.decision === "aplica" && r.v !== l.v))) fuera.add("ltv-" + l.cod);
+    }
     let base = this.vmax0;
-    if (suprimidas.size) {
+    if (fuera.size) {
       const hoja = vmaxHoja(this.p);
-      const otras = (this.p.dltv?.ltv || [])
-        .filter((l) => l.res === "APLICA" && l.v != null && l.pkai != null && !suprimidas.has("ltv-" + l.cod))
+      const otras = dl
+        .filter((l) => l.res === "APLICA" && l.v != null && l.pkai != null && !fuera.has("ltv-" + l.cod))
         .map((l) => ({ ini: l.pkai, fin: l.pkaf, v: l.v, id: "ltv-" + l.cod }))
         // donde rige el CVM (la hoja da más), sigue rigiendo
         .concat((this.p.cvm?.tramos || []).filter((x) => x.v != null).map((x) => ({ ini: x.pkai, fin: x.pkaf, v: x.v, id: null, fuente: "cvm", cvm: true })))
@@ -88,7 +97,7 @@ export class Ruta {
         );
       base = [];
       for (const t of this.vmax0) {
-        if (t.fuente !== "ltv" || !suprimidas.has(t.ltv)) {
+        if (t.fuente !== "ltv" || !fuera.has(t.ltv)) {
           base.push(t);
           continue;
         }
@@ -99,7 +108,6 @@ export class Ruta {
       }
     }
     // LTV revisadas a mano: las que aplican, con su velocidad; ya no quedan «a revisar».
-    const rev = this.revisiones || {}, dl = this.p.dltv?.ltv || [];
     const revLim = dl
       .filter((l) => rev[l.cod]?.decision === "aplica" && rev[l.cod].v && l.pkai != null && l.pkaf != null)
       .map((l) => ({ ini: Math.min(l.pkai, l.pkaf), fin: Math.max(l.pkai, l.pkaf), v: rev[l.cod].v, id: "ltv-" + l.cod }));
