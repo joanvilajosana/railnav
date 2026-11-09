@@ -1212,3 +1212,31 @@ button.dlc-n.on{border-color:var(--ac);box-shadow:inset 0 0 0 1.5px var(--ac);ba
 :root[data-disp="tablet"] .ic.ic-bq small,:root[data-disp="tablet"] .ic.ic-rd small{position:absolute;top:9px;left:14px}
 :root[data-disp="tablet"] .ic.ic-bq b,:root[data-disp="tablet"] .ic.ic-rd b{width:100%;text-align:center;font-size:clamp(22px,2.6vw,30px)}
 :root[data-disp="tablet"] .ic.ic-bq.cambia b{font-size:17px;line-height:1.1}
+/* v0.26.2 — Cuadro Tren: solo «TREN» y el número (la clase y el trayecto, en la ficha) */
+.ic-tren .ic-r,.ic-tren .ic-cl{display:none}
+/* iPhone: la leyenda del DLTV (Todas · Aplica · A revisar · No aplica) en una sola fila */
+:root[data-disp="telefono"] .dlc-2{flex-wrap:nowrap;gap:4px;width:100%;min-width:0}
+:root[data-disp="telefono"] button.dlc-n{flex:1 1 auto;min-width:0;justify-content:center;gap:4px;padding:3px 5px;min-height:36px}
+:root[data-disp="telefono"] .dlc-n .dl-res{font-size:10.5px;padding:1px 5px}
+:root[data-disp="telefono"] .dlc-n .dlc-tx{padding-left:2px;font-size:11px}
+:root[data-disp="telefono"] .dlc-n b{font-size:14px}
+:root[data-disp="telefono"] .dl-top{gap:8px}
+:root[data-disp="telefono"] .dl-top .hj-ley{width:100%}
+/* iPhone en vertical: la fila de cuadros con la misma altura que antes (el cambio de canal en
+   columna cabe sin agrandarla) */
+@media (orientation:portrait){
+:root[data-disp="telefono"] .info .ic{min-height:74px}
+}
+/* iPad: valores más grandes, a la medida de cada cuadro y sin salirse de sus márgenes */
+:root[data-disp="tablet"] .info .ic{container-type:inline-size;min-height:78px}
+:root[data-disp="tablet"] .ic-tren{justify-content:center}
+:root[data-disp="tablet"] .ic-tren small{position:absolute;top:9px;left:14px}
+:root[data-disp="tablet"] .ic-tren{position:relative;padding-top:22px}
+:root[data-disp="tablet"] .info .ic b,:root[data-disp="tablet"] .ic.ic-bq b,:root[data-disp="tablet"] .ic.ic-rd b{font-size:clamp(22px,17cqw,44px);line-height:1.1}
+:root[data-disp="tablet"] .ic-tren b{font-size:clamp(22px,calc((100cqw - 76px) * .3),44px)}
+:root[data-disp="tablet"] .ic.ic-bq.cambia b{font-size:clamp(15px,9cqw,22px);line-height:1.1}
+:root[data-disp="tablet"] .ic.ic-rd.cambia b{font-size:clamp(20px,14cqw,40px)}
+/* (los cqw cuentan sobre el interior del cuadro, ya sin sus márgenes) */
+:root[data-disp="tablet"] .info .ic b,:root[data-disp="tablet"] .ic.ic-bq b,:root[data-disp="tablet"] .ic.ic-rd b{font-size:clamp(22px,22cqw,44px)}
+:root[data-disp="tablet"] .ic-tren b{font-size:clamp(22px,30cqw,44px)}
+:root[data-disp="tablet"] .ic.ic-rd.cambia b{font-size:clamp(20px,20cqw,40px)}

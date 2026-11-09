@@ -94,10 +94,11 @@ function tituloPk(ruta, e) {
   return [t, pk == null ? "" : "PK " + fmtPk(pk)];
 }
 /**
- * Los cambios de radio y de bloqueo se avisan en los cuadros de arriba (parpadean con «antes →
- * después»), no en las listas de «Próximos» y «Pasados». La línea de tiempo sí los dibuja.
+ * Los cambios de radio y de bloqueo se avisan en los cuadros de arriba, y los de PK (cambio de
+ * línea o de kilometración) encima de la velocidad: parpadean con «antes → después» y no van en
+ * las listas de «Próximos» y «Pasados». La línea de tiempo y la hoja de ruta sí los muestran.
  */
-const EN_CUADRO = new Set(["cambio_radio", "cambio_bloqueo"]);
+const EN_CUADRO = new Set(["cambio_radio", "cambio_bloqueo", "cambio_linea"]);
 export const enLista = (e) => !EN_CUADRO.has(e.tipo);
 
 /**

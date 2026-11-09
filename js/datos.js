@@ -16,6 +16,7 @@ const TI = {
   loco: '<path d="M3 16V9a2 2 0 0 1 2-2h10l5 5v4z"/><path d="M6 10h3v2.5H6zM11 10h3v2.5h-3z"/><circle cx="7" cy="18" r="1.6"/><circle cx="16" cy="18" r="1.6"/><path d="M2 21h20"/>',
   peso: '<path d="M8 8a4 4 0 1 1 8 0"/><path d="M5.5 8h13l2 12h-17z"/>',
   tipo: '<path d="M4 17a8 8 0 1 1 16 0"/><path d="M12 17l4-5"/><circle cx="12" cy="17" r="1.2"/>',
+  ruta: '<circle cx="5" cy="18" r="2.2"/><circle cx="19" cy="6" r="2.2"/><path d="M7 17c6-1 3-9 10-10"/>',
   tren: '<rect x="6" y="3" width="12" height="14" rx="3"/><path d="M6 10h12M9 21l1.5-4M15 21l-1.5-4"/><circle cx="9" cy="13.5" r=".7"/><circle cx="15" cy="13.5" r=".7"/>',
 };
 export const ICONOS_FICHA = TI;
@@ -34,9 +35,11 @@ export function pintarFicha(ruta) {
   const tec = ruta.eventos.filter((e) => e.tipo === "parada_tecnica");
   const tile = (ico, lab, val, tit) => `<div class="tt" title="${esc(tit || lab)}">${ico}<div><b>${lab}</b><span>${val}</span></div></div>`;
   const cvm = p.cvm ? (p.cvm.tramos.length ? `CVM: ${p.cvm.tramos.length} a revisar` : "Coincide con el CVM") : null;
-  // Número, clase y trayecto ya están en el cuadro «Tren» de arriba: aquí, solo el resto.
+  // El número está en el cuadro «Tren» de arriba; la clase y el trayecto, aquí (v0.26.2).
   $("kv").innerHTML =
     `<div class="tr-tiles">` +
+    tile(`<span class="tl">${lineal("ruta")}</span>`, "Trayecto", `${esc(t.origen || "?")} → ${esc(t.destino || "?")}`) +
+    (t.clase ? tile(`<span class="tl">${lineal("tren")}</span>`, "Clase", esc(CLASE[t.clase] || t.clase)) : "") +
     tile(`<span class="tl">${lineal("fecha")}</span>`, "Fecha", fecha(t.fecha) || "?") +
     tile(`<span class="tl">${lineal("loco")}</span>`, "Locomotora", esc(t.locomotora || "?")) +
     tile(`<span class="tl">${lineal("peso")}</span>`, "Peso", t.masa_t ? nf(t.masa_t, 0) + " t" : "?") +
@@ -153,12 +156,20 @@ const NOMBRE_ESTADO = Object.fromEntries(ESTADOS_LTV);
  */
 export const vistaDltv = { filtro: "", sel: null, msg: "" };
 
-/** LTV del DLTV en el orden en que se ven: agrupadas por estado y, si hay filtro, solo esa. */
+/**
+ * LTV del DLTV en el orden en que se ven: por su km en la ruta (las que no se sabe dónde caen, al
+ * final, en el orden del documento), con «Todas» y con cada categoría (Joan, 09-11-2026).
+ */
 export function ltvVisibles(ruta) {
   const DL = ruta?.p.dltv;
   if (!DL) return [];
   const est = (x) => estadoLtv(x, ruta.revision?.(x.cod));
-  return ESTADOS_LTV.filter(([k]) => !vistaDltv.filtro || k === vistaDltv.filtro).flatMap(([k]) => DL.ltv.filter((x) => est(x) === k));
+  const km = (x) => (x.pkai == null ? Infinity : Math.min(x.pkai, x.pkaf ?? x.pkai));
+  return DL.ltv
+    .map((x, i) => [x, i])
+    .filter(([x]) => !vistaDltv.filtro || est(x) === vistaDltv.filtro)
+    .sort(([a, i], [b, j]) => km(a) - km(b) || i - j)
+    .map(([x]) => x);
 }
 
 /** Estado de una LTV en Datos → DLTV, con la decisión del maquinista si la hay. */
@@ -178,11 +189,10 @@ function filaAttrs(x, e, aq, extra = "") {
 }
 
 // Teléfono: cada LTV en una tarjeta con todos sus datos.
-function dltvMovil(lista, d, dec, grupo) {
+function dltvMovil(lista, d, dec) {
   let h = "<tbody>";
   for (const x of lista) {
     const dx = dec(x), e = estadoLtv(x, dx);
-    h += grupo(e, 1);
     const aq = x.pkai != null && d >= Math.min(x.pkai, x.pkaf) - 1e-6 && d <= Math.max(x.pkai, x.pkaf) + 1e-6;
     const dudas = (x.ev || []).filter((e) => e.startsWith("a revisar")).map((e) => e.replace(/^a revisar:\s*/, ""));
     const dato = (lab, v) => (v ? `<span><i>${lab}</i> ${v}</span>` : "");
@@ -243,7 +253,8 @@ function pintarDltv(ruta, d) {
   const n = { ap: 0, rv: 0, no: 0 };
   for (const x of DL.ltv) n[estadoLtv(x, dec(x))]++;
   if (vistaDltv.filtro && !(vistaDltv.filtro in n)) vistaDltv.filtro = "";
-  // La leyenda es también el filtro: una categoría enseña solo sus LTV; «Todas», agrupadas.
+  // La leyenda es también el filtro: una categoría enseña solo sus LTV; «Todas», todas. Siempre
+  // en el orden de la ruta.
   const chip = (k, txt, cuenta) =>
     `<button class="dlc-n${vistaDltv.filtro === k ? " on" : ""}" data-filtro="${k}" aria-pressed="${vistaDltv.filtro === k}">${txt}<b>${cuenta}</b></button>`;
   $("dl-cab").innerHTML =
@@ -251,15 +262,8 @@ function pintarDltv(ruta, d) {
     `<div class="dlc-2" role="group" aria-label="Ver las LTV por estado">${chip("", '<span class="dlc-tx">Todas</span>', DL.ltv.length)}${ESTADOS_LTV.map(([k, t]) => chip(k, `<span class="dl-res ${k}">${t}</span>`, n[k])).join("")}</div>`;
   const lista = ltvVisibles(ruta);
   pintarSeleccion(lista);
-  // Cabecera de cada grupo (solo con «Todas»); `cols`: columnas de la tabla.
-  let ultimo = null;
-  const grupo = (e, cols) => {
-    if (vistaDltv.filtro || e === ultimo) return "";
-    ultimo = e;
-    return `<tr class="dl-grp"><td colspan="${cols}"><span class="dl-res ${e}">${NOMBRE_ESTADO[e]}</span> ${n[e]}</td></tr>`;
-  };
   const vacio = (cols) => `<tbody><tr><td colspan="${cols}" class="dl-vacio">Ninguna LTV ${vistaDltv.filtro ? `«${NOMBRE_ESTADO[vistaDltv.filtro]}»` : ""} en este DLTV.</td></tr></tbody>`;
-  if (movil()) return void ($("dl").innerHTML = lista.length ? dltvMovil(lista, d, dec, grupo) : vacio(1));
+  if (movil()) return void ($("dl").innerHTML = lista.length ? dltvMovil(lista, d, dec) : vacio(1));
   // Tablet: siete columnas que caben en el ancho (Joan no quiere desplazamiento lateral). Lo que
   // antes eran columnas sueltas va apilado: km de la ruta con línea y PK debajo; motivo con las
   // observaciones; las fechas (si no vale toda la semana) y el horario, bajo el estado.
@@ -270,7 +274,6 @@ function pintarDltv(ruta, d) {
   h += "<tbody>";
   for (const x of lista) {
     const dx = dec(x), e = estadoLtv(x, dx);
-    h += grupo(e, cols.length);
     const aq = x.pkai != null && d >= Math.min(x.pkai, x.pkaf) - 1e-6 && d <= Math.max(x.pkai, x.pkaf) + 1e-6;
     const dudas = (x.ev || []).filter((e) => e.startsWith("a revisar")).map((e) => e.replace(/^a revisar:\s*/, ""));
     h += `<tr ${filaAttrs(x, e, aq)}><td>${casilla(x)}${estadoHtml(x, dx)}${x.va ? " " + cuadroViaHtml(x.va, false) : ""}${x.vig === "declarada" ? `<small>${fecha(x.desde)} – ${fecha(x.hasta)}</small>` : ""}${x.hor ? `<small>${esc(x.hor)}</small>` : ""}</td>`;

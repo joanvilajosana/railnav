@@ -92,15 +92,10 @@ function estado() {
   };
   poner("in-tren", ruta?.tren?.numero ?? null);
   const t = ruta?.tren;
-  // Viajeros/Mercancías junto al número y el botón de la ficha (v0.20.2)
-  // En el iPad, con los tres cuadros del mismo ancho, va en la línea del trayecto (v0.25).
-  const clase = t?.clase ? `<span class="ic-cl">${esc(CLASE[t.clase] || t.clase)}</span>` : "";
-  const tablet = document.documentElement.dataset.disp === "tablet";
-  if (clase && !tablet) $("in-tren").insertAdjacentHTML("beforeend", clase);
+  // En el cuadro, solo «TREN» y el número (Joan, 09-11-2026): la clase (Viajeros/Mercancías) y el
+  // trayecto se ven en la ficha, al abrir el desplegable.
   $("in-ficha").hidden = !ruta;
-  const tray = t ? `${t.origen || "?"} → ${t.destino || "?"}` : "";
-  $("in-ruta").innerHTML = (tablet ? clase : "") + esc(tray);
-  $("in-ruta").title = tray;
+  $("in-ruta").textContent = "";
   // Cambios de radio y de bloqueo: en vez de ir a «Próximos» y «Pasados», el cuadro de arriba
   // parpadea (radio en el color de su pictograma, bloqueo en naranja) con «antes → después», desde
   // que se avisa hasta 500 m después del punto. Radio: solo el número del canal.
@@ -125,7 +120,6 @@ function ponerCambio(id, c, actual) {
 
 // ---------- vistas ----------
 // ---------- ficha del tren: desplegable desde el cuadro «Tren» ----------
-const CLASE = { mercancias: "Mercancías", viajeros: "Viajeros" };
 const TRIANGULO = (arriba) =>
   `<svg viewBox="0 0 24 24" width="26" height="26" aria-hidden="true"><polygon points="${arriba ? "4,16 20,16 12,6.5" : "4,8 20,8 12,17.5"}" fill="currentColor"/></svg>`;
 
