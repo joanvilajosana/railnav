@@ -1183,3 +1183,24 @@ button.dlc-n.on{border-color:var(--ac);box-shadow:inset 0 0 0 1.5px var(--ac);ba
 :root[data-disp="telefono"] .ic.cambia:not(:first-child) b{white-space:normal;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow-wrap:normal;font-size:15px;line-height:1.1}
 :root[data-disp="telefono"] .ic.ic-bq.cambia:not(:first-child) b{font-size:13px}
 :root[data-disp="telefono"] .ic.cambia #in-rd{font-size:15px;line-height:1.1}
+/* v0.25.1 — Canal en cambio: «antiguo → nuevo» en una línea; la flecha vertical solo en iPhone vertical */
+#in-rd .cb-fl{margin:0 .25em}
+#in-rd .cb-fl i{font-style:normal}
+#in-rd .cb-fl .v{display:none}
+/* El bloqueo, siempre en mayúsculas (BAB CTC) */
+#in-bq{text-transform:uppercase}
+/* iPhone en vertical: Bloqueo y Radio con el valor más grande y en el centro del cuadro; en un
+   cambio de canal, el antiguo arriba, ↓ y el nuevo abajo (Joan, 09-11-2026) */
+@media (orientation:portrait){
+:root[data-disp="telefono"] .ic.ic-bq,:root[data-disp="telefono"] .ic.ic-rd{position:relative;align-items:center;justify-content:center;padding:16px 6px 6px}
+:root[data-disp="telefono"] .ic.ic-bq small,:root[data-disp="telefono"] .ic.ic-rd small{position:absolute;top:5px;left:10px}
+:root[data-disp="telefono"] .ic.ic-bq b,:root[data-disp="telefono"] .ic.ic-rd b{display:block;width:100%;text-align:center;white-space:normal;overflow:hidden;overflow-wrap:normal;-webkit-line-clamp:unset}
+:root[data-disp="telefono"] .ic.ic-bq b{font-size:21px;line-height:1.05}
+:root[data-disp="telefono"] .ic.ic-rd #in-rd{font-size:34px;line-height:1}
+:root[data-disp="telefono"] .ic.ic-bq.cambia b{display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:3;font-size:13px;line-height:1.1}
+:root[data-disp="telefono"] .ic.ic-rd.cambia #in-rd{display:flex;flex-direction:column;align-items:center;font-size:18px;line-height:1}
+:root[data-disp="telefono"] .ic.ic-rd.cambia #in-rd .cb-fl{margin:0;font-size:11px;line-height:1}
+:root[data-disp="telefono"] .ic.ic-rd.cambia{padding-top:14px;padding-bottom:4px}
+:root[data-disp="telefono"] .ic.ic-rd.cambia #in-rd .cb-fl .h{display:none}
+:root[data-disp="telefono"] .ic.ic-rd.cambia #in-rd .cb-fl .v{display:inline}
+}

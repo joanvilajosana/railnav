@@ -162,7 +162,13 @@ function estado() {
 
 function ponerCambio(id, c, actual) {
   const b = $(id), ic = b.closest(".ic"), txt = c ? `${c.de ?? "?"} → ${c.a ?? "?"}` : (actual ?? "—");
-  if (b.textContent !== String(txt)) b.textContent = txt;
+  // Canal en cambio: antiguo, flecha y nuevo en piezas (en el iPhone en vertical, uno encima de
+  // otro con la flecha ↓; en lo demás, en una línea con →).
+  const html = c && id === "in-rd" ? `<span class="cb-de">${esc(c.de ?? "?")}</span><span class="cb-fl" aria-label="pasa a"><i class="h">→</i><i class="v">↓</i></span><span class="cb-a">${esc(c.a ?? "?")}</span>` : esc(txt);
+  if (b.dataset.v !== html) {
+    b.dataset.v = html;
+    b.innerHTML = html;
+  }
   b.classList.toggle("vacio", !c && actual == null);
   if (ic.classList.contains("cambia") !== !!c) ic.classList.toggle("cambia", !!c);
   if (c && id === "in-rd") ic.style.setProperty("--cambio", picDe(c.e)?.borde || "#35c2b5");
