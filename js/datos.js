@@ -67,6 +67,8 @@ export function mostrarPestana(t) {
   $("t-hoja").hidden = pestana !== "hoja";
   $("t-dltv").hidden = pestana !== "dltv";
   $("t-cvm").hidden = pestana !== "cvm";
+  // En el CVM la posición actual no se marca: el botón se ve apagado (v0.27.2).
+  $("hj-aqui").disabled = pestana === "cvm";
   document.querySelectorAll("#tabs button").forEach((b) => b.classList.toggle("on", b.dataset.t === pestana));
 }
 
@@ -78,11 +80,12 @@ function pintarHoja(ruta, d) {
   const cols = [["pk", "PK"], ["nom", "Dependencia"], ["v", "V Max"], ["bq", "Bloqueo"], ["radio", "Radio"], ["hora", "Hora"], ["tec", "Técn."], ["conc", "Conc."], ["tcop", "Tc. Op."]].filter(
     (c) => c[0] === "nom" || tiene(c[0]),
   );
-  let aqui = -1;
-  H.forEach((r, i) => {
-    if (r.pka != null && r.pka <= d + 1e-6) aqui = i;
-  });
-  if (movil()) return void ($("tb").innerHTML = hojaMovil(H, aqui));
+  // Posición actual como en DLTV (v0.27.2): raya amarilla encima de la primera fila que el tren
+  // aún no ha pasado (encima del rótulo de página si la fila abre página); pasada la última, debajo.
+  const sig = H.findIndex((r) => r.pka != null && r.pka > d + 1e-6);
+  const raya = (i, pg) =>
+    sig === -1 ? (i === H.length - 1 && !pg ? " pos-despues" : "") : i === sig && pg === (H[i].pag !== H[i - 1]?.pag) ? " pos-antes" : "";
+  if (movil()) return void ($("tb").innerHTML = hojaMovil(H, raya));
   const clase = (k) => (["tec", "conc"].includes(k) ? ' class="cc"' : ["pk", "v"].includes(k) ? ' style="text-align:right"' : "");
   let h = "<thead><tr>" + cols.map(([k, n]) => `<th${clase(k)}>${n}</th>`).join("") + "</tr></thead><tbody>";
   let pg = null;
@@ -90,9 +93,9 @@ function pintarHoja(ruta, d) {
   H.forEach((r, i) => {
     if (r.pag !== pg) {
       pg = r.pag;
-      h += `<tr class="pg"><td colspan="${cols.length}">Página ${pg} del PDF</td></tr>`;
+      h += `<tr class="pg${raya(i, true)}"><td colspan="${cols.length}">Página ${pg} del PDF</td></tr>`;
     }
-    h += `<tr${i === aqui ? ' class="aqui"' : ""}>`;
+    h += `<tr class="hf${raya(i, false)}">`;
     for (const [k] of cols) {
       const v = r[k], rep = ["v", "bq", "radio"].includes(k) && v != null && prev[k] === v && !r.cv;
       if (k === "pk") h += `<td class="n"><b>${nf(v)}</b>${r.pkl != null ? `<small>antes ${nf(r.pkl)}</small>` : ""}${r.lin ? `<small>línea ${esc(r.lin)}</small>` : ""}</td>`;
@@ -105,20 +108,20 @@ function pintarHoja(ruta, d) {
     }
     h += "</tr>";
     for (const k of ["v", "bq", "radio"]) if (r[k] != null) prev[k] = r[k];
-    for (const n of r.notas || []) h += `<tr class="nota${i === aqui ? " aqui" : ""}"><td colspan="${cols.length}"><span${(r.cn || []).includes(n) ? ' class="cs"' : ""}>${esc(n)}</span></td></tr>`;
+    for (const n of r.notas || []) h += `<tr class="nota"><td colspan="${cols.length}"><span${(r.cn || []).includes(n) ? ' class="cs"' : ""}>${esc(n)}</span></td></tr>`;
   });
   $("tb").innerHTML = h + "</tbody>";
 }
 
 // Teléfono: cada fila de la hoja en dos líneas (PK, dependencia y V Max; debajo hora, bloqueo,
 // radio y paradas). Los valores que repiten la fila anterior salen en gris, como en la tabla.
-function hojaMovil(H, aqui) {
+function hojaMovil(H, raya) {
   let h = "<tbody>", pg = null;
   const prev = {};
   H.forEach((r, i) => {
     if (r.pag !== pg) {
       pg = r.pag;
-      h += `<tr class="pg"><td>Página ${pg} del PDF</td></tr>`;
+      h += `<tr class="pg${raya(i, true)}"><td>Página ${pg} del PDF</td></tr>`;
     }
     const tp = /^BIF\b/i.test(r.nom || "") ? "bifurcacion" : TIPO_PIC[r.tipo];
     const rep = (k) => r[k] != null && prev[k] === r[k] && !r.cv;
@@ -127,12 +130,12 @@ function hojaMovil(H, aqui) {
     for (const [k, lab] of [["bq", "Bloqueo"], ["radio", "Radio"], ["tec", "Técn."], ["conc", "Conc."], ["tcop", "Tc. Op."]])
       if (r[k] != null) x.push(`<span class="hk${rep(k) ? " rep" : ""}"><i>${lab}</i> ${esc(String(r[k]).replace(/^(\d+)\.(\d+)$/, "$1,$2"))}</span>`);
     const v = r.v == null ? "" : r.cv ? `<span class="cs vm">${r.v}</span>` : `<span class="vm${rep("v") ? " rep" : ""}">${r.v}</span>`;
-    h += `<tr class="hm${i === aqui ? " aqui" : ""}"><td><div class="hm-g">`;
+    h += `<tr class="hm${raya(i, false)}"><td><div class="hm-g">`;
     h += `<div class="hm-pk">${r.pk != null ? `<b>${nf(r.pk)}</b>` : ""}${r.pkl != null ? `<small>antes ${nf(r.pkl)}</small>` : ""}${r.lin ? `<small>línea ${esc(r.lin)}</small>` : ""}</div>`;
     h += `<div class="nm${r.nom ? "" : " sin"}">${tp && r.nom ? icono(pic(tp), 28, { nombre: r.nom, pk: nf(r.pk) }) : ""}${r.nom ? esc(r.nom) : "—"}</div>`;
     h += `<div class="hm-v">${v}</div>${x.length ? `<div class="hm-x">${x.join("")}</div>` : ""}</div></td></tr>`;
     for (const k of ["v", "bq", "radio"]) if (r[k] != null) prev[k] = r[k];
-    for (const n of r.notas || []) h += `<tr class="nota${i === aqui ? " aqui" : ""}"><td><span${(r.cn || []).includes(n) ? ' class="cs"' : ""}>${esc(n)}</span></td></tr>`;
+    for (const n of r.notas || []) h += `<tr class="nota"><td><span${(r.cn || []).includes(n) ? ' class="cs"' : ""}>${esc(n)}</span></td></tr>`;
   });
   return h + "</tbody>";
 }
@@ -182,17 +185,13 @@ function estadoHtml(x, dec) {
   return `<span class="dl-res ${e}">${NOMBRE_ESTADO[e]}</span>${dec ? '<span class="dl-rev">revisada</span>' : ""}`;
 }
 
-/** Casilla de selección (solo mientras se selecciona). */
-const casilla = (x) =>
-  vistaDltv.sel ? `<input type="checkbox" class="dl-ck" tabindex="-1" aria-label="Seleccionar la LTV ${esc(x.cod)}"${vistaDltv.sel.has(x.cod) ? " checked" : ""}>` : "";
-
 /** LTV que sigue a la posición actual cuando el tren no está dentro de ninguna (raya encima). */
 let proxima = null;
 
-/** Atributos de la fila de una LTV: todas se pueden tocar (revisar o seleccionar). */
+/** Atributos de la fila de una LTV: todas se pueden tocar para revisarlas. */
 function filaAttrs(x, e, aq, extra = "") {
-  const sel = vistaDltv.sel?.has(x.cod), pos = x === proxima && extra !== "por";
-  return `class="${extra}${aq ? " aqui" : ""}${pos ? " pos-antes" : ""} dl-${e} rvx${sel ? " sel" : ""}" data-a="${x.pkai ?? ""}" data-cod="${esc(x.cod)}" title="${vistaDltv.sel ? "Toca para marcarla" : "Toca para cambiar su estado"}"`;
+  const pos = x === proxima && extra !== "por";
+  return `class="${extra}${aq ? " aqui" : ""}${pos ? " pos-antes" : ""} dl-${e} rvx" data-a="${x.pkai ?? ""}" data-cod="${esc(x.cod)}" title="Toca para cambiar su estado"`;
 }
 
 // Teléfono: cada LTV en una tarjeta con todos sus datos.
@@ -204,7 +203,7 @@ function dltvMovil(lista, d, dec) {
     const dudas = (x.ev || []).filter((e) => e.startsWith("a revisar")).map((e) => e.replace(/^a revisar:\s*/, ""));
     const dato = (lab, v) => (v ? `<span><i>${lab}</i> ${v}</span>` : "");
     h += `<tr ${filaAttrs(x, e, aq, "dm")}><td><div class="dm-g">`;
-    h += `<div class="dm-1">${casilla(x)}${estadoHtml(x, dx)}${x.va ? " " + cuadroViaHtml(x.va, false) : ""}${x.csv ? ' <span class="cs">CSV</span>' : ""}<span class="vm dm-v">${esc(dx?.decision === "aplica" ? dx.v : x.vel)}</span></div>`;
+    h += `<div class="dm-1">${estadoHtml(x, dx)}${x.va ? " " + cuadroViaHtml(x.va, false) : ""}${x.csv ? ' <span class="cs">CSV</span>' : ""}<span class="vm dm-v">${esc(dx?.decision === "aplica" ? dx.v : x.vel)}</span></div>`;
     h += `<div class="dm-2">${dato("Km ruta", x.pkai != null ? `<b>${nf(x.pkai)} → ${nf(x.pkaf)}</b>` : "")}${dato("Línea", esc(x.lin || ""))}${dato("Vía", x.via ? `<b>${esc(x.via)}</b>${x.via_txt ? " " + esc(x.via_txt) : ""}` : "")}${dato("PK", `${nf(x.pki, 3)} → ${nf(x.pkf, 3)}`)}</div>`;
     if (x.tray?.length) h += `<div class="dm-t">${esc(x.tray.join(" – "))}</div>`;
     if (x.mot) h += `<div class="dm-m">${esc(x.mot)}</div>`;
@@ -233,16 +232,33 @@ function ltvManuales(ruta, d) {
   return `<div class="ltvm">${filas}</div>`;
 }
 
-/** Barra de la selección múltiple: cuántas hay marcadas y a qué estado se pasan. */
-function pintarSeleccion(lista) {
-  const el = $("dl-sel"), sel = vistaDltv.sel;
-  el.hidden = !sel;
+/**
+ * Selección múltiple en una ventana superpuesta (v0.27.2): filtros, cuántas hay marcadas, a qué
+ * estado se pasan y la lista de las que se ven, cada una con su casilla. Se cierra con la X.
+ */
+function pintarSeleccion(lista, chips, d, dec) {
+  const sel = vistaDltv.sel;
+  $("dlsel").hidden = !sel;
   if (!sel) return;
   const n = sel.size, todas = lista.length > 0 && lista.every((x) => sel.has(x.cod)), no = n ? "" : " disabled";
-  el.innerHTML =
-    `<div class="dl-sel-1"><span><b>${n}</b> ${n === 1 ? "marcada" : "marcadas"}</span><button data-dlsel="todas">${todas ? "Desmarcar todas" : "Todas"}</button><button data-dlsel="fin" class="dl-sel-fin">Terminar</button></div>` +
+  $("dl-sel").innerHTML =
+    `<div class="dlc-2" role="group" aria-label="Ver las LTV por estado">${chips}</div>` +
+    `<div class="dl-sel-1"><span><b>${n}</b> ${n === 1 ? "marcada" : "marcadas"}</span><button data-dlsel="todas">${todas ? "Desmarcar" : "Todas"}</button></div>` +
     `<div class="dl-sel-2"><span>Pasar a</span><button data-dlsel="ap"${no}><span class="dl-res ap">Aplica</span></button><button data-dlsel="no"${no}><span class="dl-res no">No aplica</span></button><button data-dlsel="quitar"${no}>DLTV</button></div>` +
     (vistaDltv.msg ? `<div class="dl-sel-m" role="status">${esc(vistaDltv.msg)}</div>` : "");
+  const dentro = (x) => x.pkai != null && d >= Math.min(x.pkai, x.pkaf) - 1e-6 && d <= Math.max(x.pkai, x.pkaf) + 1e-6;
+  const item = (x) => {
+    const dx = dec(x), e = estadoLtv(x, dx), on = sel.has(x.cod);
+    const km = x.pkai != null ? `Km ${nf(x.pkai)} → ${nf(x.pkaf)}` : "Sin km en la ruta";
+    return (
+      `<label class="dlsel-it dl-${e}${on ? " on" : ""}${dentro(x) ? " aqui" : ""}"><input type="checkbox" class="dl-ck" data-dlck="${esc(x.cod)}"${on ? " checked" : ""}>` +
+      `<span class="dlsel-g"><span class="dlsel-1">${estadoHtml(x, dx)}${x.va ? " " + cuadroViaHtml(x.va, false) : ""}${x.csv ? ' <span class="cs">CSV</span>' : ""}<span class="vm">${esc(dx?.decision === "aplica" ? dx.v : x.vel)}</span></span>` +
+      `<span class="dlsel-2"><b>${km}</b>${x.via ? ` · vía ${esc(x.via)}` : ""}${x.tray?.length ? ` · ${esc(x.tray.join(" – "))}` : ""}</span></span></label>`
+    );
+  };
+  $("dlsel-l").innerHTML = lista.length
+    ? lista.map(item).join("")
+    : `<p class="dl-vacio">Ninguna LTV ${vistaDltv.filtro ? `«${NOMBRE_ESTADO[vistaDltv.filtro]}»` : ""} en este DLTV.</p>`;
 }
 
 function pintarDltv(ruta, d) {
@@ -252,7 +268,7 @@ function pintarDltv(ruta, d) {
   if (!DL) {
     vistaDltv.sel = null;
     $("dl-cab").innerHTML = "";
-    $("dl-sel").hidden = true;
+    $("dlsel").hidden = true;
     $("dl").innerHTML = '<tbody><tr><td style="padding:14px">Esta ruta no tiene documento de LTV cruzado.</td></tr></tbody>';
     return;
   }
@@ -264,15 +280,16 @@ function pintarDltv(ruta, d) {
   // en el orden de la ruta.
   const chip = (k, txt, cuenta) =>
     `<button class="dlc-n${vistaDltv.filtro === k ? " on" : ""}" data-filtro="${k}" aria-pressed="${vistaDltv.filtro === k}">${txt}<b>${cuenta}</b></button>`;
+  const chips = chip("", '<span class="dlc-tx">Todas</span>', DL.ltv.length) + ESTADOS_LTV.map(([k, t]) => chip(k, `<span class="dl-res ${k}">${t}</span>`, n[k])).join("");
   $("dl-cab").innerHTML =
     `<div class="dlc-1"><b>DLTV nº ${esc(DL.numero || "?")}</b><span>semana ${fecha(DL.desde)} – ${fecha(DL.hasta)}</span></div>` +
-    `<div class="dlc-2" role="group" aria-label="Ver las LTV por estado">${chip("", '<span class="dlc-tx">Todas</span>', DL.ltv.length)}${ESTADOS_LTV.map(([k, t]) => chip(k, `<span class="dl-res ${k}">${t}</span>`, n[k])).join("")}</div>`;
+    `<div class="dlc-2" role="group" aria-label="Ver las LTV por estado">${chips}</div>`;
   const lista = ltvVisibles(ruta);
   // Posición actual, en el color de la hoja: las LTV en las que está el tren; si no está en
   // ninguna, una raya encima de la siguiente.
   const dentro = (x) => x.pkai != null && d >= Math.min(x.pkai, x.pkaf) - 1e-6 && d <= Math.max(x.pkai, x.pkaf) + 1e-6;
   proxima = lista.some(dentro) ? null : lista.find((x) => x.pkai != null && Math.min(x.pkai, x.pkaf ?? x.pkai) > d) || null;
-  pintarSeleccion(lista);
+  pintarSeleccion(lista, chips, d, dec);
   const vacio = (cols) => `<tbody><tr><td colspan="${cols}" class="dl-vacio">Ninguna LTV ${vistaDltv.filtro ? `«${NOMBRE_ESTADO[vistaDltv.filtro]}»` : ""} en este DLTV.</td></tr></tbody>`;
   if (movil()) return void ($("dl").innerHTML = lista.length ? dltvMovil(lista, d, dec) : vacio(1));
   // Tablet: siete columnas que caben en el ancho (Joan no quiere desplazamiento lateral). Lo que
@@ -287,7 +304,7 @@ function pintarDltv(ruta, d) {
     const dx = dec(x), e = estadoLtv(x, dx);
     const aq = x.pkai != null && d >= Math.min(x.pkai, x.pkaf) - 1e-6 && d <= Math.max(x.pkai, x.pkaf) + 1e-6;
     const dudas = (x.ev || []).filter((e) => e.startsWith("a revisar")).map((e) => e.replace(/^a revisar:\s*/, ""));
-    h += `<tr ${filaAttrs(x, e, aq)}><td>${casilla(x)}${estadoHtml(x, dx)}${x.va ? " " + cuadroViaHtml(x.va, false) : ""}${x.vig === "declarada" ? `<small>${fecha(x.desde)} – ${fecha(x.hasta)}</small>` : ""}${x.hor ? `<small>${esc(x.hor)}</small>` : ""}</td>`;
+    h += `<tr ${filaAttrs(x, e, aq)}><td>${estadoHtml(x, dx)}${x.va ? " " + cuadroViaHtml(x.va, false) : ""}${x.vig === "declarada" ? `<small>${fecha(x.desde)} – ${fecha(x.hasta)}</small>` : ""}${x.hor ? `<small>${esc(x.hor)}</small>` : ""}</td>`;
     h += `<td><b class="km">${x.pkai != null ? nf(x.pkai) + " → " + nf(x.pkaf) : "–"}</b><small>${x.lin ? "L " + esc(x.lin) + " · " : ""}PK ${nf(x.pki, 3)} → ${nf(x.pkf, 3)}</small></td>`;
     h += `<td title="${esc(x.via_txt || "")}"><b>${esc(x.via || "")}</b><small>${esc(x.via_txt || "")}</small></td>`;
     h += `<td class="ce"><span class="vm">${esc(dx?.decision === "aplica" ? dx.v : x.vel)}</span>${x.csv ? '<span class="cs">CSV</span>' : ""}</td><td>${esc((x.tray || []).join(" – "))}</td>`;
@@ -370,7 +387,7 @@ function pintarVme(c) {
 /** Lleva la tabla visible a la fila de la posición actual. */
 export function irAqui(d) {
   const dl = pestana === "dltv", w = $(dl ? "dl-w" : "hj-w");
-  let r = document.querySelector((dl ? "#dl" : "#tb") + " tr.aqui");
+  let r = document.querySelector(dl ? "#dl tr.aqui" : "#tb tr.pos-antes, #tb tr.pos-despues");
   if (!r && dl) r = [...document.querySelectorAll("#dl tr[data-a]")].find((x) => parseFloat(x.dataset.a) >= d);
   if (r) w.scrollTop = r.offsetTop - w.clientHeight / 3;
 }

@@ -191,7 +191,10 @@ function ponerTf(abrir) {
 
 function mostrar(v) {
   vista = v;
-  if (v !== "datos") vistaDltv.sel = null;
+  if (v !== "datos") {
+    vistaDltv.sel = null;
+    $("dlsel").hidden = true;
+  }
   ponerFicha(false);
   ponerTf(false);
   for (const k of ["marcha", "datos", "ajustes"]) $("v-" + k).hidden = k !== v;
@@ -482,9 +485,25 @@ function iniciarRevision() {
     if (s) return accionSeleccion(s.dataset.dlsel);
     const r = e.target.closest("#dl [data-cod]");
     if (!r || e.target.closest("button")) return;
-    if (!vistaDltv.sel) return abrirRevision(r.dataset.cod);
-    const c = r.dataset.cod;
-    vistaDltv.sel.has(c) ? vistaDltv.sel.delete(c) : vistaDltv.sel.add(c);
+    abrirRevision(r.dataset.cod);
+  });
+  // Ventana de la selección múltiple: filtros, acciones y casillas; la X o el fondo la cierran.
+  $("dlsel").addEventListener("click", (e) => {
+    if (!ruta) return;
+    if (e.target === $("dlsel")) return accionSeleccion("fin");
+    const f = e.target.closest("[data-filtro]");
+    if (f) {
+      vistaDltv.filtro = f.dataset.filtro === vistaDltv.filtro ? "" : f.dataset.filtro;
+      vistaDltv.msg = "";
+      return pintarDatos(ruta, pos.d);
+    }
+    const s = e.target.closest("[data-dlsel]");
+    if (s) accionSeleccion(s.dataset.dlsel);
+  });
+  $("dlsel").addEventListener("change", (e) => {
+    const c = e.target.dataset?.dlck;
+    if (!ruta || !c || !vistaDltv.sel) return;
+    e.target.checked ? vistaDltv.sel.add(c) : vistaDltv.sel.delete(c);
     vistaDltv.msg = "";
     pintarDatos(ruta, pos.d);
   });
