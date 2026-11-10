@@ -6,6 +6,7 @@ import { Ruta, validar } from "./ruta.js";
 import { MODOS, Posicion, metrosPorPixel } from "./posicion.js";
 import { cvms, datos, dltvs, firmaRuta, geos, obsoleta, persistir, prefs, recorridos, rutas, telefonemas, tramos } from "./almacen.js";
 import * as TF from "./telefonemas.js";
+import { CODIGOS, codigoDe, POR_CODIGO, textoLiteral, tipoDe } from "./codigos_tf.js";
 import { AVISO_DIAS, caducados, caducaPronto, diasRestantes, dltvAntiguo, DIAS, rutaAntigua } from "./retencion.js";
 import { htmlLegal, SECCIONES } from "./legal.js";
 import { cargarPictos, deSerie, picDe, restaurar as restaurarPictos } from "./pictos.js";
@@ -230,50 +231,143 @@ const radio = (n) => document.querySelector(`input[name=${n}]:checked`)?.value;
 const ponerRadio = (n, v) => {
   for (const r of document.querySelectorAll(`input[name=${n}]`)) r.checked = r.value === v;
 };
+/** Código elegido ("" = sin código) y tipo de la marcha que le corresponde. */
+const codTf = () => ($("tf-form").dataset.manual === "1" ? "LTV3" : $("tf-cod").value);
 function tipoTf() {
-  return radio("tf-tipo") || "ltv";
+  return tipoDe(codTf(), radio("tf-tipo") === "suprime");
 }
+/** Los de solo registro, SAP y ABA se escriben a mano (el texto de la consigna como plantilla). */
+const aMano = (cod) => !POR_CODIGO[cod] || POR_CODIGO[cod].tipo === "registro" || cod === "SAP" || cod === "ABA";
+
+// Campos de cada tipo: [clave, etiqueta]; los que no salen, ocultos.
+const CAMPOS_TF = {
+  ltv: { v: "Velocidad", via: "Vía(s)", pki: "PK inicio", pkf: "PK final", esti: "Estación inicio", estf: "Estación final", causa: "Causa" },
+  suprime: { v: "Velocidad", via: "Vía(s)", pki: "PK inicio", pkf: "PK final", esti: "Estación inicio", estf: "Estación final" },
+  vista: { v: "Sin exceder de (si lo dice)", pki: "PK inicio", pkf: "PK final", esti: "Estación inicio", estf: "Estación final", causa: "Motivo" },
+  ilt: { pki: "PK", via: "Vía(s)", esti: "Estación anterior al PK", estf: "Estación siguiente" },
+  ate: { v: "Velocidad máxima", estf: "Hasta la estación" },
+  com: { v: "Velocidad máxima", causa: "Causa" },
+  parada: { pki: "PK (en plena vía)", esti: "Estación o apeadero", causa: "Motivo" },
+  incidencia: { pki: "PK", esti: "Estación" },
+  registro: {},
+};
+const CAMPOS_COD = {
+  EAC14: { esti: "Estación" },
+  SAP: { pki: "PK (si lo dice)", esti: "Estación (si lo dice)" },
+  ABA: { pki: "PK (si lo dice)", esti: "Estación (si lo dice)" },
+};
+const camposDe = (tipo, cod) => CAMPOS_COD[cod] || CAMPOS_TF[tipo] || {};
 
 /** Los campos tal como están en el formulario. */
 function camposTf() {
-  const tipo = tipoTf(), lugar = tipo === "ltv" || tipo === "suprime";
+  const tipo = tipoTf(), cod = codTf(), cs = camposDe(tipo, cod), val = (k, id) => (k in cs ? $(id).value.trim() || null : null);
+  const mano = aMano(cod), msg = $("tf-msg").value.trim();
   return {
     tipo,
+    codigo: cod,
+    emite: POR_CODIGO[cod]?.de || null,
     numero: Number($("tf-num").value),
     hora: $("tf-hora").value,
     emisor: $("tf-emisor").value.trim(),
     receptor: $("tf-receptor").value.trim(),
     firma: $("tf-firma").value.trim(),
-    v: lugar ? Number($("tf-v").value) || null : null,
-    via: lugar ? $("tf-via").value.trim() || null : null,
-    pk_ini: lugar ? $("tf-pki").value.trim() || null : null,
-    pk_fin: lugar ? $("tf-pkf").value.trim() || null : null,
-    est_ini: lugar ? $("tf-esti").value || null : null,
-    est_fin: lugar ? $("tf-estf").value || null : null,
-    causa: tipo === "ltv" ? $("tf-causa").value.trim() || null : null,
+    v: "v" in cs ? Number($("tf-v").value) || null : null,
+    via: val("via", "tf-via"),
+    pk_ini: val("pki", "tf-pki"),
+    pk_fin: val("pkf", "tf-pkf"),
+    est_ini: val("esti", "tf-esti"),
+    est_fin: val("estf", "tf-estf"),
+    causa: val("causa", "tf-causa"),
     senalizada: tipo === "ltv" ? radio("tf-sen") !== "no" : null,
     csv: tipo === "ltv" && radio("tf-csvr") === "si",
-    mensaje: $("tf-msg").value.trim(),
+    texto_tf: mano ? msg || null : null,
+    mensaje: mano ? "" : msg,
+    pendiente: $("tf-pend").checked,
   };
 }
 
-/** Estación final: solo las que van después de la inicial. */
+/** Estación final: solo las que van después de la inicial (en un ATE, las que quedan por delante). */
 function estacionesFinTf() {
   const est = TF.estaciones(ruta.p), ini = $("tf-esti").value, actual = $("tf-estf").value;
   const k = ini ? est.findIndex((e) => e.nom === ini) : -1;
-  const lista = k >= 0 ? est.slice(k + 1) : est;
+  const lista = tipoTf() === "ate" ? est.filter((e) => e.pka + TF.MARGEN_ESTACION_KM > pos.d) : k >= 0 ? est.slice(k + 1) : est;
   $("tf-estf").innerHTML = `<option value="">—</option>` + lista.map((e) => `<option value="${esc(e.nom)}">${esc(e.nom)}</option>`).join("");
   $("tf-estf").value = lista.some((e) => e.nom === actual) ? actual : "";
 }
 
+/** Qué campos salen y con qué nombre, según el código (y si es una LTV establecida o suprimida). */
+function camposVisiblesTf() {
+  const tipo = tipoTf(), cod = codTf(), cs = camposDe(tipo, cod);
+  const ids = { v: "tf-v", via: "tf-via", pki: "tf-pki", pkf: "tf-pkf", esti: "tf-esti", estf: "tf-estf", causa: "tf-causa" };
+  for (const [k, id] of Object.entries(ids)) {
+    const lab = $(id).closest("label");
+    lab.hidden = !(k in cs);
+    if (k in cs) lab.querySelector("span").textContent = cs[k];
+  }
+  for (const d of $("tf-form").querySelectorAll(".tf-lugar .tf-2")) d.hidden = [...d.children].every((x) => x.hidden);
+  const c = POR_CODIGO[cod];
+  $("tf-sit").textContent = c ? `${c.sit} · ${c.de === "maq" ? "lo emite el maquinista" : "lo emite el Responsable de Circulación"}` : "";
+  $("tf-msg-l").textContent = aMano(cod) ? "Texto del telefonema" : "Información adicional";
+  $("tf-msg").placeholder = aMano(cod) ? "El texto del telefonema" : "Otras informaciones a tener en cuenta";
+  $("tf-form").querySelector(".tf-es").hidden = cod !== "LTV3" || $("tf-form").dataset.manual === "1";
+  $("tf-form").dataset.tipo = tipo;
+  $("tf-form").dataset.cod = cod;
+}
+
+/**
+ * Al cambiar de código en un telefonema nuevo: número, emisor y receptor según quién lo emite (los
+ * del maquinista llevan su propia secuencia del día) y, en los que se escriben a mano, el texto
+ * de la consigna como plantilla. Lo que el maquinista ya ha cambiado se respeta.
+ */
+function proponerTf(antes) {
+  const f = $("tf-form"), cod = codTf(), de = POR_CODIGO[cod]?.de || "rc";
+  const plantilla = (c) => (aMano(c) && POR_CODIGO[c] ? POR_CODIGO[c].f : "");
+  const msg = $("tf-msg").value.trim();
+  if (!msg || msg === plantilla(antes)) $("tf-msg").value = plantilla(cod);
+  if ($("tf-id").value || (antes !== undefined && (POR_CODIGO[antes]?.de || "rc") === de)) return;
+  const hoy = tfs.filter((x) => !x.manual && x.fecha === new Date().toISOString().slice(0, 10));
+  const deEste = hoy.filter((x) => (x.emite === "maq") === (de === "maq"));
+  const tren = `Maquinista ${ruta.tren.numero}`, rc = prefs.leer("tf.emisor", "");
+  const toca = (id, v) => {
+    if (!f.dataset["toca" + id.slice(3)]) $(id).value = v;
+  };
+  toca("tf-num", Math.min(TF.NUM_MAX, Math.max(0, ...deEste.map((x) => x.numero).filter(Number.isFinite)) + 1));
+  toca("tf-emisor", de === "maq" ? tren : rc);
+  toca("tf-receptor", de === "maq" ? rc : tren);
+}
+
 function formTf(ev) {
+  if (ev?.target && ["tf-num", "tf-emisor", "tf-receptor"].includes(ev.target.id) && ev.type === "input") $("tf-form").dataset["toca" + ev.target.id.slice(3)] = "1";
+  if (ev?.target?.id === "tf-cod" && ev.type === "change") {
+    proponerTf($("tf-form").dataset.cod);
+    estacionesFinTf();
+  }
+  camposVisiblesTf();
   const t = camposTf();
-  $("tf-form").dataset.tipo = t.tipo;
   if (ev?.target?.id === "tf-esti") estacionesFinTf();
+  const lit = textoLiteral(t, ruta.tren.numero);
+  $("tf-lit").innerHTML = lit ? `<i>Texto del telefonema</i>${esc(lit)}` : "";
   const el = $("tf-donde");
   el.className = "tf-r";
   el.textContent = "";
-  if (t.tipo !== "ltv" && t.tipo !== "suprime") return;
+  if (["ilt", "parada", "incidencia"].includes(t.tipo)) {
+    if (!t.pk_ini && !t.est_ini) return;
+    const a = TF.punto(t, ruta.p, pos.d);
+    if (a?.error) {
+      el.className = "tf-r mal";
+      el.textContent = may(a.error);
+    } else if (a) {
+      const km = a.pka - pos.d;
+      el.textContent = km < -0.05 ? "Ya pasado" : `A ${dmTf(km)}${a.entre?.length ? ` · entre ${a.entre.join(" y ")}` : ""}`;
+    }
+    return;
+  }
+  if (t.tipo === "ate" || t.tipo === "com") {
+    const r = t.tipo === "ate" ? TF.tramoAte({ ...t, desde: { pka: desdeTf(t)?.pka ?? pos.d } }, ruta.p) : TF.tramoCom({ desde: { pka: desdeTf(t)?.pka ?? pos.d } }, ruta.p);
+    if (r) el.textContent = `Desde donde está el tren · ${dmTf(r[1] - r[0])}`;
+    return;
+  }
+  if (t.tipo !== "ltv" && t.tipo !== "suprime" && t.tipo !== "vista") return;
   if (!t.pk_ini && !t.pk_fin && !t.est_ini) return;
   const l = TF.lugar(t, ruta.p, pos.d);
   if (l.error) {
@@ -302,19 +396,38 @@ function formTf(ev) {
 }
 const dmTf = (km) => (km >= 1 ? `${km.toFixed(1).replace(".", ",")} km` : `${Math.round(km * 1000)} m`);
 
+/** Un ATE o un COM rige desde donde estaba el tren al recibirlo (al editarlo, no se mueve). */
+function desdeTf(t) {
+  const viejo = tfs.find((x) => x.id === $("tf-id").value);
+  return viejo && viejo.tipo === t.tipo && viejo.desde?.pka != null ? viejo.desde : null;
+}
+
+function opcionesCodTf() {
+  const op = (c) => `<option value="${c.cod}">${c.cod} · ${esc(c.sit)}</option>`;
+  return (
+    `<optgroup label="Del Responsable de Circulación">${CODIGOS.filter((c) => c.de === "rc").map(op).join("")}</optgroup>` +
+    `<optgroup label="Del maquinista">${CODIGOS.filter((c) => c.de === "maq").map(op).join("")}</optgroup>` +
+    `<option value="">Otro (sin código)</option>`
+  );
+}
+
 function abrirFormTf(t = null, { manual = false } = {}) {
   manual = manual || !!t?.manual;
-  $("tf-form").dataset.manual = manual ? "1" : "";
+  const f = $("tf-form");
+  f.dataset.manual = manual ? "1" : "";
+  for (const k of Object.keys(f.dataset)) if (k.startsWith("toca")) delete f.dataset[k];
   $("tf-titulo").textContent = manual ? (t ? "Editar LTV añadida a mano" : "Añadir una LTV a mano") : t ? "Editar telefonema" : "Nuevo telefonema";
-  const hoy = tfs.filter((x) => !x.manual && x.fecha === new Date().toISOString().slice(0, 10));
-  const ult = tfs[tfs.length - 1];
+  const ult = [...tfs].reverse().find((x) => !x.manual && x.emite !== "maq");
   $("tf-id").value = t?.id || "";
-  $("tf-num").value = t?.numero ?? Math.min(99, Math.max(0, ...hoy.map((x) => x.numero)) + 1);
+  if (!$("tf-cod").options.length) $("tf-cod").innerHTML = opcionesCodTf();
+  $("tf-cod").value = t ? codigoDe(t) : "LTV3";
+  f.dataset.cod = $("tf-cod").value;
+  $("tf-num").value = t?.numero ?? "";
   $("tf-hora").value = t?.hora || hhmm();
   $("tf-emisor").value = t?.emisor ?? ult?.emisor ?? prefs.leer("tf.emisor", "");
-  $("tf-receptor").value = t?.receptor ?? ult?.receptor ?? `Maquinista ${ruta.tren.numero}`;
+  $("tf-receptor").value = t?.receptor ?? `Maquinista ${ruta.tren.numero}`;
   $("tf-firma").value = t?.firma ?? ult?.firma ?? "";
-  ponerRadio("tf-tipo", manual ? "ltv" : t && TF.TIPOS[t.tipo] && ["ltv", "suprime", "registro"].includes(t.tipo) ? t.tipo : t ? "registro" : "ltv");
+  ponerRadio("tf-tipo", t?.tipo === "suprime" ? "suprime" : "ltv");
   $("tf-v").value = t?.v || "";
   $("tf-via").value = t?.via || "";
   $("tf-pki").value = t?.pk_ini || "";
@@ -328,14 +441,19 @@ function abrirFormTf(t = null, { manual = false } = {}) {
   $("tf-causa").value = t?.causa || "";
   ponerRadio("tf-sen", t?.senalizada === false ? "no" : "si");
   ponerRadio("tf-csvr", t?.csv ? "si" : "no");
-  $("tf-msg").value = t?.mensaje || "";
+  $("tf-msg").value = (t ? (t.texto_tf ?? t.mensaje) : "") || "";
+  $("tf-pend").checked = !!t?.pendiente;
+  if (!t && !manual) {
+    $("tf-num").value = "";
+    proponerTf(undefined);
+  }
   $("tf-err").textContent = "";
   $("tf-guardar").textContent = t ? "Guardar cambios" : "Guardar";
   telefonemas.listar().then((l) => {
     $("tf-emisores").innerHTML = [...new Set(l.map((x) => x.emisor).filter(Boolean))].map((n) => `<option value="${esc(n)}">`).join("");
   });
   // Ventana emergente (v0.20, Joan), como la de revisar una LTV.
-  $("tf-form").hidden = false;
+  f.hidden = false;
   $("tf-modal").hidden = false;
   formTf();
   $("tf-modal").querySelector(".modal-c").scrollTop = 0;
@@ -527,7 +645,7 @@ async function guardarTf(ev) {
   const c = camposTf();
   const viejo = tfs.find((x) => x.id === $("tf-id").value);
   const manual = $("tf-form").dataset.manual === "1";
-  if (manual) Object.assign(c, { tipo: "ltv", numero: null, hora: null, emisor: "", receptor: "", firma: "" });
+  if (manual) Object.assign(c, { tipo: "ltv", codigo: null, emite: null, numero: null, hora: null, emisor: "", receptor: "", firma: "", texto_tf: null, pendiente: false });
   const t = {
     id: viejo?.id || new Date().toISOString(),
     manual,
@@ -539,12 +657,14 @@ async function guardarTf(ev) {
     hasta: null,
     anulado: viejo?.anulado || null,
   };
+  // ATE y COM: desde donde está el tren al recibirlo (los telefonemas se dan con el tren parado).
+  if (t.tipo === "ate" || t.tipo === "com") t.desde = desdeTf(t) || { texto: "posición del tren", pka: Math.round(pos.d * 1000) / 1000 };
   const e = TF.errores(t, ruta.p, pos.d);
   if (e.length) {
     $("tf-err").textContent = "Falta o no cuadra: " + e.join("; ") + ".";
     return;
   }
-  if (t.tipo === "ltv" || t.tipo === "suprime") {
+  if (t.tipo === "ltv" || t.tipo === "suprime" || t.tipo === "vista") {
     const l = TF.lugar(t, ruta.p, pos.d);
     t.desde = l.desde;
     t.hasta = l.hasta;
@@ -553,8 +673,8 @@ async function guardarTf(ev) {
       t.ltvs = co.map((x) => x.id);
       t.ltv_txt = co.map((x) => x.texto).join(" / ");
     }
-  }
-  if (t.emisor) prefs.escribir("tf.emisor", t.emisor);
+  } else if (["ilt", "parada", "incidencia"].includes(t.tipo)) t.desde = TF.punto(t, ruta.p, pos.d);
+  if (t.emisor && t.emite !== "maq") prefs.escribir("tf.emisor", t.emisor);
   await telefonemas.guardar(t);
   await aplicarTf();
   cerrarFormTf();
@@ -569,18 +689,19 @@ function pintarTf() {
   $("tf-lista").innerHTML = lista.length
     ? lista
         .map((t) => {
-          const r = TF.rango(t.desde, t.hasta && t.hasta.pka != null ? t.hasta : null);
-          const ini = t.tipo === "incidencia" ? t.desde?.pka : r?.[0], fin = t.tipo === "incidencia" ? t.desde?.pka : r?.[1];
+          const pt = ["ilt", "parada", "incidencia"].includes(t.tipo);
+          const r = t.tipo === "ate" ? TF.tramoAte(t, ruta.p) : t.tipo === "com" ? TF.tramoCom(t, ruta.p) : TF.rango(t.desde, t.hasta && t.hasta.pka != null ? t.hasta : null);
+          const ini = pt ? t.desde?.pka : r?.[0], fin = pt ? t.desde?.pka : r?.[1];
           let est = "";
           if (t.anulado) est = `<span class="tf-chip an">ANULADO ${esc(t.anulado.hora)}${t.anulado.por ? " · nº " + esc(t.anulado.por) : ""}</span>`;
           else if (t.tipo === "suprime") est = `<span class="tf-chip en">EN VIGOR</span>`;
           else if (ini != null && pos.d < ini) est = `<span class="tf-chip">a ${dmTf(ini - pos.d)}</span>`;
-          else if (fin != null && pos.d <= fin + 0.001 && t.tipo !== "incidencia") est = `<span class="tf-chip en">EN CURSO</span>`;
+          else if (fin != null && pos.d <= fin + 0.001 && !pt) est = `<span class="tf-chip en">EN CURSO</span>`;
           else if (ini != null) est = `<span class="tf-chip pas">pasado</span>`;
           const presc = t.tipo === "registro" ? "" : `<div class="tf-presc">${esc(TF.resumen(t))}</div>`;
           return `<article class="tf-it${t.anulado ? " anulado" : ""}" data-id="${esc(t.id)}">
-            <header><b>Nº ${t.numero}</b><span>${esc(t.hora)}</span>${est}</header>${presc}
-            <dl><dt>De</dt><dd>${esc(t.emisor || "—")}</dd><dt>A</dt><dd>${esc(t.receptor || "—")}</dd>${t.mensaje ? `<dt>Mensaje</dt><dd>${esc(t.mensaje)}</dd>` : ""}<dt>Firma</dt><dd>${esc(t.firma || "—")}</dd></dl>
+            <header>${codigoDe(t) ? `<span class="tf-cod">${esc(codigoDe(t))}</span>` : ""}<b>Nº ${t.numero}</b><span>${esc(t.hora)}</span>${est}${t.pendiente && !t.anulado ? `<span class="tf-chip pe">PENDIENTE</span>` : ""}</header>${presc}
+            <dl><dt>De</dt><dd>${esc(t.emisor || "—")}</dd><dt>A</dt><dd>${esc(t.receptor || "—")}</dd>${TF.texto(t) ? `<dt>Texto</dt><dd>«${esc(TF.texto(t))}»</dd>` : ""}${t.mensaje ? `<dt>${TF.texto(t) ? "Inf. adicional" : "Mensaje"}</dt><dd>${esc(t.mensaje)}</dd>` : ""}<dt>Firma</dt><dd>${esc(t.firma || "—")}</dd></dl>
             <div class="tf-acc"><button data-tf="editar">Editar</button><button data-tf="anular">${t.anulado ? "Quitar anulación" : "Anular"}</button><button data-tf="borrar" class="peligro">Borrar</button></div>
           </article>`;
         })

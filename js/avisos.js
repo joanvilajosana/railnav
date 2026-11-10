@@ -146,6 +146,10 @@ export function textoVoz({ fase, e, metros }) {
       return num(d.v) ? `Curva a ${d.v}${en}` : `Nota de la hoja${en}`;
     case "cambio_linea":
       return `Cambio de línea${en}`;
+    case "tf_vista_inicio":
+      return `Marcha a la vista${en}`;
+    case "tf_incidencia":
+      return d.voz ? `${d.voz}${en}` : "";
     case "aviso_cvm":
       return `Aviso del cuadro de velocidades${num(d.v) ? `, ${d.v}` : ""}${en}, a revisar`;
     default:

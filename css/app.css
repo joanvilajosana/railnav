@@ -706,7 +706,7 @@ html,body{overflow-x:hidden;max-width:100%}
 .tf-2{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:14px}
 .tf-lugar,.tf-ltv{display:flex;flex-direction:column;gap:14px}
 .tf-form .tf-u input{width:auto;flex:1}
-.tf-form[data-tipo="registro"] .tf-lugar,.tf-form:not([data-tipo="ltv"]) .tf-ltv,.tf-form:not([data-tipo="registro"]) .tf-otro{display:none}
+.tf-form[data-tipo="registro"] .tf-lugar,.tf-form:not([data-tipo="ltv"]) .tf-ltv,.tf-form:not([data-cod="LTV3"]) .tf-es{display:none}
 #tf-donde:empty{display:none}
 #tf-donde{font-size:14px;line-height:1.35;padding:8px 10px;border-radius:10px;background:var(--in)}
 :is(#pop-tf,#tf-modal) .seg label{flex:1 1 0;min-width:0;font-size:14px;line-height:1.2;padding:6px 6px}
@@ -1296,3 +1296,14 @@ button.dlc-n.on{border-color:var(--ac);box-shadow:inset 0 0 0 1.5px var(--ac);ba
 .dlsel-2{font-size:14px;color:var(--gy);overflow-wrap:anywhere}
 .dlsel-2 b{color:var(--tx)}
 .dlsel-1 .vm{font-size:18px}
+/* v0.28.0: telefonemas con el código de la Consigna C 65/16, su texto literal y «pendiente» */
+.tf-form [hidden]{display:none!important}
+.tf-sit{margin-top:-8px;font-size:14px;font-weight:600;color:var(--gy)}
+.tf-sit:empty{display:none}
+.tf-lit{padding:10px 12px;border-radius:10px;border:1px solid var(--ln);background:var(--in);font-size:15px;line-height:1.4;color:var(--tx);white-space:pre-wrap}
+.tf-lit:empty{display:none}
+.tf-lit i{display:block;margin-bottom:2px;font-style:normal;font-size:12px;font-weight:700;color:var(--gy);text-transform:uppercase;letter-spacing:.05em}
+.tf-form label.tf-pend{flex-direction:row;align-items:center;gap:10px;min-height:46px;font-size:16px;color:var(--tx)}
+.tf-pend input{flex:none;width:24px!important;height:24px;min-height:0!important;margin:0;accent-color:var(--ac)}
+.tf-chip.pe{background:transparent;color:var(--tx);border-color:var(--tx)}
+.tf-it .tf-cod{font-size:15px;font-weight:800;color:var(--gy);margin-right:-4px}
