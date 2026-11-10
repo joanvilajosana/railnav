@@ -1,2 +1,2 @@
 // Versión de la app. Debe coincidir con VERSION en sw.js (lo comprueba app/tests).
-export const VERSION_APP = "0.27.0";
+export const VERSION_APP = "0.27.1";

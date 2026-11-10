@@ -186,10 +186,13 @@ function estadoHtml(x, dec) {
 const casilla = (x) =>
   vistaDltv.sel ? `<input type="checkbox" class="dl-ck" tabindex="-1" aria-label="Seleccionar la LTV ${esc(x.cod)}"${vistaDltv.sel.has(x.cod) ? " checked" : ""}>` : "";
 
+/** LTV que sigue a la posición actual cuando el tren no está dentro de ninguna (raya encima). */
+let proxima = null;
+
 /** Atributos de la fila de una LTV: todas se pueden tocar (revisar o seleccionar). */
 function filaAttrs(x, e, aq, extra = "") {
-  const sel = vistaDltv.sel?.has(x.cod);
-  return `class="${extra}${aq ? " aqui" : ""} dl-${e} rvx${sel ? " sel" : ""}" data-a="${x.pkai ?? ""}" data-cod="${esc(x.cod)}" title="${vistaDltv.sel ? "Toca para marcarla" : "Toca para cambiar su estado"}"`;
+  const sel = vistaDltv.sel?.has(x.cod), pos = x === proxima && extra !== "por";
+  return `class="${extra}${aq ? " aqui" : ""}${pos ? " pos-antes" : ""} dl-${e} rvx${sel ? " sel" : ""}" data-a="${x.pkai ?? ""}" data-cod="${esc(x.cod)}" title="${vistaDltv.sel ? "Toca para marcarla" : "Toca para cambiar su estado"}"`;
 }
 
 // Teléfono: cada LTV en una tarjeta con todos sus datos.
@@ -237,8 +240,8 @@ function pintarSeleccion(lista) {
   if (!sel) return;
   const n = sel.size, todas = lista.length > 0 && lista.every((x) => sel.has(x.cod)), no = n ? "" : " disabled";
   el.innerHTML =
-    `<div class="dl-sel-1"><span><b>${n}</b> ${n === 1 ? "marcada" : "marcadas"}</span><button data-dlsel="todas">${todas ? "Desmarcar todas" : "Marcar las que se ven"}</button><button data-dlsel="fin" class="dl-sel-fin">Terminar</button></div>` +
-    `<div class="dl-sel-2"><span>Pasar a</span><button data-dlsel="ap"${no}><span class="dl-res ap">Aplica</span></button><button data-dlsel="no"${no}><span class="dl-res no">No aplica</span></button><button data-dlsel="quitar"${no}>Lo que dice el DLTV</button></div>` +
+    `<div class="dl-sel-1"><span><b>${n}</b> ${n === 1 ? "marcada" : "marcadas"}</span><button data-dlsel="todas">${todas ? "Desmarcar todas" : "Todas"}</button><button data-dlsel="fin" class="dl-sel-fin">Terminar</button></div>` +
+    `<div class="dl-sel-2"><span>Pasar a</span><button data-dlsel="ap"${no}><span class="dl-res ap">Aplica</span></button><button data-dlsel="no"${no}><span class="dl-res no">No aplica</span></button><button data-dlsel="quitar"${no}>DLTV</button></div>` +
     (vistaDltv.msg ? `<div class="dl-sel-m" role="status">${esc(vistaDltv.msg)}</div>` : "");
 }
 
@@ -265,6 +268,10 @@ function pintarDltv(ruta, d) {
     `<div class="dlc-1"><b>DLTV nº ${esc(DL.numero || "?")}</b><span>semana ${fecha(DL.desde)} – ${fecha(DL.hasta)}</span></div>` +
     `<div class="dlc-2" role="group" aria-label="Ver las LTV por estado">${chip("", '<span class="dlc-tx">Todas</span>', DL.ltv.length)}${ESTADOS_LTV.map(([k, t]) => chip(k, `<span class="dl-res ${k}">${t}</span>`, n[k])).join("")}</div>`;
   const lista = ltvVisibles(ruta);
+  // Posición actual, en el color de la hoja: las LTV en las que está el tren; si no está en
+  // ninguna, una raya encima de la siguiente.
+  const dentro = (x) => x.pkai != null && d >= Math.min(x.pkai, x.pkaf) - 1e-6 && d <= Math.max(x.pkai, x.pkaf) + 1e-6;
+  proxima = lista.some(dentro) ? null : lista.find((x) => x.pkai != null && Math.min(x.pkai, x.pkaf ?? x.pkai) > d) || null;
   pintarSeleccion(lista);
   const vacio = (cols) => `<tbody><tr><td colspan="${cols}" class="dl-vacio">Ninguna LTV ${vistaDltv.filtro ? `«${NOMBRE_ESTADO[vistaDltv.filtro]}»` : ""} en este DLTV.</td></tr></tbody>`;
   if (movil()) return void ($("dl").innerHTML = lista.length ? dltvMovil(lista, d, dec) : vacio(1));
