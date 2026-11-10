@@ -36,7 +36,7 @@
   </div>
 </div>
 <div class="info" aria-live="polite">
-  <div class="ic ic-tren"><small>Tren</small><b id="in-tren">—</b><span id="in-ruta" class="ic-r"></span><button id="in-ficha" class="ic-tg" aria-expanded="false" aria-controls="pop-ficha" aria-label="Ver los datos del tren" title="Datos del tren" hidden></button></div>
+  <div class="ic ic-tren"><small>Tren</small><b id="in-tren">—</b><span id="in-ruta" class="ic-r"></span><span class="ic-od" id="in-od" hidden><span><i>Origen</i><span id="in-ori" class="od-v"></span></span><span><i>Destino</i><span id="in-des" class="od-v"></span></span></span><button id="in-ficha" class="ic-tg" aria-expanded="false" aria-controls="pop-ficha" aria-label="Ver los datos del tren" title="Datos del tren" hidden></button></div>
   <div class="ic ic-bq"><small>Bloqueo</small><b id="in-bq">—</b></div>
   <div class="ic ic-rd"><small><span class="larga">Radiotelefonía</span><span class="corta">Radio</span></small><b id="in-rd">—</b></div>
 </div>
@@ -192,7 +192,7 @@
    </div>
    <div id="t-cvm" hidden><div id="cv" class="cv"></div></div>
    <div id="t-dltv" hidden>
-    <div class="dl-top"><div class="hj-ley" id="dl-cab"></div><div class="dl-bts"><button id="dl-selb" class="dl-selb" data-dlsel="modo">Seleccionar</button><button class="ltvm-mas" data-ltvman="nueva">+ Añadir LTV</button></div></div>
+    <div class="dl-top"><div class="hj-ley" id="dl-cab"></div><div class="dl-bts"><button id="dl-selb" class="dl-selb dl-ico" data-dlsel="modo" aria-label="Seleccionar LTV" title="Seleccionar LTV"><svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3.5" y="3.5" width="17" height="17" rx="3.5"/><path d="M8 12.5l3 3 5.5-6.5"/></svg></button><button class="ltvm-mas dl-ico" data-ltvman="nueva" aria-label="Añadir LTV" title="Añadir LTV"><svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg></button></div></div>
     <div id="dl-sel" class="dl-sel" hidden></div>
     <div id="dl-man"></div>
     <div class="hj-w" id="dl-w"><table id="dl" class="hj dlc"></table></div>

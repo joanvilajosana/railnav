@@ -291,7 +291,8 @@ export function pintarMarcha(ruta, pos, { desvio: conDesvio = false, residuo = n
     s += `<rect x="16" y="318" width="${WL - 22}" height="5" rx="2" fill="var(--blu2)"/><rect x="16" y="318" width="${(WL - 22) * (1 - Math.min(m, 3000) / 3000)}" height="5" rx="2" fill="${c}"/>`;
   } else s += `<text x="16" y="302" font-size="24" font-weight="700" fill="var(--gy)">Sin más cambios</text>`;
   // Avisos próximos (el residuo va abajo de los pasados). En el iPad en vertical, en su cuadro.
-  const ev = soloVel ? [] : ruta.proximos(d, alcance), lista = ev.filter(enLista);
+  // En vertical la lista va en su cuadro, pero la línea de tiempo sigue necesitando los avisos.
+  const ev = ruta.proximos(d, alcance), lista = soloVel ? [] : ev.filter(enLista);
   if (soloVel) pintarProximos(ruta, d, null);
   else s += `<text x="14" y="343" font-size="11" font-weight="800" letter-spacing=".08em" fill="var(--gy)">PRÓXIMOS</text>`;
   if (!soloVel && !lista.length) s += `<text x="16" y="366" font-size="13" fill="var(--gy)">Ninguno en los próximos 3 km</text>`;

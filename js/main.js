@@ -96,6 +96,13 @@ function estado() {
   // trayecto se ven en la ficha, al abrir el desplegable.
   $("in-ficha").hidden = !ruta;
   $("in-ruta").textContent = "";
+  // iPad: el cuadro «Tren» es más ancho y lleva también el origen y el destino (v0.27.0).
+  $("in-od").hidden = !t;
+  if (t) {
+    $("in-ori").textContent = t.origen || "?";
+    $("in-des").textContent = t.destino || "?";
+    $("in-od").title = `${t.origen || "?"} → ${t.destino || "?"}`;
+  }
   // Cambios de radio y de bloqueo: en vez de ir a «Próximos» y «Pasados», el cuadro de arriba
   // parpadea (radio en el color de su pictograma, bloqueo en naranja) con «antes → después», desde
   // que se avisa hasta 500 m después del punto. Radio: solo el número del canal.
@@ -374,7 +381,7 @@ function abrirRevision(cod) {
   $("rev-v").classList.remove("mal");
   $("rev-vl").hidden = sinSitio;
   $("rev-si").disabled = sinSitio;
-  $("rev-si").title = sinSitio ? "No se sabe dónde cae en la ruta: si aplica, añádela con «+ Añadir LTV»" : "";
+  $("rev-si").title = sinSitio ? "No se sabe dónde cae en la ruta: si aplica, añádela con el botón + (Añadir LTV)" : "";
   $("rev-quitar").textContent = `Volver a «${delDltv}» (DLTV)`;
   $("rev-quitar").hidden = !dec;
   $("rev").hidden = false;

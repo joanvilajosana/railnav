@@ -16,6 +16,8 @@ const TI = {
   loco: '<path d="M3 16V9a2 2 0 0 1 2-2h10l5 5v4z"/><path d="M6 10h3v2.5H6zM11 10h3v2.5h-3z"/><circle cx="7" cy="18" r="1.6"/><circle cx="16" cy="18" r="1.6"/><path d="M2 21h20"/>',
   peso: '<path d="M8 8a4 4 0 1 1 8 0"/><path d="M5.5 8h13l2 12h-17z"/>',
   tipo: '<path d="M4 17a8 8 0 1 1 16 0"/><path d="M12 17l4-5"/><circle cx="12" cy="17" r="1.2"/>',
+  origen: '<circle cx="12" cy="12" r="7"/><circle cx="12" cy="12" r="2.6" fill="currentColor"/>',
+  destino: '<path d="M6 21V4"/><path d="M6 4h12l-2.5 4L18 12H6"/>',
   ruta: '<circle cx="5" cy="18" r="2.2"/><circle cx="19" cy="6" r="2.2"/><path d="M7 17c6-1 3-9 10-10"/>',
   tren: '<rect x="6" y="3" width="12" height="14" rx="3"/><path d="M6 10h12M9 21l1.5-4M15 21l-1.5-4"/><circle cx="9" cy="13.5" r=".7"/><circle cx="15" cy="13.5" r=".7"/>',
 };
@@ -35,10 +37,12 @@ export function pintarFicha(ruta) {
   const tec = ruta.eventos.filter((e) => e.tipo === "parada_tecnica");
   const tile = (ico, lab, val, tit) => `<div class="tt" title="${esc(tit || lab)}">${ico}<div><b>${lab}</b><span>${val}</span></div></div>`;
   const cvm = p.cvm ? (p.cvm.tramos.length ? `CVM: ${p.cvm.tramos.length} a revisar` : "Coincide con el CVM") : null;
-  // El número está en el cuadro «Tren» de arriba; la clase y el trayecto, aquí (v0.26.2).
+  // El número está en el cuadro «Tren» de arriba; la clase, el origen y el destino, aquí
+  // (v0.26.2; origen y destino por separado desde la v0.27.0).
   $("kv").innerHTML =
     `<div class="tr-tiles">` +
-    tile(`<span class="tl">${lineal("ruta")}</span>`, "Trayecto", `${esc(t.origen || "?")} → ${esc(t.destino || "?")}`) +
+    tile(`<span class="tl">${lineal("origen")}</span>`, "Origen", esc(t.origen || "?")) +
+    tile(`<span class="tl">${lineal("destino")}</span>`, "Destino", esc(t.destino || "?")) +
     (t.clase ? tile(`<span class="tl">${lineal("tren")}</span>`, "Clase", esc(CLASE[t.clase] || t.clase)) : "") +
     tile(`<span class="tl">${lineal("fecha")}</span>`, "Fecha", fecha(t.fecha) || "?") +
     tile(`<span class="tl">${lineal("loco")}</span>`, "Locomotora", esc(t.locomotora || "?")) +

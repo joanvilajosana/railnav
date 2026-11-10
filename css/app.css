@@ -1240,3 +1240,32 @@ button.dlc-n.on{border-color:var(--ac);box-shadow:inset 0 0 0 1.5px var(--ac);ba
 :root[data-disp="tablet"] .info .ic b,:root[data-disp="tablet"] .ic.ic-bq b,:root[data-disp="tablet"] .ic.ic-rd b{font-size:clamp(22px,22cqw,44px)}
 :root[data-disp="tablet"] .ic-tren b{font-size:clamp(22px,30cqw,44px)}
 :root[data-disp="tablet"] .ic.ic-rd.cambia b{font-size:clamp(20px,20cqw,40px)}
+/* v0.27.0 — iPad: el cuadro «Tren» más largo, con el origen y el destino a la derecha del
+   número; Bloqueo y Radiotelefonía más cortos. En el iPhone van en el desplegable. */
+.ic-od,.ic-od[hidden]{display:none}
+:root[data-disp="tablet"] .info{grid-template-columns:minmax(0,2.3fr) minmax(0,1fr) minmax(0,1fr)}
+:root[data-disp="tablet"] .ic-tren{flex-direction:row;align-items:center;justify-content:flex-start;gap:14px}
+:root[data-disp="tablet"] .info .ic-tren b{flex:none;font-size:clamp(24px,14cqw,40px)}
+:root[data-disp="tablet"] .ic-od:not([hidden]){display:flex;flex-direction:column;justify-content:center;gap:4px;flex:1 1 auto;min-width:0;align-self:stretch;margin-top:-13px;padding-left:14px;border-left:1.5px solid var(--ln)}
+.ic-od>span{display:flex;align-items:baseline;gap:8px;min-width:0}
+.ic-od i{flex:none;width:54px;font-style:normal;font-size:10px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--gy)}
+.ic-od .od-v{min-width:0;font-size:16px;font-weight:700;line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+/* v0.27.0 — Datos → DLTV: «Seleccionar» y «Añadir LTV» como dos botones de icono (casilla y +) */
+.dl-top .dl-ico,:root[data-disp="telefono"] .dl-top .dl-ico{display:flex;align-items:center;justify-content:center;width:48px;height:48px;min-height:0;margin:0;padding:0;border-radius:10px}
+.dl-top .dl-ico[hidden]{display:none}
+.dl-top .dl-ico svg{display:block}
+.dl-bts{margin-left:auto;flex-wrap:nowrap}
+.dl-top .dl-bts .ltvm-mas{margin-left:0}
+/* iPhone: los dos botones a la derecha del título del DLTV, y la leyenda debajo en toda la fila */
+:root[data-disp="telefono"] .dl-top{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:8px 10px}
+:root[data-disp="telefono"] .dl-top #dl-cab{display:contents}
+:root[data-disp="telefono"] .dl-top .dlc-1{grid-column:1;grid-row:1;gap:0 10px;min-width:0}
+:root[data-disp="telefono"] .dl-top .dl-bts{grid-column:2;grid-row:1}
+:root[data-disp="telefono"] .dl-top .dlc-2{grid-column:1/-1;grid-row:2}
+/* iPad en horizontal: el cuadro «Tren» es más estrecho; rótulo encima del nombre para que quepa */
+@media (orientation:landscape){
+:root[data-disp="tablet"] .ic-od:not([hidden]){gap:2px;margin-top:-15px;margin-bottom:-3px;padding-left:12px}
+:root[data-disp="tablet"] .ic-od>span{flex-direction:column;align-items:flex-start;gap:0}
+:root[data-disp="tablet"] .ic-od i{width:auto;font-size:9px;line-height:1.1}
+:root[data-disp="tablet"] .ic-od .od-v{max-width:100%;font-size:15px;line-height:1.15}
+}
